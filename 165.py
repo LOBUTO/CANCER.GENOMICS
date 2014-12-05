@@ -4,7 +4,7 @@
 #Need wigfix files and exon.coordinates files for this
 
 import multiprocessing as mp
-import subprocess
+import subprocess, time, threading
 
 def remove_overlap(ranges): #TEST!!
     result = []
@@ -45,7 +45,13 @@ def binarySearch(alist, item):
             else:
                 return binarySearch(alist[midpoint+1:],item)
 
+def foo(item):
+        print item, time.ctime()
+        threading.Timer(5, foo, [item]).start()
+
 def command_run(CHROMOSOME):
+    
+    
     print "chromosome", CHROMOSOME
     
     #######EXON FILE PROCESSING########        
@@ -72,11 +78,12 @@ def command_run(CHROMOSOME):
     FILE="DATABASES/PHASTCONS/45.PLACENTAL/chr"+ CHROMOSOME +".phastCons46way.placental.wigFix"
     file_length=int(subprocess.check_output(["wc", "-l", FILE]).split()[0])
     
+    #Print out count every 10 seconds
     count=1
+    foo([CHROMOSOME,float(count)/file_length])
+    
     with open(FILE) as infile:
         for line in infile:
-        
-            print CHROMOSOME, (float(count)/file_length)
             
             #For every fixed step break line we update the START and STEP record
             if "fixedStep" in line:
