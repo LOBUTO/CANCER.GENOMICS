@@ -54,11 +54,11 @@ chen.annovar<-fread(file.in, header=F, sep="\t", stringsAsFactors=F, drop=5:7)
 
 #########Find best replication time candidate per gene
 
-#Aggregate by median replication time of genomic feature - NOTE: OR WE CAN ADJUST BY POSITION BY EXTRAPOLATING (ie. decay function)
-chen.annovar<-chen.annovar[,list(V8=median(V8)),by=c("V1","V2","V3")] 
+#Obtain RT score per gene - NOTE: OR WE CAN ADJUST BY POSITION BY EXTRAPOLATING (ie. decay function, future) 
+chen.annovar<-chen.annovar[,internal.function(V1,V2), by=c("V1","V2","V3","V4","V8")]
+chen.annovar<-chen.annovar[Hugos!="filter",]
 
 #Rank: exonic > intronic > ncRNA_exonic == ncRNA_intronice > UTR5 == UTR3 > splicing > upstream == downstream >> intergenic 
-chen.annovar<-chen.annovar[,internal.function(V1,V2,V3,V8), by="V2"]
 
 
 setnames(chen.annovar, c("Hugo_Symbol", "Chrom", "Position","REP.TIME"))
@@ -79,8 +79,48 @@ test[V1=="intergenic",]
 
 #test<-test[,list(V8=median(V8)),by=c("V1","V2","V3")]
 test<-test[,internal.function(V1,V2), by=c("V1","V2","V3","V4","V8")]
+test<-test[Hugos!="filter",]
+test<-test[,internal.rt.rank(V1,V8), by=c("Hugos","V3")]
 
-test[grepl(";",Hugos),]
+ggplot(test, aes(RT))+geom_histogram()
+test[Hugos=="DEFB126",]
+
+internal.rt.rank<-function(V1.part, V8.part){
+  
+  #Build table
+  main<-data.table(TYPE=V1.part, RT=V8.part)
+  
+  #Check by rank
+  if (nrow(main[TYPE %in% c("exonic","intronic"),])>0){
+    main.rt<-main[TYPE %in% c("exonic","intronic"),]
+    RT<-median(as.vector(main.rt$RT))
+    
+  } else if (nrow(main[TYPE %in% c("ncRNA_exonic","ncRNA_intronic"),])>0){
+    main.rt<-main[TYPE %in% c("ncRNA_exonic","ncRNA_intronic"),]
+    RT<-median(as.vector(main.rt$RT))
+    
+  } else if (nrow(main[TYPE %in% c("UTR5","UTR3"),])>0){
+    main.rt<-main[TYPE %in% c("UTR5","UTR3"),]
+    RT<-median(as.vector(main.rt$RT))
+    
+  } else if (nrow(main[TYPE %in% c("exonic;splicing","splicing"),])>0){
+    main.rt<-main[TYPE %in% c("exonic;splicing","splicing"),]
+    RT<-median(as.vector(main.rt$RT))
+    
+  } else if (nrow(main[TYPE %in% c("downstream","upstream", "upstream;downstream"),])>0){
+    main.rt<-main[TYPE %in% c("downstream","upstream", "upstream;downstream"),]
+    RT<-median(as.vector(main.rt$RT))
+    
+  } else if (nrow(main[TYPE %in% c("intergenic"),])>0){
+    main.rt<-main[TYPE %in% c("intergenic"),]
+    RT<-median(as.vector(main.rt$RT))
+  }
+  
+  return(list(RT=RT))
+}
+
+
+nrow(test[grepl(";",Hugos),])
 test[Hugos=="NDST4",]
 
 length(unique(as.vector(test$Hugos)))
