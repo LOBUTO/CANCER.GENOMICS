@@ -10,7 +10,9 @@ args<-commandArgs(trailingOnly=T)
 file.in<-args[1] #This is the chen.rt.avinput.variant_function file
 output.file<-args[2]
 
-########Extraction function######## - Also filters for far off intergenic (threshold at 500000)
+
+########FUNCTIONS#######
+#Extraction function# - Also filters for far off intergenic (threshold at 500000)
 internal.function<-function(V1,V2.part, threshold=500000){  
   
   if ((V1=="UTR5") | (V1=="UTR3") | (V1=="splicing") ){
@@ -49,42 +51,7 @@ internal.function<-function(V1,V2.part, threshold=500000){
   return(list(Hugos=Hugos))
 }
 
-########Load file
-chen.annovar<-fread(file.in, header=F, sep="\t", stringsAsFactors=F, drop=5:7)
-
-#########Find best replication time candidate per gene
-
-#Obtain RT score per gene - NOTE: OR WE CAN ADJUST BY POSITION BY EXTRAPOLATING (ie. decay function, future) 
-chen.annovar<-chen.annovar[,internal.function(V1,V2), by=c("V1","V2","V3","V4","V8")]
-chen.annovar<-chen.annovar[Hugos!="filter",]
-
-#Rank: exonic > intronic > ncRNA_exonic == ncRNA_intronice > UTR5 == UTR3 > splicing > upstream == downstream >> intergenic 
-
-
-setnames(chen.annovar, c("Hugo_Symbol", "Chrom", "Position","REP.TIME"))
-
-write.table(file=output.file, chen.annovar, sep="\t", quote=F, row.names=F, col.names=T)
-cat ("done annotating replication times")
-
-
-#####TEST#####
-test<-fread("PIPELINES/METABOLIC.DRIVERS/SCRIPTS/chen.rt.avinput.variant_function", header=F, sep="\t",stringsAsFactors=F,drop=5:7)
-
-unique(as.vector(test$V1))
-test[V1=="upstream;downstream",] 
-test[V1=="exonic;splicing",]
-test[V1=="UTR3",]
-test[V1=="intergenic",]
-#Rank: exonic > intronic > ncRNA_exonic == ncRNA_intronic > UTR5 == UTR3 > splicing > upstream == downstream >> intergenic 
-
-#test<-test[,list(V8=median(V8)),by=c("V1","V2","V3")]
-test<-test[,internal.function(V1,V2), by=c("V1","V2","V3","V4","V8")]
-test<-test[Hugos!="filter",]
-test<-test[,internal.rt.rank(V1,V8), by=c("Hugos","V3")]
-
-ggplot(test, aes(RT))+geom_histogram()
-test[Hugos=="DEFB126",]
-
+#Filterinf function#
 internal.rt.rank<-function(V1.part, V8.part){
   
   #Build table
@@ -119,43 +86,43 @@ internal.rt.rank<-function(V1.part, V8.part){
   return(list(RT=RT))
 }
 
+########Load file#######
+chen.annovar<-fread(file.in, header=F, sep="\t", stringsAsFactors=F, drop=5:7)
 
-nrow(test[grepl(";",Hugos),])
-test[Hugos=="NDST4",]
+#########Find best replication time candidate per gene#######
+#Obtain RT score per gene - NOTE: OR WE CAN ADJUST BY POSITION BY EXTRAPOLATING (ie. decay function, future) 
+chen.annovar<-chen.annovar[,internal.function(V1,V2), by=c("V1","V2","V3","V4","V8")]
+chen.annovar<-chen.annovar[Hugos!="filter",]
+
+#Rank: exonic > intronic > ncRNA_exonic == ncRNA_intronice > UTR5 == UTR3 > splicing > upstream == downstream >> intergenic 
+chen.annovar<-chen.annovar[,internal.rt.rank(V1,V8), by=c("Hugos", "V3")]
+
+#Classify into replication category: high, medium, low
+
+
+#Label
+setnames(chen.annovar, c("Hugo_Symbol", "Chrom", "Position","REP.TIME"))
+
+########Write to output file########
+write.table(file=output.file, chen.annovar, sep="\t", quote=F, row.names=F, col.names=T)
+cat ("done annotating replication times")
+
+
+#####TEST#####
+test<-fread("PIPELINES/METABOLIC.DRIVERS/SCRIPTS/chen.rt.avinput.variant_function", header=F, sep="\t",stringsAsFactors=F,drop=5:7)
+
+
+test<-test[,internal.function(V1,V2), by=c("V1","V2","V3","V4","V8")]
+test<-test[Hugos!="filter",]
+test<-test[,internal.rt.rank(V1,V8), by=c("Hugos","V3")]
+
+
+ggplot(test, aes(RT, fill=V3))+geom_histogram() +theme.format + facet_wrap(~V3)
 
 length(unique(as.vector(test$Hugos)))
-ggplot(test, aes(V8))+geom_histogram()
-ggplot(test[,list(RT=median(V8)),by=Hugos], aes(RT)) +geom_histogram() +theme.format
-ggplot(test[,list(sd=sd(V8)), by=Hugos], aes(sd)) + geom_histogram() + theme.format
-test[,list(sd=sd(V8)), by=Hugos][sd>0.4,]
 
-test.median<-test[,list(RT=median(V8)),by=Hugos]
+test[Hugos=="PTEN",]
+
+quantile(test$RT, c(0.33,0.66))
 
 
-test.median[Hugos=="PTEN",]#Go by rank?
-test[Hugos=="TTN",]
-test[grepl("NONE",V2),]
-
-quantile(test.median$RT, c(0.33,0.66))
-
-test.broken<-test[,list(sd=sd(V8)),by=Hugos]
-test.broken[sd>0.4,]
-ALG10<-test[Hugos=="ALG10",]
-ALG10$dist<-sapply(ALG10$V2, function(x){
-  dist<-unlist(strsplit(x,","))
-  dist<-dist[grepl("ALG10",dist)]
-  dist<-as.numeric(unlist(strsplit(dist,'[=)]'))[2])
-  return (dist)
-})
-ALG10[order(dist),]
-ggplot(ALG10, aes(dist, V8))+geom_point() + theme.format +ylab("RT")
-
-HCN1<-test[Hugos=="HCN1",]
-HCN1$dist<-sapply(HCN1$V2, function(x){
-  dist<-unlist(strsplit(x,","))
-  dist<-dist[grepl("HCN1",dist)]
-  dist<-as.numeric(unlist(strsplit(dist,'[=)]'))[2])
-  return (dist)
-})
-HCN1[is.na(dist),]
-ggplot(HCN1, aes(dist, V8))+geom_point() + theme.format + ylab("RT")
