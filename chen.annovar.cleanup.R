@@ -98,15 +98,14 @@ chen.annovar<-chen.annovar[Hugos!="filter",]
 chen.annovar<-chen.annovar[,internal.rt.rank(V1,V8), by=c("Hugos", "V3")]
 
 #Classify into replication category: high, medium, low
-
+chen.annovar$cut<-cut(chen.annovar$RT, breaks=c(0, as.vector(quantile(chen.annovar$RT, c(0.33,0.66))),1),include.lowest=T)
 
 #Label
-setnames(chen.annovar, c("Hugo_Symbol", "Chrom", "Position","REP.TIME"))
+setnames(chen.annovar, c("Hugo_Symbol", "Chrom","REP.TIME", "REP.CLASS"))
 
 ########Write to output file########
 write.table(file=output.file, chen.annovar, sep="\t", quote=F, row.names=F, col.names=T)
 cat ("done annotating replication times")
-
 
 #####TEST#####
 test<-fread("PIPELINES/METABOLIC.DRIVERS/SCRIPTS/chen.rt.avinput.variant_function", header=F, sep="\t",stringsAsFactors=F,drop=5:7)
@@ -116,13 +115,16 @@ test<-test[,internal.function(V1,V2), by=c("V1","V2","V3","V4","V8")]
 test<-test[Hugos!="filter",]
 test<-test[,internal.rt.rank(V1,V8), by=c("Hugos","V3")]
 
+test$cuts<-cut(test$RT, breaks=c(0, as.vector(quantile(test$RT, c(0.33,0.66))),1),include.lowest=T, labels=c("low", "medium","high"))
+table(test$cuts)
 
 ggplot(test, aes(RT, fill=V3))+geom_histogram() +theme.format + facet_wrap(~V3)
+ggplot(test, aes(RT, colour=cuts)) + geom_histogram() + theme.format + facet_wrap(~cuts)
 
 length(unique(as.vector(test$Hugos)))
 
 test[Hugos=="PTEN",]
 
-quantile(test$RT, c(0.33,0.66))
+
 
 
