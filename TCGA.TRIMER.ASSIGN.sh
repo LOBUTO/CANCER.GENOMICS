@@ -9,6 +9,7 @@ Rscript TCGA.PRE.PROCESS.R $1
 printf "\n"
 
 #######Assign trimers to each position#####
+echo "Assigning trimers"
 python TCGA.TRIMER.SEARCH.py temp.1.csv temp.2.csv $3
 rm temp.1.csv
 echo "Done processing trimers"
@@ -38,4 +39,4 @@ awk -F "$" '{print $1, $2}' temp.5 | awk  '{for (i=1;i<=NF;i++){printf "%s\t",  
 rm temp.5
 echo "Done"
 
-#In 123114 produced 123114.BRCA.MAF.TRIMERS.csv with breast cancer data from TCGA
+#In 123114 produced 123114.BRCA.MAF.TRIMERS.csv with breast cancer data from TCGA (using PHAST.100)
