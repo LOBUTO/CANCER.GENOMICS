@@ -20,6 +20,10 @@ internal.function<-function(V1,V2.part, threshold=500000){
     
   } else if (V1=="exonic;splicing"){
     Hugos<-unlist(strsplit(V2.part,";"))[1]
+  
+  } else if (V1=="ncRNA_splicing"){
+    Hugos<-unlist(strsplit(V2.part,"),"))
+    Hugos<-as.vector(sapply(Hugos, function(x)  unlist(strsplit(x, "\\("))[1] ))
     
   } else if (V1=="intergenic"){ #Thresholding at a particular distance
     dist.hugos<-unlist(strsplit(V2.part,",")) 
@@ -73,6 +77,10 @@ internal.rt.rank<-function(V1.part, V8.part){
   } else if (nrow(main[TYPE %in% c("exonic;splicing","splicing"),])>0){
     main.rt<-main[TYPE %in% c("exonic;splicing","splicing"),]
     RT<-median(as.vector(main.rt$RT))
+  
+  } else if (nrow(main[TYPE %in% c("ncRNA_splicing"),])>0){
+    main.rt<-main[TYPE %in% c("ncRNA_splicing"),]
+    RT<-median(as.vector(main.rt$RT))
     
   } else if (nrow(main[TYPE %in% c("downstream","upstream", "upstream;downstream"),])>0){
     main.rt<-main[TYPE %in% c("downstream","upstream", "upstream;downstream"),]
@@ -98,7 +106,8 @@ chen.annovar<-chen.annovar[Hugos!="filter",]
 chen.annovar<-chen.annovar[,internal.rt.rank(V1,V8), by=c("Hugos", "V3")]
 
 #Classify into replication category: high, medium, low
-chen.annovar$cut<-cut(chen.annovar$RT, breaks=c(0, as.vector(quantile(chen.annovar$RT, c(0.33,0.66))),1),include.lowest=T)
+chen.annovar$cut<-cut(chen.annovar$RT, breaks=c(0, as.vector(quantile(chen.annovar$RT, c(0.33,0.66))),1),include.lowest=T,
+                      labels=c("low", "medium","high"))
 
 #Label
 setnames(chen.annovar, c("Hugo_Symbol", "Chrom","REP.TIME", "REP.CLASS"))
@@ -107,23 +116,22 @@ setnames(chen.annovar, c("Hugo_Symbol", "Chrom","REP.TIME", "REP.CLASS"))
 write.table(file=output.file, chen.annovar, sep="\t", quote=F, row.names=F, col.names=T)
 cat ("done annotating replication times")
 
-#####TEST#####
-test<-fread("PIPELINES/METABOLIC.DRIVERS/SCRIPTS/chen.rt.avinput.variant_function", header=F, sep="\t",stringsAsFactors=F,drop=5:7)
+#####################################TEST USAGE#######################################################################################
+# test<-fread("PIPELINES/METABOLIC.DRIVERS/SCRIPTS/chen.rt.avinput.variant_function", header=F, sep="\t",stringsAsFactors=F,drop=5:7)
+# 
+# test<-test[,internal.function(V1,V2), by=c("V1","V2","V3","V4","V8")]
+# test<-test[Hugos!="filter",]
+# 
+# test<-test[,internal.rt.rank(V1,V8), by=c("Hugos","V3")]
+# 
+# test$cuts<-cut(test$RT, breaks=c(0, as.vector(quantile(test$RT, c(0.33,0.66))),1),include.lowest=T, labels=c("low", "medium","high"))
+# table(test$cuts)
+# 
+# ggplot(test, aes(RT, fill=V3))+geom_histogram() +theme.format + facet_wrap(~V3)
+# ggplot(test, aes(RT, colour=cuts)) + geom_histogram() + theme.format + facet_wrap(~cuts)
 
 
-test<-test[,internal.function(V1,V2), by=c("V1","V2","V3","V4","V8")]
-test<-test[Hugos!="filter",]
-test<-test[,internal.rt.rank(V1,V8), by=c("Hugos","V3")]
 
-test$cuts<-cut(test$RT, breaks=c(0, as.vector(quantile(test$RT, c(0.33,0.66))),1),include.lowest=T, labels=c("low", "medium","high"))
-table(test$cuts)
-
-ggplot(test, aes(RT, fill=V3))+geom_histogram() +theme.format + facet_wrap(~V3)
-ggplot(test, aes(RT, colour=cuts)) + geom_histogram() + theme.format + facet_wrap(~cuts)
-
-length(unique(as.vector(test$Hugos)))
-
-test[Hugos=="PTEN",]
 
 
 
