@@ -237,40 +237,25 @@ THOUSAND.PHAST.45$MAF<-ifelse(THOUSAND.PHAST.45$AF>0.5, 1-THOUSAND.PHAST.45$AF,T
 
 THOUSAND.PHAST.45.FILTERED<-THOUSAND.PHAST.45[MAF>=0.000199682,] 
 THOUSAND.PHAST.45.FILTERED$PHAST.CUT<-cut(THOUSAND.PHAST.45.FILTERED$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)
-ggplot(THOUSAND.PHAST.45.FILTERED, aes(PHAST.CUT, MAF, colour=TYPE)) + geom_boxplot() + scale_y_log10() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme.format + facet_wrap(~TYPE)
-ggplot(THOUSAND.PHAST.45.FILTERED, aes(PHAST.CUT, MAF, fill=ALT)) + geom_boxplot() + scale_y_log10() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme.format + facet_wrap(~TYPE)
-summary(lm(MAF~exp(PHAST.45)+TYPE+REF+ALT+Chrom,data=THOUSAND.PHAST.45.FILTERED))
 
-table(THOUSAND.PHAST.45.FILTERED$PHAST.CUT)
-THOUSAND.PHAST.45.FILTERED[PHAST.45==1,]
 #Try including normal expression levels of all genes (need to find info)
 length(unique(as.vector(THOUSAND.PHAST.45$Hugo_Symbol)))
 
 ######Inclusde replication time
-CHEN.REP<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/010815.CHEN.REP.TIMES", header=T, sep="\t",stringsAsFactors=F, drop=2)
+CHEN.REP<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/010815.CHEN.REP.TIMES.MID.4.EXP", header=T, sep="\t",stringsAsFactors=F, drop=2)
+setkey(CHEN.REP)
 ggplot(CHEN.REP, aes(REP.CLASS, REP.TIME)) + geom_boxplot() + theme.format
 table(CHEN.REP$REP.CLASS)
 
-THOUSAND.PHAST.45<-merge(THOUSAND.PHAST.45, CHEN.REP, by="Hugo_Symbol")
-THOUSAND.PHAST.45$REP.CLASS<-factor(THOUSAND.PHAST.45$REP.CLASS, levels=c("high","medium","low"))
-summary(lm(MAF~exp(PHAST.45)+REP.TIME+TYPE+REF+ALT+Chrom, data=THOUSAND.PHAST.45 ))
+THOUSAND.PHAST.45.MID.4<-merge(THOUSAND.PHAST.45, CHEN.REP, by="Hugo_Symbol")
+setkey(THOUSAND.PHAST.45.MID.4)
+THOUSAND.PHAST.45.MID.4<-unique(THOUSAND.PHAST.45.MID.4)
 
-ggplot(THOUSAND.PHAST.45[TYPE=="nonsynonymous SNV" & EXON==TRUE,], aes(REP.CLASS, MAF, colour=TYPE)) + geom_boxplot() + 
-  facet_grid(REF~ALT) + theme.format + scale_y_log10()
-
-THOUSAND.PHAST.45.FILTERED<-THOUSAND.PHAST.45#[MAF>=0.000199682,]
+THOUSAND.PHAST.45.FILTERED<-THOUSAND.PHAST.45[MAF>=0.000199682,]
 THOUSAND.PHAST.45.FILTERED$PHAST.CUT<-cut(THOUSAND.PHAST.45.FILTERED$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)
-
-ggplot(THOUSAND.PHAST.45.FILTERED, aes(PHAST.CUT, MAF, colour=REP.CLASS)) + geom_boxplot() + scale_y_log10() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme.format + facet_grid(~TYPE)
-ggplot(THOUSAND.PHAST.45.FILTERED, aes(PHAST.CUT, MAF, colour=REP.CLASS)) + geom_boxplot() + scale_y_log10() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme.format + facet_grid(TYPE~REF)
-ggplot(THOUSAND.PHAST.45.FILTERED, aes(REP.CLASS, MAF, colour=TYPE)) + geom_boxplot() + theme.format + facet_wrap(~TYPE) +
-  scale_y_log10()
-
-summary(lm(MAF~exp(PHAST.45)+REP.CLASS+TYPE+REF:ALT+Chrom, data=THOUSAND.PHAST.45.FILTERED )) 
+THOUSAND.PHAST.45.MID.4.FILTERED<-merge(THOUSAND.PHAST.45.FILTERED, CHEN.REP, by="Hugo_Symbol")
+setkey(THOUSAND.PHAST.45.MID.4.FILTERED)
+THOUSAND.PHAST.45.MID.4.FILTERED<-unique(THOUSAND.PHAST.45.MID.4.FILTERED)
 
 #MODIFY BAYES
 #Given that |replication time(class) - Increase number of replication classes
@@ -288,16 +273,260 @@ ggplot(THOUSAND.PHAST.45[Hugo_Symbol=="TTN",], aes(Position, MAF, colour=TYPE)) 
 ggplot(THOUSAND.PHAST.45.FILTERED[EXON==TRUE,], aes(PHAST.CUT, MAF,colour=TYPE)) + geom_boxplot() + theme.format +
   facet_grid(REF~ALT) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + scale_y_log10()
 
-THOUSAND.PHAST.45.FILTERED[EXON==TRUE,][,list(low.count=sum(MAF<0.000199682),
-                                              high.count=sum(MAF>0.000199682)), by=PHAST.CUT][order(PHAST.CUT),]
-table(THOUSAND.PHAST.45.FILTERED[EXON==TRUE,]$PHAST.CUT)
-
 #Formal function based on Pr(Cancer | REF->ALT n REP.TIME n PHAST.45)
-Function.THOUSAND.Prob<-function(THOUSAND.PHAST.CHEN.TABLE){
-  
+Function.THOUSAND.Prob<-function(THOUSAND.PHAST.CHEN.TABLE, CUTS=F, PHAST=T){
+  #Keep in mind that pre-processing needs to be done (mt, merging with chen, setnames...etc)
+  #FIX!!!!
   require(data.table)
   
   #Filter table
-  main.table<-THOUSAND.PHAST.CHEN.TABLE[]
+  main.table<-THOUSAND.PHAST.CHEN.TABLE[EXON==TRUE,]
   
+  #Prep classes
+  main.table$REF.ALT<-paste(as.vector(main.table$REF), as.vector(main.table$ALT), sep="_")
+  
+  if (CUTS==T){
+    main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)  
+    main.table$REP.CLASS<-cut(main.table$REP.TIME, seq(0,1,0.05),include.lowest=T)
+  }
+  
+  #Calculate probabilities - APPLY CHANGES TO TCGA FUNCTION!!!!!
+  n.experiments<-sum(main.table$MAF)
+  main.table[,REF.ALT.PROB:=sum(MAF)/n.experiments,by=REF.ALT]
+  main.table[,TYPE.PROB:=sum(MAF)/n.experiments,by=TYPE]
+  
+  if (CUTS==T){
+    main.table[,REP.TIME.PROB:=sum(MAF)/n.experiments,by=REP.CLASS]
+    main.table[,PHAST.45.PROB:=sum(MAF)/n.experiments,by=PHAST.CLASS]
+  } else{
+    main.table[,REP.TIME.PROB:=sum(MAF)/n.experiments,by=REP.TIME]
+    main.table[,PHAST.45.PROB:=sum(MAF)/n.experiments,by=PHAST.45]
+  }
+  
+  #Set key to all columns so we don't remove non-duplicates with unique later on
+  setkey(main.table)
+  
+  if (PHAST==T){
+    main.table$THOUSAND.PROB<-main.table$REF.ALT.PROB*main.table$REP.TIME.PROB*main.table$TYPE.PROB*main.table$PHAST.45.PROB
+    
+    #Clean up and return
+    if (CUTS==T){
+      prop.table<-unique(main.table[,c("REF.ALT","REP.CLASS", "TYPE", "PHAST.CLASS", "THOUSAND.PROB"),with=F])
+    } else{
+      prop.table<-unique(main.table[,c("REF.ALT","REP.TIME", "TYPE", "PHAST.45", "THOUSAND.PROB"),with=F]) 
+    }
+  } else {
+    main.table$THOUSAND.PROB<-main.table$REF.ALT.PROB*main.table$REP.TIME.PROB*main.table$TYPE.PROB
+    
+    #Clean up and return
+    if (CUTS==T){
+      prop.table<-unique(main.table[,c("REF.ALT","REP.CLASS", "TYPE", "THOUSAND.PROB"),with=F])
+    } else{
+      prop.table<-unique(main.table[,c("REF.ALT","REP.TIME", "TYPE", "THOUSAND.PROB"),with=F]) 
+    }
+  }
+  return(prop.table)
+}
+
+Function.TCGA.Prob<-function(TCGA.PHAST.CHEN.TABLE, CUTS=F, PHAST=T){
+  #Keep in mind that pre-processing needs to be done (mt, mergint with chen, setnames....etc)
+  
+  require(data.table)
+  
+  #Filter table - change labels for compatibility with thousand table
+  main.table<-TCGA.PHAST.CHEN.TABLE[TYPE %in% c("Missense_Mutation", "Silent"),]
+  main.table$TYPE<-ifelse(main.table$TYPE=="Missense_Mutation", "nonsynonymous SNV", "synonymous SNV")
+  
+  #Prep class
+  main.table$REF.ALT<-paste(as.vector(main.table$REF), as.vector(main.table$ALT), sep="_")
+  if (CUTS==T){
+    main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)  
+    main.table$REP.CLASS<-cut(main.table$REP.TIME, seq(0,1,0.05),include.lowest=T)
+  }
+  
+  #Calculate probabilities and add to each line
+  n.experiments<-sum(main.table$MUT.FREQ)
+  main.table[,REF.ALT.PROB:=sum(MUT.FREQ)/n.experiments,by=REF.ALT]
+  main.table[,TYPE.PROB:=sum(MUT.FREQ)/n.experiments,by=TYPE]
+  
+  if (CUTS==T){
+    main.table[,REP.TIME.PROB:=sum(MUT.FREQ)/n.experiments,by=REP.CLASS]
+    main.table[,PHAST.45.PROB:=sum(MUT.FREQ)/n.experiments,by=PHAST.CLASS]
+  } else{
+    main.table[,REP.TIME.PROB:=sum(MUT.FREQ)/n.experiments,by=REP.TIME]
+    main.table[,PHAST.45.PROB:=sum(MUT.FREQ)/n.experiments,by=PHAST.45]
+  }
+  
+  #Use phastcons scores?
+  if (PHAST==T){
+    main.table$TCGA.PROB<-main.table$REF.ALT.PROB*main.table$REP.TIME.PROB*main.table$TYPE.PROB*main.table$PHAST.45.PROB  
+  } else {
+    main.table$PHAST.45.PROB<-NULL
+    main.table$TCGA.PROB<-main.table$REF.ALT.PROB*main.table$REP.TIME.PROB*main.table$TYPE.PROB  
+  }
+  
+  #Return
+  return (main.table)
+}
+
+Function.Main.Bayes<-function(thousand.prop.table, tcga.main.table, cancer.prob=0.12, threshold=F, all=T, CUTS=F, PHAST=T){
+  #Merges cancer and non-cancer probabilities to calculate non-naive bayesian probability per site
+  
+  library(data.table)
+  
+  #Merge probabilites (TCGA.PROB, THOUSAND.PROB)
+  if (all==T){
+    threshold.prob<-min(thousand.prop.table$THOUSAND.PROB)
+    
+    #Analyse by cuts?
+    if (CUTS==T){
+      if(PHAST==T){
+        main.table<-merge(tcga.main.table, thousand.prop.table, by=c("REF.ALT","REP.CLASS","TYPE","PHAST.CLASS"), all.x=TRUE)  
+      } else{
+        main.table<-merge(tcga.main.table, thousand.prop.table, by=c("REF.ALT","REP.CLASS","TYPE"), all.x=TRUE)  
+      }
+      
+    } else{
+      if (PHAST==T){
+        main.table<-merge(tcga.main.table, thousand.prop.table, by=c("REF.ALT","REP.TIME","TYPE","PHAST.45"), all.x=TRUE)    
+      } else{
+        main.table<-merge(tcga.main.table, thousand.prop.table, by=c("REF.ALT","REP.TIME","TYPE"), all.x=TRUE)    
+      }
+    }
+    
+    #Apply lowest threshold?
+    if (threshold==T){
+      main.table[is.na(main.table),]<-threshold.prob
+    }  
+  } else {
+    
+    #Analyze by cuts?
+    if (CUTS==T){
+      if (PHAST==T){
+        main.table<-merge(tcga.main.table, thousand.prop.table, by=c("REF.ALT","REP.CLASS","TYPE","PHAST.CLASS"))  
+      } else{
+        main.table<-merge(tcga.main.table, thousand.prop.table, by=c("REF.ALT","REP.CLASS","TYPE"))  
+      } 
+      
+    } else{
+      if (PHAST==T){
+        main.table<-merge(tcga.main.table, thousand.prop.table, by=c("REF.ALT","REP.TIME","TYPE","PHAST.45"))  
+      } else{
+        main.table<-merge(tcga.main.table, thousand.prop.table, by=c("REF.ALT","REP.TIME","TYPE"))  
+      }
+      
+    }
+  }
+  
+  #Calculate bayes prob per site based on features
+  main.table$BAYES.PROB<-(main.table$TCGA.PROB*cancer.prob)/(main.table$TCGA.PROB*cancer.prob + main.table$THOUSAND.PROB*(1-cancer.prob))
+  
+  #Clean up and return
+  main.table<-main.table[order(BAYES.PROB, decreasing=T),]
+  return(main.table)
+}
+
+Function.Bayes.Test<-function(main.table, cosmic.genes){
+  
+  require (data.table)
+  
+  #Classify
+  main.table$cancer<-main.table$Hugo_Symbol %in% cosmic.genes
+  
+  #Analyze...
+  
+  #Return
+  return (main.table) 
+}
+
+########Test bayes########
+BRCA.COSMIC.GENES<-c("AKT1", "BAP1", "BRCA1", "BRCA2", "BRIP1", "CDH1", "EP300", "ERBB2",
+                     "FOXA1", "MAP2K4","PALB2","PBRM1", "PIK3CA", "RB1","TP53")
+
+#Load TCGA file
+TCGA.MUT.45<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/BRCA/011015.BRCA.MAF.TRIMERS.45.csv", header=F, sep="\t",
+                   stringsAsFactors=F, drop=c(8:9,11))
+setnames(TCGA.MUT.45, c("Chrom","Position","Hugo_Symbol", "MUT.FREQ", "TYPE", "REF","ALT","PHAST.45"))
+TCGA.MUT.45.MID.4<-merge(TCGA.MUT.45, CHEN.REP, by="Hugo_Symbol")
+setkey(TCGA.MUT.45.MID.4)
+TCGA.MUT.45.MID.4<-unique(TCGA.MUT.45.MID.4)
+
+#Apply functions
+thousand.prop.table<-Function.THOUSAND.Prob(THOUSAND.PHAST.45.MID.4, CUTS=F, PHAST=T)
+tcga.main.table<-Function.TCGA.Prob(TCGA.MUT.45.MID.4, CUTS=F, PHAST=T)
+tcga.bayes<-Function.Main.Bayes(thousand.prop.table,tcga.main.table,0.12,threshold=F,all=F,CUTS=F,PHAST=T)
+tcga.bayes.test<-Function.Bayes.Test(tcga.bayes,BRCA.COSMIC.GENES)
+
+ggplot(tcga.bayes.test, aes(cancer, BAYES.PROB, colour=cancer)) + geom_boxplot() + geom_jitter(size=1) + theme.format + facet_wrap(~TYPE)
+
+#DON'T USE UNIQUE()!!! IT IGNORES POSITION, UNLESS U DO SETKEY() BEFOREHAND!!!
+#TRY ALTERNATIVE TO POSITIVE STRAND!!!! SAME ARE NOT ANNOTATED WELL 
+#COULD ALSO DO PROBABILITIES PER GENE!!! (by=c(""..,"Hugo_Symbol"))
+#COULD ALSO USE EXPRESSION LEVELS AS PREDICTORS????
+bayes.box.test<-data.table()
+for (prob in c(0.95, 0.9, 0.85, 0.80, 0.75, 0.7, 0.6, 0.5,0.4,0.3,0.2)){
+  n.cancer<-length(unique(as.vector(tcga.bayes.test[BAYES.PROB>=prob & cancer==TRUE & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)))
+  n.non.cancer<-length(unique(as.vector(tcga.bayes.test[BAYES.PROB>=prob & cancer==FALSE & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)))
+  bayes.box.test<-rbind(bayes.box.test, data.table(PROB=prob, CANCER=n.cancer, NON.CANCER=n.non.cancer))
+}
+ggplot(melt(bayes.box.test,id.vars="PROB"), aes(PROB, value, colour=variable)) + geom_bar(stat="identity", position="dodge") + theme.format +
+  geom_text(aes(label=value), position=position_dodge(width=0.04), vjust=-0.25) 
+ 
+tcga.bayes[Hugo_Symbol=="TP53",]
+
+#########011215########
+#Modify functions  so that they use joint probabilities rather than conditional independence per gene
+THOUSAND.PHAST.45.MID.2
+Function.THOUSAND.Prob.Joint<-function(THOUSAND.PHAST.CHEN.TABLE, CUTS=F, PHAST=T){
+  #Keep in mind that pre-processing needs to be done (mt, merging with chen, setnames...etc)
+  #FIX!!!!
+  require(data.table)
+  
+  #Filter table
+  main.table<-THOUSAND.PHAST.CHEN.TABLE[EXON==TRUE,]
+  
+  #Prep classes
+  main.table$REF.ALT<-paste(as.vector(main.table$REF), as.vector(main.table$ALT), sep="_")
+  
+  if (CUTS==T){
+    main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)  
+    main.table$REP.CLASS<-cut(main.table$REP.TIME, seq(0,1,0.05),include.lowest=T)
+  }
+  
+  #Calculate probabilities - APPLY CHANGES TO TCGA FUNCTION!!!!!
+  n.experiments<-sum(main.table$MAF)
+  main.table[,REF.ALT.PROB:=sum(MAF)/n.experiments,by=REF.ALT]
+  main.table[,TYPE.PROB:=sum(MAF)/n.experiments,by=TYPE]
+  
+  if (CUTS==T){
+    main.table[,REP.TIME.PROB:=sum(MAF)/n.experiments,by=REP.CLASS]
+    main.table[,PHAST.45.PROB:=sum(MAF)/n.experiments,by=PHAST.CLASS]
+  } else{
+    main.table[,REP.TIME.PROB:=sum(MAF)/n.experiments,by=REP.TIME]
+    main.table[,PHAST.45.PROB:=sum(MAF)/n.experiments,by=PHAST.45]
+  }
+  
+  #Set key to all columns so we don't remove non-duplicates with unique later on
+  setkey(main.table)
+  
+  if (PHAST==T){
+    main.table$THOUSAND.PROB<-main.table$REF.ALT.PROB*main.table$REP.TIME.PROB*main.table$TYPE.PROB*main.table$PHAST.45.PROB
+    
+    #Clean up and return
+    if (CUTS==T){
+      prop.table<-unique(main.table[,c("REF.ALT","REP.CLASS", "TYPE", "PHAST.CLASS", "THOUSAND.PROB"),with=F])
+    } else{
+      prop.table<-unique(main.table[,c("REF.ALT","REP.TIME", "TYPE", "PHAST.45", "THOUSAND.PROB"),with=F]) 
+    }
+  } else {
+    main.table$THOUSAND.PROB<-main.table$REF.ALT.PROB*main.table$REP.TIME.PROB*main.table$TYPE.PROB
+    
+    #Clean up and return
+    if (CUTS==T){
+      prop.table<-unique(main.table[,c("REF.ALT","REP.CLASS", "TYPE", "THOUSAND.PROB"),with=F])
+    } else{
+      prop.table<-unique(main.table[,c("REF.ALT","REP.TIME", "TYPE", "THOUSAND.PROB"),with=F]) 
+    }
+  }
+  return(prop.table)
 }
