@@ -18,9 +18,10 @@ internal.function<-function(V1,V2.part, threshold=500000){
   if ((V1=="UTR5") | (V1=="UTR3") | (V1=="splicing") ){
     Hugos<-unlist(strsplit(V2.part,"\\("))[1]
     
-  } else if (V1=="exonic;splicing"){
-    Hugos<-unlist(strsplit(V2.part,";"))[1]
-  
+  } else if ( (V1=="exonic;splicing") | (V1=="UTR5;UTR3") ){
+    Hugos<-unlist(strsplit(V2.part,";"))
+    Hugos<-unique(as.vector(sapply(Hugos, function(x) unlist(strsplit(x, "\\(NM"))[1])))
+    
   } else if (V1=="ncRNA_splicing"){
     Hugos<-unlist(strsplit(V2.part,"),"))
     Hugos<-as.vector(sapply(Hugos, function(x)  unlist(strsplit(x, "\\("))[1] ))
@@ -70,7 +71,7 @@ internal.rt.rank<-function(V1.part, V8.part){
     main.rt<-main[TYPE %in% c("ncRNA_exonic","ncRNA_intronic"),]
     RT<-median(as.vector(main.rt$RT))
     
-  } else if (nrow(main[TYPE %in% c("UTR5","UTR3"),])>0){
+  } else if (nrow(main[TYPE %in% c("UTR5","UTR3","UTR5;UTR3"),])>0){
     main.rt<-main[TYPE %in% c("UTR5","UTR3"),]
     RT<-median(as.vector(main.rt$RT))
     
@@ -117,8 +118,8 @@ write.table(file=output.file, chen.annovar, sep="\t", quote=F, row.names=F, col.
 cat ("done annotating replication times")
 
 #####################################TEST USAGE#######################################################################################
-# test<-fread("PIPELINES/METABOLIC.DRIVERS/SCRIPTS/chen.rt.avinput.variant_function", header=F, sep="\t",stringsAsFactors=F,drop=5:7)
-# 
+# test<-fread("FOLDER/SCRIPTS/desprat.rt.avinput.variant_function", header=F, sep="\t",stringsAsFactors=F,drop=5:7)
+#   
 # test<-test[,internal.function(V1,V2), by=c("V1","V2","V3","V4","V8")]
 # test<-test[Hugos!="filter",]
 # 
@@ -129,8 +130,8 @@ cat ("done annotating replication times")
 # 
 # ggplot(test, aes(RT, fill=V3))+geom_histogram() +theme.format + facet_wrap(~V3)
 # ggplot(test, aes(RT, colour=cuts)) + geom_histogram() + theme.format + facet_wrap(~cuts)
-
-
+# 
+# rm(test)
 
 
 
