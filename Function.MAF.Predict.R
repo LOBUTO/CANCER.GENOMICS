@@ -475,11 +475,11 @@ ggplot(melt(bayes.box.test,id.vars="PROB"), aes(PROB, value, colour=variable)) +
 tcga.bayes[Hugo_Symbol=="TP53",]
 
 #########011215########
-#Modify functions  so that they use joint probabilities rather than conditional independence per gene
-THOUSAND.PHAST.45.MID.2
-Function.THOUSAND.Prob.Joint<-function(THOUSAND.PHAST.CHEN.TABLE, CUTS=F, PHAST=T){
-  #Keep in mind that pre-processing needs to be done (mt, merging with chen, setnames...etc)
-  #FIX!!!!
+######Modify functions  so that they use joint probabilities rather than conditional independence per gene
+
+#Functions
+Function.THOUSAND.Prob.Joint<-function(THOUSAND.PHAST.CHEN.TABLE){
+  
   require(data.table)
   
   #Filter table
@@ -488,45 +488,101 @@ Function.THOUSAND.Prob.Joint<-function(THOUSAND.PHAST.CHEN.TABLE, CUTS=F, PHAST=
   #Prep classes
   main.table$REF.ALT<-paste(as.vector(main.table$REF), as.vector(main.table$ALT), sep="_")
   
-  if (CUTS==T){
-    main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)  
-    main.table$REP.CLASS<-cut(main.table$REP.TIME, seq(0,1,0.05),include.lowest=T)
-  }
+  #Get Hugo sum and total maf
+  main.table[,HUGO.MAFS:=sum(MAF), by="Hugo_Symbol"]
+  n.maf<-sum(main.table$MAF)
   
-  #Calculate probabilities - APPLY CHANGES TO TCGA FUNCTION!!!!!
-  n.experiments<-sum(main.table$MAF)
-  main.table[,REF.ALT.PROB:=sum(MAF)/n.experiments,by=REF.ALT]
-  main.table[,TYPE.PROB:=sum(MAF)/n.experiments,by=TYPE]
+  #####Simple processing, start with just ref->alt and syn/non per priors, then add Pr(RT<=cuts)
+  #Rep class
+  main.table$REP.CLASS<-cut(main.table$REP.TIME, c(0,0.33,0.67,1), include.lowest=T)
+  main.table[,REP.CLASS.MAF:=sum(MAF), by="REP.CLASS"]
+  main.table[,REP.PROB.T:=sum(MAF)/REP.CLASS.MAF ,by="Hugo_Symbol"]
   
-  if (CUTS==T){
-    main.table[,REP.TIME.PROB:=sum(MAF)/n.experiments,by=REP.CLASS]
-    main.table[,PHAST.45.PROB:=sum(MAF)/n.experiments,by=PHAST.CLASS]
-  } else{
-    main.table[,REP.TIME.PROB:=sum(MAF)/n.experiments,by=REP.TIME]
-    main.table[,PHAST.45.PROB:=sum(MAF)/n.experiments,by=PHAST.45]
-  }
+  #Phastcon classes
+  main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,1.0), include.lowest=T)
+  main.table[,PHAST.PROB:=sum(MAF)/n.maf, by="PHAST.CLASS"]
   
-  #Set key to all columns so we don't remove non-duplicates with unique later on
+  #Calculate probability - then phast.prob as independent factor
+  main.table[,THOUSAND.PROB:=(sum(MAF)/unique(HUGO.MAFS))*unique(REP.PROB.T),by=c("Hugo_Symbol", "REF.ALT","TYPE","PHAST.CLASS")]
+  
+  #Clean up and return
+  main.table<-main.table[,c("Hugo_Symbol", "REF.ALT","TYPE","REP.CLASS","PHAST.CLASS","THOUSAND.PROB","REP.PROB.T"),with=F]
   setkey(main.table)
-  
-  if (PHAST==T){
-    main.table$THOUSAND.PROB<-main.table$REF.ALT.PROB*main.table$REP.TIME.PROB*main.table$TYPE.PROB*main.table$PHAST.45.PROB
-    
-    #Clean up and return
-    if (CUTS==T){
-      prop.table<-unique(main.table[,c("REF.ALT","REP.CLASS", "TYPE", "PHAST.CLASS", "THOUSAND.PROB"),with=F])
-    } else{
-      prop.table<-unique(main.table[,c("REF.ALT","REP.TIME", "TYPE", "PHAST.45", "THOUSAND.PROB"),with=F]) 
-    }
-  } else {
-    main.table$THOUSAND.PROB<-main.table$REF.ALT.PROB*main.table$REP.TIME.PROB*main.table$TYPE.PROB
-    
-    #Clean up and return
-    if (CUTS==T){
-      prop.table<-unique(main.table[,c("REF.ALT","REP.CLASS", "TYPE", "THOUSAND.PROB"),with=F])
-    } else{
-      prop.table<-unique(main.table[,c("REF.ALT","REP.TIME", "TYPE", "THOUSAND.PROB"),with=F]) 
-    }
-  }
-  return(prop.table)
+  main.table<-unique(main.table)
+  return(main.table)
 }
+
+Function.TCGA.Prob.Joint<-function(TCGA.PHAST.CHEN.TABLE){
+  require(data.table)
+  
+  #Filter table - change labels for compatibility with thousand table
+  main.table<-TCGA.PHAST.CHEN.TABLE[TYPE %in% c("Missense_Mutation", "Silent"),]
+  main.table$TYPE<-ifelse(main.table$TYPE=="Missense_Mutation", "nonsynonymous SNV", "synonymous SNV")
+  
+  #Prep class
+  main.table$REF.ALT<-paste(as.vector(main.table$REF), as.vector(main.table$ALT), sep="_")
+  
+  #####Simple processing, start with just ref->alt and syn/non per hugo
+  #Get Hugo sum and total maf
+  main.table[,HUGO.MAFS:=sum(MUT.FREQ), by="Hugo_Symbol"]
+  n.maf<-sum(main.table$MUT.FREQ)
+  
+  #####Simple processing, start with just ref->alt and syn/non per priors, then add Pr(RT<=cuts)
+  main.table$REP.CLASS<-cut(main.table$REP.TIME, c(0,0.33,0.67,1), include.lowest=T)
+  main.table[,REP.CLASS.MAF:=sum(MUT.FREQ), by="REP.CLASS"]
+  main.table[,REP.PROB:=sum(MUT.FREQ)/REP.CLASS.MAF ,by="Hugo_Symbol"]
+  
+  #Phastcon classes
+  main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,1.0), include.lowest=T)
+  main.table[,PHAST.PROB:=sum(MUT.FREQ)/n.maf, by="PHAST.CLASS"]
+  
+  #Main probability
+  main.table[,TCGA.PROB:=(sum(MUT.FREQ)/unique(HUGO.MAFS))*unique(REP.PROB),by=c("Hugo_Symbol", "REF.ALT","TYPE","PHAST.CLASS")]
+  
+  #Clean up and return
+  setkey(main.table)
+  main.table<-unique(main.table)
+  return(main.table)
+}
+
+Function.Main.Bayes.Joint<-function(thousand.prop.joint, tcga.prob.joint, cancer.prob=0.12, threshold=F, all=T){
+  #Merges cancer and non-cancer probabilities to calculate non-naive bayesian probability per site
+  
+  library(data.table)
+  
+  #Merge probabilites (TCGA.PROB, THOUSAND.PROB)
+  main.table<-merge(tcga.prob.joint, thousand.prop.joint, by=c("Hugo_Symbol", "REF.ALT","TYPE","REP.CLASS","PHAST.CLASS"))
+  
+  #Calculate bayes prob per site based on features
+  main.table$BAYES.PROB<-(main.table$TCGA.PROB*cancer.prob)/(main.table$TCGA.PROB*cancer.prob + main.table$THOUSAND.PROB*(1-cancer.prob))
+  
+  #Clean up and return
+  main.table<-main.table[order(BAYES.PROB, decreasing=T),]
+  return(main.table)
+}
+
+#Apply
+thousand.test<-Function.THOUSAND.Prob.Joint(THOUSAND.PHAST.45.MID.2)
+tcga.test<-Function.TCGA.Prob.Joint(TCGA.MUT.45.MID.2)
+test.bayes<-Function.Main.Bayes.Joint(thousand.test, tcga.test,cancer.prob=0.12)
+test.bayes.plot<-Function.Bayes.Test(test.bayes, BRCA.COSMIC.GENES)
+
+ggplot(test.bayes.plot, aes(cancer, BAYES.PROB, colour=cancer)) + geom_boxplot() + geom_jitter(size=1) + theme.format + facet_wrap(~TYPE)
+
+ggplot(test.bayes.plot, aes(REP.TIME, BAYES.PROB, colour=cancer)) + geom_point()  + theme.format + facet_grid(cancer~TYPE) + 
+  geom_text(data=subset(test.bayes.plot, cancer==TRUE), aes(REP.TIME,BAYES.PROB,label=Hugo_Symbol), size=4)
+ggplot(test.bayes.plot, aes(PHAST.45, BAYES.PROB, colour=cancer, label=Hugo_Symbol)) + geom_point()  + theme.format + facet_grid(cancer~TYPE) + 
+  geom_text(data=subset(test.bayes.plot, cancer==TRUE), aes(REP.TIME,BAYES.PROB,label=Hugo_Symbol), size=3)
+
+bayes.box.test<-data.table()
+for (prob in c(0.95, 0.9, 0.85, 0.80, 0.75, 0.7, 0.6, 0.5,0.4,0.3,0.2)){
+  n.cancer<-length(unique(as.vector(test.bayes.plot[BAYES.PROB>=prob & cancer==TRUE & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)))
+  n.non.cancer<-length(unique(as.vector(test.bayes.plot[BAYES.PROB>=prob & cancer==FALSE & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)))
+  bayes.box.test<-rbind(bayes.box.test, data.table(PROB=prob, CANCER=n.cancer, NON.CANCER=n.non.cancer))
+}
+ggplot(melt(bayes.box.test,id.vars="PROB"), aes(PROB, value, colour=variable)) + geom_bar(stat="identity", position="dodge") + theme.format +
+  geom_text(aes(label=value), position=position_dodge(width=0.04), vjust=-0.25) 
+
+tcga.test[Hugo_Symbol=="TTN",]
+thousand.test[Hugo_Symbol=="TTN",]
+test.bayes[Hugo_Symbol=="TTN",]
