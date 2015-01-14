@@ -481,12 +481,14 @@ tcga.bayes[Hugo_Symbol=="TP53",]
 Function.THOUSAND.Prob.Joint<-function(THOUSAND.PHAST.CHEN.TABLE){
   
   require(data.table)
+  require(car)
   
   #Filter table
   main.table<-THOUSAND.PHAST.CHEN.TABLE[EXON==TRUE,]
   
-  #Prep classes
+  #Prep classes - Recode ref.alt to reflect binomial chance on either strand
   main.table$REF.ALT<-paste(as.vector(main.table$REF), as.vector(main.table$ALT), sep="_")
+  main.table$REF.ALT<-recode(main.table$REF.ALT, ' "T_G"="A_C"; "T_C"="A_G"; "T_A"="A_T"; "G_C"="C_G" ; "G_T"="C_A" ; "G_A"="C_T" ')
   
   #Get Hugo sum and total maf
   main.table[,HUGO.MAFS:=sum(MAF), by="Hugo_Symbol"]
@@ -499,14 +501,14 @@ Function.THOUSAND.Prob.Joint<-function(THOUSAND.PHAST.CHEN.TABLE){
   main.table[,REP.PROB.T:=sum(MAF)/REP.CLASS.MAF ,by="Hugo_Symbol"]
   
   #Phastcon classes
-  main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,1.0), include.lowest=T)
-  main.table[,PHAST.PROB:=sum(MAF)/n.maf, by="PHAST.CLASS"]
+  #main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,1.0), include.lowest=T)
+  #main.table[,PHAST.PROB:=sum(MAF)/n.maf, by="PHAST.CLASS"]
   
   #Calculate probability - then phast.prob as independent factor
-  main.table[,THOUSAND.PROB:=(sum(MAF)/unique(HUGO.MAFS))*unique(REP.PROB.T),by=c("Hugo_Symbol", "REF.ALT","TYPE","PHAST.CLASS")]
+  main.table[,THOUSAND.PROB:=(sum(MAF)/unique(HUGO.MAFS))*unique(REP.PROB.T),by=c("Hugo_Symbol", "REF.ALT","TYPE")]
   
   #Clean up and return
-  main.table<-main.table[,c("Hugo_Symbol", "REF.ALT","TYPE","REP.CLASS","PHAST.CLASS","THOUSAND.PROB","REP.PROB.T"),with=F]
+  main.table<-main.table[,c("Hugo_Symbol", "REF.ALT","TYPE","REP.CLASS","THOUSAND.PROB","REP.PROB.T"),with=F]
   setkey(main.table)
   main.table<-unique(main.table)
   return(main.table)
@@ -521,6 +523,7 @@ Function.TCGA.Prob.Joint<-function(TCGA.PHAST.CHEN.TABLE){
   
   #Prep class
   main.table$REF.ALT<-paste(as.vector(main.table$REF), as.vector(main.table$ALT), sep="_")
+  main.table$REF.ALT<-recode(main.table$REF.ALT, ' "T_G"="A_C"; "T_C"="A_G"; "T_A"="A_T"; "G_C"="C_G" ; "G_T"="C_A" ; "G_A"="C_T" ')
   
   #####Simple processing, start with just ref->alt and syn/non per hugo
   #Get Hugo sum and total maf
@@ -533,11 +536,11 @@ Function.TCGA.Prob.Joint<-function(TCGA.PHAST.CHEN.TABLE){
   main.table[,REP.PROB:=sum(MUT.FREQ)/REP.CLASS.MAF ,by="Hugo_Symbol"]
   
   #Phastcon classes
-  main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,1.0), include.lowest=T)
-  main.table[,PHAST.PROB:=sum(MUT.FREQ)/n.maf, by="PHAST.CLASS"]
+  #main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,1.0), include.lowest=T)
+  #main.table[,PHAST.PROB:=sum(MUT.FREQ)/n.maf, by="PHAST.CLASS"]
   
   #Main probability
-  main.table[,TCGA.PROB:=(sum(MUT.FREQ)/unique(HUGO.MAFS))*unique(REP.PROB),by=c("Hugo_Symbol", "REF.ALT","TYPE","PHAST.CLASS")]
+  main.table[,TCGA.PROB:=(sum(MUT.FREQ)/unique(HUGO.MAFS))*unique(REP.PROB),by=c("Hugo_Symbol", "REF.ALT","TYPE")]
   
   #Clean up and return
   setkey(main.table)
@@ -551,7 +554,7 @@ Function.Main.Bayes.Joint<-function(thousand.prop.joint, tcga.prob.joint, cancer
   library(data.table)
   
   #Merge probabilites (TCGA.PROB, THOUSAND.PROB)
-  main.table<-merge(tcga.prob.joint, thousand.prop.joint, by=c("Hugo_Symbol", "REF.ALT","TYPE","REP.CLASS","PHAST.CLASS"))
+  main.table<-merge(tcga.prob.joint, thousand.prop.joint, by=c("Hugo_Symbol", "REF.ALT","TYPE","REP.CLASS"))
   
   #Calculate bayes prob per site based on features
   main.table$BAYES.PROB<-(main.table$TCGA.PROB*cancer.prob)/(main.table$TCGA.PROB*cancer.prob + main.table$THOUSAND.PROB*(1-cancer.prob))
@@ -586,3 +589,4 @@ ggplot(melt(bayes.box.test,id.vars="PROB"), aes(PROB, value, colour=variable)) +
 tcga.test[Hugo_Symbol=="TTN",]
 thousand.test[Hugo_Symbol=="TTN",]
 test.bayes[Hugo_Symbol=="TTN",]
+length(unique(as.vector(test.bayes$REF.ALT)))
