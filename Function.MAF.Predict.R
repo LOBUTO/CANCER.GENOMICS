@@ -496,9 +496,11 @@ Function.THOUSAND.Prob.Joint<-function(THOUSAND.PHAST.CHEN.TABLE){
   
   #####Simple processing, start with just ref->alt and syn/non per priors, then add Pr(RT<=cuts)
   #Rep class
-  main.table$REP.CLASS<-cut(main.table$REP.TIME, c(0,0.33,0.67,1), include.lowest=T)
-  main.table[,REP.CLASS.MAF:=sum(MAF), by="REP.CLASS"]
-  main.table[,REP.PROB.T:=sum(MAF)/REP.CLASS.MAF ,by="Hugo_Symbol"]
+  main.table$REP.CLASS<-cut(main.table$REP.TIME, c(0,as.vector(quantile(main.table$REP.TIME, c(0.2,0.4,0.6,0.8))),1)  , include.lowest=T,
+                            labels=c("very.low", "low","medium","high","very.high"))
+  #main.table[,REP.CLASS.MAF:=sum(MAF), by="REP.CLASS"]
+  #main.table[,REP.PROB.T:=sum(MAF)/REP.CLASS.MAF ,by="Hugo_Symbol"]
+  main.table[,REP.PROB.T:=sum(MAF)/n.maf,by="REP.CLASS"]
   
   #Phastcon classes
   #main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,1.0), include.lowest=T)
@@ -514,7 +516,7 @@ Function.THOUSAND.Prob.Joint<-function(THOUSAND.PHAST.CHEN.TABLE){
   return(main.table)
 }
 
-Function.TCGA.Prob.Joint<-function(TCGA.PHAST.CHEN.TABLE){
+Function.TCGA.Prob.Joint<-function(TCGA.PHAST.CHEN.TABLE, THOUSAND.PHAST.CHEN.TABLE){
   require(data.table)
   
   #Filter table - change labels for compatibility with thousand table
@@ -531,9 +533,11 @@ Function.TCGA.Prob.Joint<-function(TCGA.PHAST.CHEN.TABLE){
   n.maf<-sum(main.table$MUT.FREQ)
   
   #####Simple processing, start with just ref->alt and syn/non per priors, then add Pr(RT<=cuts)
-  main.table$REP.CLASS<-cut(main.table$REP.TIME, c(0,0.33,0.67,1), include.lowest=T)
-  main.table[,REP.CLASS.MAF:=sum(MUT.FREQ), by="REP.CLASS"]
-  main.table[,REP.PROB:=sum(MUT.FREQ)/REP.CLASS.MAF ,by="Hugo_Symbol"]
+  main.table$REP.CLASS<-cut(main.table$REP.TIME, c(0,as.vector(quantile(THOUSAND.PHAST.CHEN.TABLE$REP.TIME, c(0.2,0.4,0.6,0.8))),1)  , include.lowest=T,
+                            labels=c("very.low", "low","medium","high","very.high"))
+  #main.table[,REP.CLASS.MAF:=sum(MUT.FREQ), by="REP.CLASS"]
+  #main.table[,REP.PROB:=sum(MUT.FREQ)/REP.CLASS.MAF ,by="Hugo_Symbol"]
+  main.table[,REP.PROB:=sum(MUT.FREQ)/n.maf,by="REP.CLASS"]
   
   #Phastcon classes
   #main.table$PHAST.CLASS<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,1.0), include.lowest=T)
@@ -565,8 +569,8 @@ Function.Main.Bayes.Joint<-function(thousand.prop.joint, tcga.prob.joint, cancer
 }
 
 #Apply
-thousand.test<-Function.THOUSAND.Prob.Joint(THOUSAND.PHAST.45.MID.2)
-tcga.test<-Function.TCGA.Prob.Joint(TCGA.MUT.45.MID.2)
+thousand.test<-Function.THOUSAND.Prob.Joint(THOUSAND.PHAST.45.MID.2.FILTERED)
+tcga.test<-Function.TCGA.Prob.Joint(TCGA.MUT.45.MID.2, THOUSAND.PHAST.45.MID.2.FILTERED)
 test.bayes<-Function.Main.Bayes.Joint(thousand.test, tcga.test,cancer.prob=0.12)
 test.bayes.plot<-Function.Bayes.Test(test.bayes, BRCA.COSMIC.GENES)
 
@@ -586,7 +590,7 @@ for (prob in c(0.95, 0.9, 0.85, 0.80, 0.75, 0.7, 0.6, 0.5,0.4,0.3,0.2)){
 ggplot(melt(bayes.box.test,id.vars="PROB"), aes(PROB, value, colour=variable)) + geom_bar(stat="identity", position="dodge") + theme.format +
   geom_text(aes(label=value), position=position_dodge(width=0.04), vjust=-0.25) 
 
-tcga.test[Hugo_Symbol=="TTN",]
-thousand.test[Hugo_Symbol=="TTN",]
+tcga.test[Hugo_Symbol=="PTEN",]
+thousand.test[Hugo_Symbol=="PTEN",]
 test.bayes[Hugo_Symbol=="TTN",]
-length(unique(as.vector(test.bayes$REF.ALT)))
+test.bayes
