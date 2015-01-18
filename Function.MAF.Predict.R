@@ -636,5 +636,140 @@ setnames(hic, c("Hugo_Symbol", "EXPR","REPLICATION","hic"))
 hic<-hic[!is.na(hic),]
 hic$HIC.CUT<-cut(hic$hic, quantile(hic$hic, c(0,0.33,0.67,1)), labels=c("low","medium","high"))
 
-##########011715#########
+##############011715##############
 #Modified functions
+#Functions
+Function.THOUSAND.Prob.Joint.2<-function(THOUSAND.PHAST.CHEN.TABLE, exp.table,hic.table, biogrid, noise=1, rounded=3){
+  
+  require(data.table)
+  require(car)
+  
+  #Filter table
+  main.table<-THOUSAND.PHAST.CHEN.TABLE[EXON==TRUE,]
+  main.table$REP.TIME<-round(main.table$REP.TIME, rounded)
+  
+  #Prep classes - Recode ref.alt to reflect binomial chance on either strand
+  main.table$REF.ALT<-paste(as.vector(main.table$REF), as.vector(main.table$ALT), sep="_")
+  main.table$REF.ALT<-recode(main.table$REF.ALT, ' "T_G"="A_C"; "T_C"="A_G"; "T_A"="A_T"; "G_C"="C_G" ; "G_T"="C_A" ; "G_A"="C_T" ')
+  
+  #Introduce expression info
+  main.table<-merge(main.table, exp.table[,c("logFC","Hugo_Symbol"),with=F], by="Hugo_Symbol")
+  main.table$logFC<-abs(main.table$logFC)
+  main.table$EXP.CUTS<-cut(main.table$logFC, c(min(exp.table$logFC),quantile(exp.table$logFC, c(0.25,0.5,0.75)), max(exp.table$logFC)), include.lowest=T)
+  
+  #Introduce PPI info
+  #main.table<-merge(main.table, biogrid, by="Hugo_Symbol")
+  
+  #Introduce chromatin open state info
+  #main.table<-merge(main.table, hic.table[,c("Hugo_Symbol","HIC.CUT"),with=F],by="Hugo_Symbol")
+  
+  #Modified joint
+  n.maf<-sum(main.table$MAF)
+  main.table<-main.table[,list(THOUSAND.PROB=sum(MAF)/n.maf), by=c("REF.ALT","TYPE","Chrom","REP.TIME","EXP.CUTS")]
+  
+  #Clean up and return
+  setkey(main.table)
+  main.table<-unique(main.table)
+  return(main.table)
+}
+
+Function.TCGA.Prob.Joint.2<-function(TCGA.PHAST.CHEN.TABLE, exp.table, hic.table,biogrid, rounded=3){
+  require(data.table)
+  
+  #Filter table - change labels for compatibility with thousand table
+  main.table<-TCGA.PHAST.CHEN.TABLE[TYPE %in% c("Missense_Mutation", "Silent"),]
+  main.table$TYPE<-ifelse(main.table$TYPE=="Missense_Mutation", "nonsynonymous SNV", "synonymous SNV")
+  
+  #Prep class
+  main.table$REF.ALT<-paste(as.vector(main.table$REF), as.vector(main.table$ALT), sep="_")
+  main.table$REF.ALT<-recode(main.table$REF.ALT, ' "T_G"="A_C"; "T_C"="A_G"; "T_A"="A_T"; "G_C"="C_G" ; "G_T"="C_A" ; "G_A"="C_T" ')
+  main.table$REP.TIME<-round(main.table$REP.TIME, rounded)
+  
+  #Introduce expression info
+  main.table<-merge(main.table, exp.table[,c("logFC","Hugo_Symbol"),with=F], by="Hugo_Symbol")
+  main.table$logFC<-abs(main.table$logFC)
+  main.table$EXP.CUTS<-cut(main.table$logFC, c(min(exp.table$logFC),quantile(exp.table$logFC, c(0.25,0.5,0.75)), max(exp.table$logFC)), include.lowest=T)
+  
+  #Introduce chromatin open state info
+  #main.table<-merge(main.table, hic.table[,c("Hugo_Symbol","HIC.CUT"),with=F],by="Hugo_Symbol")
+  
+  #Introduce PPI info
+  #main.table<-merge(main.table, biogrid, by="Hugo_Symbol")
+  
+  #Modified joint
+  #n.maf<-sum(main.table$MUT.FREQ)
+  #main.table[,TCGA.PROB:=sum(MUT.FREQ)/n.maf, by=c("TYPE","REF.ALT","Chrom","REP.TIME","EXP.CUTS")]
+  
+  #Clean up and return
+  setkey(main.table)
+  main.table<-unique(main.table)
+  return(main.table)
+}
+
+Function.Main.Bayes.Joint.2<-function(thousand.prop.joint, tcga.prob.joint, cancer.prob=0.12, threshold=F, all=T){
+  #Merges cancer and non-cancer probabilities to calculate non-naive bayesian probability per site
+  
+  library(data.table)
+  
+  #Merge probabilites (TCGA.PROB, THOUSAND.PROB)
+  main.table<-merge(tcga.prob.joint, thousand.prop.joint, by=c("TYPE","REF.ALT","Chrom","REP.TIME","EXP.CUTS"))
+  
+  #Calculate bayes prob per site based on features
+  main.table$BAYES.PROB<-(main.table$MUT.FREQ*cancer.prob)/(main.table$MUT.FREQ*cancer.prob + main.table$THOUSAND.PROB*(1-cancer.prob))
+  
+  #Clean up and return
+  main.table<-main.table[order(BAYES.PROB, decreasing=T),]
+  return(main.table)
+}
+
+#Apply
+thousand.test<-Function.THOUSAND.Prob.Joint.2(THOUSAND.PHAST.45.MID.2[MAF!=0,], brca.exp,hic,biogrid.degree,noise=1,rounded=2)
+tcga.test<-Function.TCGA.Prob.Joint.2(TCGA.MUT.45.MID.2, brca.exp,hic,biogrid.degree,rounded=2)
+test.bayes<-Function.Main.Bayes.Joint.2(thousand.test, tcga.test,cancer.prob=0.12)
+test.bayes.plot<-Function.Bayes.Test(test.bayes, BRCA.COSMIC.GENES)
+
+ggplot(test.bayes.plot, aes(cancer, BAYES.PROB, colour=cancer)) + geom_boxplot() + geom_jitter(size=0.5) + theme.format + facet_wrap(~TYPE)
+
+bayes.box.test<-data.table()
+for (prob in c(0.95, 0.9, 0.85, 0.80, 0.75, 0.7, 0.6, 0.5,0.4,0.3,0.2,0)){
+  n.cancer<-length(unique(as.vector(test.bayes.plot[BAYES.PROB>=prob & cancer==TRUE & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)))
+  n.non.cancer<-length(unique(as.vector(test.bayes.plot[BAYES.PROB>=prob & cancer==FALSE & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)))
+  bayes.box.test<-rbind(bayes.box.test, data.table(PROB=prob, CANCER=n.cancer, NON.CANCER=n.non.cancer))
+  print (c(prob, n.cancer, n.non.cancer))
+}
+ggplot(melt(bayes.box.test,id.vars="PROB"), aes(PROB, value, colour=variable)) + geom_bar(stat="identity", position="dodge") + theme.format +
+  geom_text(aes(label=value), position=position_dodge(width=0.04), vjust=-0.25) 
+
+test.bayes[Hugo_Symbol=="TTN",]
+
+TCGA.MUT.45.MID.2
+Function.BAYES.SELF<-function(main.table, cancer.prob=0.12, rounded=3, cancer.genes){
+  require(data.table) 
+  require(car)
+  
+  #Prep class
+  main.table$REF.ALT<-paste(as.vector(main.table$REF), as.vector(main.table$ALT), sep="_")
+  main.table$REF.ALT<-recode(main.table$REF.ALT, ' "T_G"="A_C"; "T_C"="A_G"; "T_A"="A_T"; "G_C"="C_G" ; "G_T"="C_A" ; "G_A"="C_T" ')
+  main.table$REP.TIME<-round(main.table$REP.TIME, rounded)
+  
+  #Calculate background probabilities based on synonymous mutations
+  n.sil<-sum(main.table[TYPE=="Silent",]$MUT.FREQ)
+  back.table<-main.table[TYPE=="Silent",][,list(BACK.PROB=sum(MUT.FREQ)/n.sil), by="REF.ALT"]
+  
+  #Integrate to calculate bayesian probabilities
+  mis.table<-main.table[TYPE=="Missense_Mutation",]
+  mis.table<-merge(mis.table, back.table, by="REF.ALT")
+  
+  #Calculate bayesian prob
+  mis.table$BAYES.PROB<-mis.table$MUT.FREQ*cancer.prob/((mis.table$MUT.FREQ*cancer.prob)+mis.table$BACK.PROB*(1-cancer.prob))
+  
+  #Clean up and Return
+  mis.table$cancer<-mis.table$Hugo_Symbol %in% cancer.genes
+  mis.table<-mis.table[order(BAYES.PROB, decreasing=T),]
+  return(mis.table)
+  
+}
+
+test.self<-Function.BAYES.SELF(TCGA.MUT.45.MID.2, 0.12, cancer.genes=BRCA.COSMIC.GENES)
+
+ggplot(test.self, aes(cancer, BAYES.PROB, colour=cancer)) + geom_boxplot() + geom_jitter(size=2) + theme.format
