@@ -238,24 +238,19 @@ THOUSAND.PHAST.45$MAF<-ifelse(THOUSAND.PHAST.45$AF>0.5, 1-THOUSAND.PHAST.45$AF,T
 THOUSAND.PHAST.45.FILTERED<-THOUSAND.PHAST.45[MAF>=0.000199682,] 
 THOUSAND.PHAST.45.FILTERED$PHAST.CUT<-cut(THOUSAND.PHAST.45.FILTERED$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)
 
-#Try including normal expression levels of all genes (need to find info)
-length(unique(as.vector(THOUSAND.PHAST.45$Hugo_Symbol)))
-
 ######Inclusde replication time
 CHEN.REP<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/010815.CHEN.REP.TIMES.MID.4.EXP", header=T, sep="\t",stringsAsFactors=F, drop=2)
 setkey(CHEN.REP)
 ggplot(CHEN.REP, aes(REP.CLASS, REP.TIME)) + geom_boxplot() + theme.format
 table(CHEN.REP$REP.CLASS)
 
-THOUSAND.PHAST.45.MID.1<-merge(THOUSAND.PHAST.45, CHEN.REP, by="Hugo_Symbol")
-setkey(THOUSAND.PHAST.45.MID.1)
-THOUSAND.PHAST.45.MID.1<-unique(THOUSAND.PHAST.45.MID.1)
+THOUSAND.PHAST.45.MID.4<-merge(THOUSAND.PHAST.45, CHEN.REP, by="Hugo_Symbol")
+setkey(THOUSAND.PHAST.45.MID.4)
+THOUSAND.PHAST.45.MID.4<-unique(THOUSAND.PHAST.45.MID.4)
 
-THOUSAND.PHAST.45.FILTERED<-THOUSAND.PHAST.45[MAF>=0.000199682,]
-THOUSAND.PHAST.45.FILTERED$PHAST.CUT<-cut(THOUSAND.PHAST.45.FILTERED$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)
-THOUSAND.PHAST.45.MID.1.FILTERED<-merge(THOUSAND.PHAST.45.FILTERED, CHEN.REP, by="Hugo_Symbol")
-setkey(THOUSAND.PHAST.45.MID.1.FILTERED)
-THOUSAND.PHAST.45.MID.1.FILTERED<-unique(THOUSAND.PHAST.45.MID.1.FILTERED)
+THOUSAND.PHAST.45.MID.4.FILTERED<-merge(THOUSAND.PHAST.45.FILTERED, CHEN.REP, by="Hugo_Symbol")
+setkey(THOUSAND.PHAST.45.MID.4.FILTERED)
+THOUSAND.PHAST.45.MID.4.FILTERED<-unique(THOUSAND.PHAST.45.MID.4.FILTERED)
 
 #MODIFY BAYES
 #Given that |replication time(class) - Increase number of replication classes
@@ -448,8 +443,8 @@ TCGA.MUT.45<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/BRCA/011015.BRCA.MAF.TRIM
                    stringsAsFactors=F, drop=c(8:9,11))
 setnames(TCGA.MUT.45, c("Chrom","Position","Hugo_Symbol", "MUT.FREQ", "TYPE", "REF","ALT","PHAST.45"))
 TCGA.MUT.45.MID.4<-merge(TCGA.MUT.45, CHEN.REP, by="Hugo_Symbol")
-setkey(TCGA.MUT.45.MID.1)
-TCGA.MUT.45.MID.1<-unique(TCGA.MUT.45.MID.1)
+setkey(TCGA.MUT.45.MID.4)
+TCGA.MUT.45.MID.4<-unique(TCGA.MUT.45.MID.4)
 
 #Apply functions
 thousand.prop.table<-Function.THOUSAND.Prob(THOUSAND.PHAST.45.MID.4, CUTS=F, PHAST=T)
@@ -471,8 +466,6 @@ for (prob in c(0.95, 0.9, 0.85, 0.80, 0.75, 0.7, 0.6, 0.5,0.4,0.3,0.2)){
 }
 ggplot(melt(bayes.box.test,id.vars="PROB"), aes(PROB, value, colour=variable)) + geom_bar(stat="identity", position="dodge") + theme.format +
   geom_text(aes(label=value), position=position_dodge(width=0.04), vjust=-0.25) 
- 
-tcga.bayes[Hugo_Symbol=="TP53",]
 
 #########011215########
 ######Modify functions  so that they use joint probabilities rather than conditional independence per gene
@@ -492,37 +485,23 @@ Function.THOUSAND.Prob.Joint<-function(THOUSAND.PHAST.CHEN.TABLE, exp.table,hic.
   main.table$REF.ALT<-recode(main.table$REF.ALT, ' "T_G"="A_C"; "T_C"="A_G"; "T_A"="A_T"; "G_C"="C_G" ; "G_T"="C_A" ; "G_A"="C_T" ')
   
   #Introduce expression info
-  main.table<-merge(main.table, exp.table[,c("logFC","Hugo_Symbol"),with=F], by="Hugo_Symbol")
-  main.table$logFC<-abs(main.table$logFC)
-  main.table$EXP.CUTS<-cut(main.table$logFC, c(min(exp.table$logFC),quantile(exp.table$logFC, c(0.25,0.5,0.75)), max(exp.table$logFC)), include.lowest=T)
+  #main.table<-merge(main.table, exp.table[,c("logFC","Hugo_Symbol"),with=F], by="Hugo_Symbol")
+  #main.table$logFC<-abs(main.table$logFC)
+  #main.table$EXP.CUTS<-cut(main.table$logFC, c(min(exp.table$logFC),quantile(exp.table$logFC, c(0.25,0.5,0.75)), max(exp.table$logFC)), include.lowest=T)
   
   #Introduce PPI info
   main.table<-merge(main.table, biogrid, by="Hugo_Symbol")
   
   #Introduce chromatin open state info
-  main.table<-merge(main.table, hic.table[,c("Hugo_Symbol","HIC.CUT"),with=F],by="Hugo_Symbol")
+  main.table<-merge(main.table, hic.table,by="Hugo_Symbol")
   
   #Modified joint
+  n.maf<-sum(main.table$MAF)
   #main.table$PHAST.CUT<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)
-  main.table[,BACK.PROB:=sum(MAF)*noise, by=c("TYPE", "REF.ALT","REP.CLASS","HIC.CUT","EXP.CUTS", "DEGREE.CUT")]
-  main.table[,THOUSAND.PROB:=sum(MAF)/BACK.PROB, by=c("Hugo_Symbol", "TYPE","REF.ALT","REP.CLASS","HIC.CUT","EXP.CUTS","DEGREE.CUT")]
-  
-  #Get joint probabilites assuming conditional independence
-#   n.maf<-sum(main.table$MAF)/noise
-#   
-#   main.table[,HUGO.PROB:=sum(MAF)/n.maf, by="Hugo_Symbol"]
-#   main.table[,TYPE.PROB:=sum(MAF)/n.maf, by="TYPE"]
-#   main.table[,REF.ALT.PROB:=sum(MAF)/n.maf, by="REF.ALT"]
-#   main.table[,REP.PROB:=sum(MAF)/n.maf, by="REP.TIME"]
-#   main.table[,PHAST.PROB:=sum(MAF)/n.maf, by="PHAST.45"]
-#   main.table[,EXP.PROB:=sum(MAF)/n.maf, by="EXP.CUTS"]
-#   main.table[,REP.CLASS.PROB:=sum(MAF)/n.maf, by="REP.CLASS"]
-#   
-#   #Calculate probability 
-#   main.table<-main.table[,list(THOUSAND.PROB=TYPE.PROB*REF.ALT.PROB*REP.CLASS.PROB*EXP.PROB*HUGO.PROB*PHAST.PROB),by=c("Hugo_Symbol", "REF.ALT","TYPE","REP.CLASS", "PHAST.45", "EXP.CUTS")]
+  #main.table[,BACK.PROB:=sum(MAF)*noise, by=c("TYPE", "REF.ALT","REP.TIME")]
+  main.table<-main.table[,list(THOUSAND.PROB=sum(MAF)/n.maf), by=c("TYPE","REF.ALT","REP.TIME","degree","HIC.CUT")]
   
   #Clean up and return
-  main.table<-main.table[,c("Hugo_Symbol","REF.ALT","TYPE","REP.CLASS","HIC.CUT","EXP.CUTS", "DEGREE.CUT", "THOUSAND.PROB"),with=F]
   setkey(main.table)
   main.table<-unique(main.table)
   return(main.table)
@@ -541,33 +520,21 @@ Function.TCGA.Prob.Joint<-function(TCGA.PHAST.CHEN.TABLE, exp.table, hic.table,b
   main.table$REP.TIME<-round(main.table$REP.TIME, rounded)
   
   #Introduce expression info
-  main.table<-merge(main.table, exp.table[,c("logFC","Hugo_Symbol"),with=F], by="Hugo_Symbol")
-  main.table$logFC<-abs(main.table$logFC)
-  main.table$EXP.CUTS<-cut(main.table$logFC, c(min(exp.table$logFC),quantile(exp.table$logFC, c(0.25,0.5,0.75)), max(exp.table$logFC)), include.lowest=T)
+  #main.table<-merge(main.table, exp.table[,c("logFC","Hugo_Symbol"),with=F], by="Hugo_Symbol")
+  #main.table$logFC<-abs(main.table$logFC)
+  #main.table$EXP.CUTS<-cut(main.table$logFC, c(min(exp.table$logFC),quantile(exp.table$logFC, c(0.25,0.5,0.75)), max(exp.table$logFC)), include.lowest=T)
   
   #Introduce chromatin open state info
-  main.table<-merge(main.table, hic.table[,c("Hugo_Symbol","HIC.CUT"),with=F],by="Hugo_Symbol")
+  main.table<-merge(main.table, hic.table,by="Hugo_Symbol")
   
   #Introduce PPI info
   main.table<-merge(main.table, biogrid, by="Hugo_Symbol")
   
   #Modified joint
   #main.table$PHAST.CUT<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)
-  main.table[,BACK.PROB:=sum(MUT.FREQ), by=c("TYPE", "REF.ALT","REP.CLASS","HIC.CUT","EXP.CUTS", "DEGREE.CUT")]
-  main.table[,TCGA.PROB:=sum(MUT.FREQ)/BACK.PROB, by=c("Hugo_Symbol", "TYPE","REF.ALT","REP.CLASS","HIC.CUT","EXP.CUTS", "DEGREE.CUT")]
-  
-#   #Get joint probabilites assuming conditional independence
-#   n.maf<-sum(main.table$MUT.FREQ)
-#   main.table[,HUGO.PROB:=sum(MUT.FREQ)/n.maf, by="Hugo_Symbol"]
-#   main.table[,TYPE.PROB:=sum(MUT.FREQ)/n.maf, by="TYPE"]
-#   main.table[,REF.ALT.PROB:=sum(MUT.FREQ)/n.maf, by="REF.ALT"]
-#   main.table[,REP.PROB:=sum(MUT.FREQ)/n.maf, by="REP.TIME"]
-#   main.table[,PHAST.PROB:=sum(MUT.FREQ)/n.maf, by="PHAST.45"]
-#   main.table[,EXP.PROB:=sum(MUT.FREQ)/n.maf, by="EXP.CUTS"]
-#   main.table[,REP.CLASS.PROB:=sum(MUT.FREQ)/n.maf, by="REP.CLASS"]
-#   
-#   #Calculate probability
-#   main.table[,TCGA.PROB:=TYPE.PROB*REF.ALT.PROB*REP.CLASS.PROB*EXP.PROB*HUGO.PROB*PHAST.PROB ,by=c("Hugo_Symbol", "REF.ALT","TYPE","REP.CLASS","PHAST.45", "EXP.CUTS")]
+  n.maf<-sum(main.table$MUT.FREQ)
+  #main.table[,BACK.PROB:=sum(MUT.FREQ), by=c("TYPE", "REF.ALT","REP.TIME")]
+  main.table<-main.table[,TCGA.PROB:=sum(MUT.FREQ)/n.maf, by=c("TYPE","REF.ALT","REP.TIME","degree","HIC.CUT")]
   
   #Clean up and return
   setkey(main.table)
@@ -581,7 +548,7 @@ Function.Main.Bayes.Joint<-function(thousand.prop.joint, tcga.prob.joint, cancer
   library(data.table)
   
   #Merge probabilites (TCGA.PROB, THOUSAND.PROB)
-  main.table<-merge(tcga.prob.joint, thousand.prop.joint, by=c("REF.ALT","TYPE","Hugo_Symbol","REP.CLASS","HIC.CUT","EXP.CUTS"))
+  main.table<-merge(tcga.prob.joint, thousand.prop.joint, by=c("REF.ALT","TYPE","REP.TIME","degree","HIC.CUT"))
   
   #Calculate bayes prob per site based on features
   main.table$BAYES.PROB<-(main.table$TCGA.PROB*cancer.prob)/(main.table$TCGA.PROB*cancer.prob + main.table$THOUSAND.PROB*(1-cancer.prob))
@@ -592,20 +559,15 @@ Function.Main.Bayes.Joint<-function(thousand.prop.joint, tcga.prob.joint, cancer
 }
 
 #Apply
-thousand.test<-Function.THOUSAND.Prob.Joint(THOUSAND.PHAST.45.MID.4[MAF!=0,], brca.exp,hic,biogrid.degree,noise=1,rounded=2)
-tcga.test<-Function.TCGA.Prob.Joint(TCGA.MUT.45.MID.4, brca.exp,hic,biogrid.degree,rounded=2)
-test.bayes<-Function.Main.Bayes.Joint(thousand.test, tcga.test,cancer.prob=0.08)
+thousand.test<-Function.THOUSAND.Prob.Joint(THOUSAND.PHAST.45.MID.2[MAF!=0,], brca.exp,hic,biogrid.degree,noise=1,rounded=2)
+tcga.test<-Function.TCGA.Prob.Joint(TCGA.MUT.45.MID.2, brca.exp,hic,biogrid.degree,rounded=2)
+test.bayes<-Function.Main.Bayes.Joint(thousand.test, tcga.test,cancer.prob=0.12)
 test.bayes.plot<-Function.Bayes.Test(test.bayes, BRCA.COSMIC.GENES)
 
 ggplot(test.bayes.plot, aes(cancer, BAYES.PROB, colour=cancer)) + geom_boxplot() + geom_jitter(size=0.5) + theme.format + facet_wrap(~TYPE)
 
-ggplot(test.bayes.plot, aes(REP.TIME, BAYES.PROB, colour=cancer)) + geom_point()  + theme.format + facet_grid(cancer~TYPE) + 
-  geom_text(data=subset(test.bayes.plot, cancer==TRUE), aes(REP.TIME,BAYES.PROB,label=Hugo_Symbol), size=4)
-ggplot(test.bayes.plot, aes(PHAST.45, BAYES.PROB, colour=cancer, label=Hugo_Symbol)) + geom_point()  + theme.format + facet_grid(cancer~TYPE) + 
-  geom_text(data=subset(test.bayes.plot, cancer==TRUE), aes(REP.TIME,BAYES.PROB,label=Hugo_Symbol), size=3)
-
 bayes.box.test<-data.table()
-for (prob in c(0.99,0.95, 0.9, 0.85, 0.80, 0.75, 0.7, 0.6, 0.5,0.4,0.3,0.2,0)){
+for (prob in c(0.99,0.95, 0.91,0.9,0.85, 0.80, 0.75, 0.7, 0.6, 0.5,0.4,0.3,0.2,0)){
   n.cancer<-length(unique(as.vector(test.bayes.plot[BAYES.PROB>=prob & cancer==TRUE & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)))
   n.non.cancer<-length(unique(as.vector(test.bayes.plot[BAYES.PROB>=prob & cancer==FALSE & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)))
   bayes.box.test<-rbind(bayes.box.test, data.table(PROB=prob, CANCER=n.cancer, NON.CANCER=n.non.cancer))
@@ -616,9 +578,13 @@ ggplot(melt(bayes.box.test,id.vars="PROB"), aes(PROB, value, colour=variable)) +
 
 tcga.test[Hugo_Symbol=="A1CF",]
 thousand.test[Hugo_Symbol=="A1CF",]
-test.bayes[Hugo_Symbol=="BRCA2",]
-unique(test.bayes.plot[cancer==TRUE & BAYES.PROB>=0.85 & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)
-test.bayes.plot
+test.bayes[Hugo_Symbol=="TP53",]
+
+length(as.vector(unique(test.bayes$Hugo_Symbol)))
+length(as.vector(unique(TCGA.MUT.45.MID.4$Hugo_Symbol))) #13427 (2), 14447(4)
+length(unique(intersect(TCGA.MUT.45.MID.4$Hugo_Symbol, THOUSAND.PHAST.45.MID.4$Hugo_Symbol))) #13338(2), 14346(4)
+length(unique(intersect(TCGA.MUT.45.MID.4$Hugo_Symbol, brca.exp$Hugo_Symbol)))  #11882 (2), 12764(4)
+length(unique(intersect(TCGA.MUT.45.MID.4$Hugo_Symbol, biogrid.degree$Hugo_Symbol))) #10845(2), 11653 (4) 
 
 ggplot(THOUSAND.PHAST.45.MID.2[MAF!=0,], aes(REP.CLASS, MAF, colour=TYPE)) + geom_boxplot() + geom_jitter(size=2) + theme.format + facet_wrap(~TYPE) + scale_y_log10()
 ggplot(TCGA.MUT.45.MID.2, aes(REP.CLASS, MUT.FREQ, colour=TYPE)) + geom_boxplot() + geom_jitter(size=2) + theme.format + facet_wrap(~TYPE) + scale_y_log10()
@@ -653,9 +619,9 @@ Function.THOUSAND.Prob.Joint.2<-function(THOUSAND.PHAST.CHEN.TABLE, exp.table,hi
   main.table$REF.ALT<-recode(main.table$REF.ALT, ' "T_G"="A_C"; "T_C"="A_G"; "T_A"="A_T"; "G_C"="C_G" ; "G_T"="C_A" ; "G_A"="C_T" ')
   
   #Introduce expression info
-  main.table<-merge(main.table, exp.table[,c("logFC","Hugo_Symbol"),with=F], by="Hugo_Symbol")
-  main.table$logFC<-abs(main.table$logFC)
-  main.table$EXP.CUTS<-cut(main.table$logFC, c(min(exp.table$logFC),quantile(exp.table$logFC, c(0.25,0.5,0.75)), max(exp.table$logFC)), include.lowest=T)
+  #main.table<-merge(main.table, exp.table[,c("logFC","Hugo_Symbol"),with=F], by="Hugo_Symbol")
+  #main.table$logFC<-abs(main.table$logFC)
+  #main.table$EXP.CUTS<-cut(main.table$logFC, c(min(exp.table$logFC),quantile(exp.table$logFC, c(0.25,0.5,0.75)), max(exp.table$logFC)), include.lowest=T)
   
   #Introduce PPI info
   #main.table<-merge(main.table, biogrid, by="Hugo_Symbol")
@@ -664,8 +630,8 @@ Function.THOUSAND.Prob.Joint.2<-function(THOUSAND.PHAST.CHEN.TABLE, exp.table,hi
   #main.table<-merge(main.table, hic.table[,c("Hugo_Symbol","HIC.CUT"),with=F],by="Hugo_Symbol")
   
   #Modified joint
-  n.maf<-sum(main.table$MAF)
-  main.table<-main.table[,list(THOUSAND.PROB=sum(MAF)/n.maf), by=c("REF.ALT","TYPE","Chrom","REP.TIME","EXP.CUTS")]
+  n.maf<-sum(main.table$MAF)*noise
+  main.table<-main.table[,list(THOUSAND.PROB=sum(MAF)/n.maf), by=c("REF.ALT","TYPE", "REP.CLASS")]
   
   #Clean up and return
   setkey(main.table)
@@ -686,9 +652,9 @@ Function.TCGA.Prob.Joint.2<-function(TCGA.PHAST.CHEN.TABLE, exp.table, hic.table
   main.table$REP.TIME<-round(main.table$REP.TIME, rounded)
   
   #Introduce expression info
-  main.table<-merge(main.table, exp.table[,c("logFC","Hugo_Symbol"),with=F], by="Hugo_Symbol")
-  main.table$logFC<-abs(main.table$logFC)
-  main.table$EXP.CUTS<-cut(main.table$logFC, c(min(exp.table$logFC),quantile(exp.table$logFC, c(0.25,0.5,0.75)), max(exp.table$logFC)), include.lowest=T)
+  #main.table<-merge(main.table, exp.table[,c("logFC","Hugo_Symbol"),with=F], by="Hugo_Symbol")
+  #main.table$logFC<-abs(main.table$logFC)
+  #main.table$EXP.CUTS<-cut(main.table$logFC, c(min(exp.table$logFC),quantile(exp.table$logFC, c(0.25,0.5,0.75)), max(exp.table$logFC)), include.lowest=T)
   
   #Introduce chromatin open state info
   #main.table<-merge(main.table, hic.table[,c("Hugo_Symbol","HIC.CUT"),with=F],by="Hugo_Symbol")
@@ -712,7 +678,7 @@ Function.Main.Bayes.Joint.2<-function(thousand.prop.joint, tcga.prob.joint, canc
   library(data.table)
   
   #Merge probabilites (TCGA.PROB, THOUSAND.PROB)
-  main.table<-merge(tcga.prob.joint, thousand.prop.joint, by=c("TYPE","REF.ALT","Chrom","REP.TIME","EXP.CUTS"))
+  main.table<-merge(tcga.prob.joint, thousand.prop.joint, by=c("TYPE","REF.ALT","REP.CLASS"))
   
   #Calculate bayes prob per site based on features
   main.table$BAYES.PROB<-(main.table$MUT.FREQ*cancer.prob)/(main.table$MUT.FREQ*cancer.prob + main.table$THOUSAND.PROB*(1-cancer.prob))
@@ -723,7 +689,7 @@ Function.Main.Bayes.Joint.2<-function(thousand.prop.joint, tcga.prob.joint, canc
 }
 
 #Apply
-thousand.test<-Function.THOUSAND.Prob.Joint.2(THOUSAND.PHAST.45.MID.2[MAF!=0,], brca.exp,hic,biogrid.degree,noise=1,rounded=2)
+thousand.test<-Function.THOUSAND.Prob.Joint.2(THOUSAND.PHAST.45.MID.2[MAF!=0,],brca.exp,hic,biogrid.degree,noise=1,rounded=2)
 tcga.test<-Function.TCGA.Prob.Joint.2(TCGA.MUT.45.MID.2, brca.exp,hic,biogrid.degree,rounded=2)
 test.bayes<-Function.Main.Bayes.Joint.2(thousand.test, tcga.test,cancer.prob=0.12)
 test.bayes.plot<-Function.Bayes.Test(test.bayes, BRCA.COSMIC.GENES)
@@ -741,7 +707,7 @@ ggplot(melt(bayes.box.test,id.vars="PROB"), aes(PROB, value, colour=variable)) +
   geom_text(aes(label=value), position=position_dodge(width=0.04), vjust=-0.25) 
 
 test.bayes[Hugo_Symbol=="TTN",]
-
+thousand.test
 TCGA.MUT.45.MID.2
 Function.BAYES.SELF<-function(main.table, cancer.prob=0.12, rounded=3, cancer.genes){
   require(data.table) 
