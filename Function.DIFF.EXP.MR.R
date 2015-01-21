@@ -136,12 +136,12 @@ Function.Main.PVAL<-function(main.command, maf.table,exp.in){
     n.not.diff.rep<-replicate(1000, Function.RNAseq.Differential.Expression.V3(exp.in, sample(all.samples, n.not.samples)))
     
     #Plot
-    jpeg(filename=paste0(c(plot.folder,cancer,metabolite,"N.DIFF"), collapse="."), 1200,1200,quality=200)
-    ggplot(data.table(dist=n.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.diff, colour="red")
+    jpeg(filename=paste0(c(plot.folder,cancer,metabolite,"N.DIFF"), collapse="."), width=1200,height=1200,quality=80)
+    print (ggplot(data.table(dist=n.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.diff, colour="red"))
     dev.off()
     
-    jpeg(filename=paste0(c(plot.folder,cancer,metabolite,"N.NOT.DIFF"), collapse="."), 1200,1200,quality=200)
-    ggplot(data.table(dist=n.not.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.not.diff, colour="red")
+    jpeg(filename=paste0(c(plot.folder,cancer,metabolite,"N.NOT.DIFF"), collapse="."), width=1200,height=1200, quality=80)
+    print (ggplot(data.table(dist=n.not.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.not.diff, colour="red"))
     dev.off()
     
     #Calculate p values
