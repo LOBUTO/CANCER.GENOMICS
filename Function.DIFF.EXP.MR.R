@@ -138,12 +138,12 @@ Function.Main.PVAL<-function(main.command, maf.table,exp.in){
     #Plot
     filename=paste0(c(plot.folder,"/",cancer,metabolite,"N.DIFF"), collapse=".")
     print (filename)
-    print (ggplot(data.table(dist=n.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.diff, colour="red"))
+    ggplot(data.table(dist=n.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.diff, colour="red")
     ggsave(filename=filename)
     
     filename=paste0(c(plot.folder,"/",cancer,metabolite,"N.NOT.DIFF"), collapse=".")
     print (filename)
-    print (ggplot(data.table(dist=n.not.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.not.diff, colour="red"))
+    ggplot(data.table(dist=n.not.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.not.diff, colour="red")
     ggsave(filename=filename)
     
     #Calculate p values
