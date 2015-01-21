@@ -4,6 +4,7 @@
 
 ######INTRODUCE ARGUMENTS######
 library(data.table)
+library(ggplot2)
 
 args<-commandArgs(trailingOnly=T) 
 
@@ -12,8 +13,13 @@ mr.in<-readRDS(args[2]) #Target mr as in 012115.MET.ENRICHED.FILTERED.rds
 exp.in<-readRDS(args[3]) #Expression object of the form 102514.CANCER.MATRICES.NORMALIZED.OBJ.rds
 cancer<-args[4] #Type of cancer to be analyzed (i.e. "BRCA")
 output.file<-args[5]
+plot.folder<-args[6]
 
 #######FUNCTIONS#######
+theme.format<-theme(axis.text.y=element_text(size=rel(2.5)), axis.text.x=element_text(size=rel(2.5)),
+                    axis.title.y=element_text(size=22), axis.title.x=element_text(size=22),
+                    legend.text = element_text(size = 22))
+
 Function.Process.MAF<-function(maf.file){
   #Function to clean maf files straight from TCGA
   
@@ -123,17 +129,32 @@ Function.Main.PVAL<-function(main.command, maf.table,exp.in){
   #Calculates p-values per metabolite in main.command run
   
   #Function for simulation 
-  internal.function<-function(n.samples,n.diff, n.not.samples, n.not.diff){
+  internal.function<-function(n.samples,n.diff, n.not.samples, n.not.diff, metabolite){
     
-    n.diff.pval<-mean(replicate(100, Function.RNAseq.Differential.Expression.V3(exp.in, sample(all.samples, n.samples))) >=n.diff)
-    n.not.diff.pval<-mean(replicate(100, Function.RNAseq.Differential.Expression.V3(exp.in, sample(all.samples, n.not.samples))) >=n.not.diff)
+    #Perform simulations
+    n.diff.rep<-replicate(1000, Function.RNAseq.Differential.Expression.V3(exp.in, sample(all.samples, n.samples)))
+    n.not.diff.rep<-replicate(1000, Function.RNAseq.Differential.Expression.V3(exp.in, sample(all.samples, n.not.samples)))
+    
+    #Plot
+    jpeg(filename=paste0(c(plot.folder,cancer,metabolite,"N.DIFF"), collapse="."), 1200,1200,quality=200)
+    ggplot(data.table(dist=n.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.diff, colour="red")
+    dev.off()
+    
+    jpeg(filename=paste0(c(plot.folder,cancer,metabolite,"N.NOT.DIFF"), collapse="."), 1200,1200,quality=200)
+    ggplot(data.table(dist=n.not.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.not.diff, colour="red")
+    dev.off()
+    
+    #Calculate p values
+    n.diff.pval<-mean(n.diff.rep>=n.diff)
+    n.not.diff.pval<-mean(n.not.diff.rep>=n.not.diff)
     
     return(list(N.DIFF.PVAL=n.diff.pval, N.NOT.DIFF.PVAL=n.not.diff.pval))
   }
   
   #Exectute
   all.samples<-unique(as.vector(maf.table$PATIENT))
-  main.table<-main.command[,internal.function(N.SAMPLES, N.DIFF, N.NOT.SAMPLES, N.NOT.DIFF),by=c("METABOLITE","KEGG_ID")]
+  main.table<-main.command[,internal.function(N.SAMPLES, N.DIFF, N.NOT.SAMPLES, N.NOT.DIFF,METABOLITE),
+                           by=c("METABOLITE","KEGG_ID","N.SAMPLES","N.DIFF","N.NOT.SAMPLES","N.NOT.DIFF")]
   
   #Clean up and return
   main.table<-main.table[order(N.DIFF.PVAL),]
