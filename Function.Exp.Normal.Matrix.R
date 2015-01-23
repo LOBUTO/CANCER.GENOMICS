@@ -2,7 +2,7 @@
 #102514
 #Function to normalize RNA seq expression files obtained from map files and quantile normalized rsem.genes.normalized_results
 
-Function.process.RNAseq.map.files<-function(map.file) {  
+Function.process.RNAseq.map.files<-function(map.file, folder) {  
   #Processes map.file from RNAseq data
   #Filters for gene name containing files and shortens barcode to represent patient.sample
   #Produces a 2-column matrix of "filename" and "patient.sample" columns
@@ -15,7 +15,10 @@ Function.process.RNAseq.map.files<-function(map.file) {
   #Process sample name from barcode
   dummy.map$patient.sample<-substr(dummy.map$barcode.s.,1,16)
   dummy.map$barcode.s.<-NULL
- 
+  
+  #Filter for files that actually exist in the rnaseq.folder 
+  dummy.map<-dummy.map[dummy.map$filename %in% list.files(folder),]
+  
   #Return
   return(as.matrix(dummy.map))
 }
@@ -154,7 +157,7 @@ output.file<-args[3]
 #rnaseq.folder<-"/Users/jzamalloa/Desktop/FOLDER/ECLIPSE/workspace/Rotation/DATABASES/CANCER_DATA/TCGA/RNA_SEQ/BRCA/102514/RNASeqV2/UNC__IlluminaHiSeq_RNASeqV2/Level_3"
 #output.file<-"/Users/jzamalloa/Desktop/FOLDER/ECLIPSE/workspace/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/BRCA/102514.CANCER.MATRICES.NORMALIZED.OBJ.rds"
 
-processed.map.matrix<-Function.process.RNAseq.map.files(map.file)
+processed.map.matrix<-Function.process.RNAseq.map.files(map.file, rnaseq.folder)
 print ("map file constructed")
 
 cancer.matrices<-Function.read.RNAseq.files(rnaseq.folder, processed.map.matrix, cancer.sep=T)
