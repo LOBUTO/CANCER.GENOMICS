@@ -136,12 +136,12 @@ Function.Main.PVAL<-function(main.command, maf.table,exp.in){
     n.not.diff.rep<-replicate(1000, Function.RNAseq.Differential.Expression.V3(exp.in, sample(all.samples, n.not.samples)))
     
     #Plot
-    filename=paste0(c(paste0(c(plot.folder,"/",cancer)) ,metabolite,"N.DIFF"), collapse=".")
+    filename=paste0(c(paste0(plot.folder,"/",cancer) ,metabolite,"N.DIFF.jpeg"), collapse=".")
     print (filename)
     figure<-ggplot(data.table(dist=n.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.diff, colour="red")
     ggsave(filename=filename,figure)
     
-    filename=paste0(c(paste0(c(plot.folder,"/",cancer)) ,metabolite,"N.NOT.DIFF"), collapse=".")
+    filename=paste0(c(paste0(plot.folder,"/",cancer) ,metabolite,"N.NOT.DIFF.jpeg"), collapse=".")
     print (filename)
     figure<-ggplot(data.table(dist=n.not.diff.rep), aes(dist)) + geom_histogram() + theme.format + geom_vline(xintercept = n.not.diff, colour="red")
     ggsave(filename=filename,figure)
