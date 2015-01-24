@@ -2,15 +2,19 @@
 #102514
 #Function to normalize RNA seq expression files obtained from map files and quantile normalized rsem.genes.normalized_results
 
-Function.process.RNAseq.map.files<-function(map.file, folder) {  
+Function.process.RNAseq.map.files<-function(map.file, folder, rna.version) {  
   #Processes map.file from RNAseq data
   #Filters for gene name containing files and shortens barcode to represent patient.sample
   #Produces a 2-column matrix of "filename" and "patient.sample" columns
   
   dummy.map<-read.csv(map.file, header=T, sep="\t")
  
-  #Keep only files that are for processed genes
-  dummy.map<-dummy.map[grepl("rsem.genes.normalized_results", dummy.map$filename),]
+  #Keep only files that are for processed genes - The type of files depend on the rna processing version we are using
+  if (rna.version=="V2"){
+    dummy.map<-dummy.map[grepl("rsem.genes.normalized_results", dummy.map$filename),]  
+  } else if (rna.version=="V1"){
+    dummy.map<-dummy.map[grepl("gene.quantification.txt", dummy.map$filename),]  
+  }
  
   #Process sample name from barcode
   dummy.map$patient.sample<-substr(dummy.map$barcode.s.,1,16)
@@ -23,7 +27,7 @@ Function.process.RNAseq.map.files<-function(map.file, folder) {
   return(as.matrix(dummy.map))
 }
 
-Function.read.RNAseq.files<- function(folder, processed.map.matrix, cancer.sep=T) {
+Function.read.RNAseq.files<- function(folder, processed.map.matrix, cancer.sep=T, rna.version) {
   #Produces matrices of genesxpatient.samples based on folder locations of RNAseq files and processed.map.matrix obtained from
   # Function.process.RNAseq.map.files()
   # Could produce 2 matrices corresponding to normal 11A and cancer 01A or simply a single matrix 
@@ -32,9 +36,14 @@ Function.read.RNAseq.files<- function(folder, processed.map.matrix, cancer.sep=T
   Internal.Function.1<-function(input.matrix, folder){
     #Merges RNAseq files in "folder" depending on instructions from input matrix
     
-    #Read files into list
-    matrices<-lapply(1:nrow(input.matrix), function(f) read.csv(paste0(folder,"/", input.matrix[f,1],""), header=T, sep="\t",
-                                                                        col.names=c("gene_id", input.matrix[f,2])))
+    #Read files into list depending on rna version processing platform
+    if (rna.version=="V2"){
+      matrices<-lapply(1:nrow(input.matrix), function(f) read.csv(paste0(folder,"/", input.matrix[f,1],""), header=T, sep="\t",
+                                                                  col.names=c("gene_id", input.matrix[f,2])))  
+    } else if (rna.version=="V1"){
+      matrices<-lapply(1:nrow(input.matrix), function(f) fread(paste0(folder,"/", input.matrix[f,1],""), header=T, sep="\t", drop=2:3,
+                                                                  col.names=c("gene_id", input.matrix[f,2])))  
+    }
     
     #Merge vector matrices to create expression table
     dummy.expression.table<-join_all(matrices, by="gene_id", type="inner")
@@ -58,6 +67,7 @@ Function.read.RNAseq.files<- function(folder, processed.map.matrix, cancer.sep=T
   }
   
   require(plyr)
+  require(data.table)
   
   if (cancer.sep==T) {
     processed.map.matrix<-as.data.frame(processed.map.matrix, stringAsFactors=F)
@@ -151,16 +161,17 @@ args<-commandArgs(trailingOnly=T)
 
 map.file<-args[1] 
 rnaseq.folder<-args[2]
-output.file<-args[3]
+rna.version<-args[3]
+output.file<-args[4]
 
 #map.file<-"/Users/jzamalloa/Desktop/FOLDER/ECLIPSE/workspace/Rotation/DATABASES/CANCER_DATA/TCGA/RNA_SEQ/BRCA/102514/FILE_SAMPLE_MAP.txt"
 #rnaseq.folder<-"/Users/jzamalloa/Desktop/FOLDER/ECLIPSE/workspace/Rotation/DATABASES/CANCER_DATA/TCGA/RNA_SEQ/BRCA/102514/RNASeqV2/UNC__IlluminaHiSeq_RNASeqV2/Level_3"
 #output.file<-"/Users/jzamalloa/Desktop/FOLDER/ECLIPSE/workspace/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/BRCA/102514.CANCER.MATRICES.NORMALIZED.OBJ.rds"
 
-processed.map.matrix<-Function.process.RNAseq.map.files(map.file, rnaseq.folder)
+processed.map.matrix<-Function.process.RNAseq.map.files(map.file, rnaseq.folder, rna.version)
 print ("map file constructed")
 
-cancer.matrices<-Function.read.RNAseq.files(rnaseq.folder, processed.map.matrix, cancer.sep=T)
+cancer.matrices<-Function.read.RNAseq.files(rnaseq.folder, processed.map.matrix, cancer.sep=T, rna.version)
 print ("main table built")
 
 output.obj<-Function.RNAseq.Matrices.Normalization(cancer.matrices$normal, cancer.matrices$tumor, rm.batch.effect=F)
