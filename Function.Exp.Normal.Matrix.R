@@ -117,6 +117,14 @@ Function.RNAseq.Matrices.Normalization<-function(normal.matrix, cancer.matrix, r
   G.design.matrix<-model.matrix(~G, G.design.matrix)
   
   #Combine matrices
+  print (length(rownames(cancer.matrix)))
+  print (rownames(cancer.matrix)[duplicated(rownames(cancer.matrix))])
+  print (length(rownames(cancer.matrix)[!duplicated(rownames(cancer.matrix))]))
+  
+  print (length(rownames(normal.matrix)))
+  print (rownames(normal.matrix)[duplicated(rownames(normal.matrix))])
+  print (length(rownames(normal.matrix)[!duplicated(rownames(normal.matrix))]))
+  
   cancer.matrix$rn<-rownames(cancer.matrix)
   normal.matrix$rn<-rownames(normal.matrix)
   dummy.expression.matrix<-join_all(list(as.data.frame(cancer.matrix), as.data.frame(normal.matrix)), by="rn", type="inner")
