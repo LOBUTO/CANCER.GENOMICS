@@ -14,6 +14,7 @@ Function.process.RNAseq.map.files<-function(map.file, folder, rna.version) {
     dummy.map<-dummy.map[grepl("rsem.genes.normalized_results", dummy.map$filename),]  
   } else if (rna.version=="V1"){
     dummy.map<-dummy.map[grepl("gene.quantification.txt", dummy.map$filename),]  
+    print (head(dummy.map))
   }
  
   #Process sample name from barcode
@@ -22,6 +23,7 @@ Function.process.RNAseq.map.files<-function(map.file, folder, rna.version) {
   
   #Filter for files that actually exist in the rnaseq.folder 
   dummy.map<-dummy.map[dummy.map$filename %in% list.files(folder),]
+  print (head(dummy.map))
   
   #Return
   return(as.matrix(dummy.map))
