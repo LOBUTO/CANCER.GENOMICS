@@ -43,10 +43,10 @@ Function.read.RNAseq.files<- function(folder, processed.map.matrix, cancer.sep=T
     } else if (rna.version=="V1"){
       matrices<-lapply(1:nrow(input.matrix), function(f) {
         pre.table<-read.csv(paste0(folder,"/", input.matrix[f,1],""), header=T, sep="\t", 
-                 col.names=c("gene_id", "u.1", "u.2", input.matrix[f,2])))
+                 col.names=c("gene_id", "u.1", "u.2", input.matrix[f,2]))
         pre.table<-pre.table[,c(1,4)]
         return(pre.table)
-      }
+      })
     }
     
     #Merge vector matrices to create expression table
