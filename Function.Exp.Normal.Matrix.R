@@ -22,7 +22,6 @@ Function.process.RNAseq.map.files<-function(map.file, folder, rna.version) {
   
   #Filter for files that actually exist in the rnaseq.folder 
   dummy.map<-dummy.map[dummy.map$filename %in% list.files(folder),]
-  print (head(dummy.map))
   
   #Return
   return(as.matrix(dummy.map))
