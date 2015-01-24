@@ -14,9 +14,8 @@ Function.process.RNAseq.map.files<-function(map.file, folder, rna.version) {
     dummy.map<-dummy.map[grepl("rsem.genes.normalized_results", dummy.map$filename),]  
   } else if (rna.version=="V1"){
     dummy.map<-dummy.map[grepl("gene.quantification.txt", dummy.map$filename),]  
-    print (head(dummy.map))
   }
- 
+  
   #Process sample name from barcode
   dummy.map$patient.sample<-substr(dummy.map$barcode.s.,1,16)
   dummy.map$barcode.s.<-NULL
@@ -77,6 +76,7 @@ Function.read.RNAseq.files<- function(folder, processed.map.matrix, cancer.sep=T
   
   if (cancer.sep==T) {
     processed.map.matrix<-as.data.frame(processed.map.matrix, stringAsFactors=F)
+    print (processed.map.matrix)
     
     #Separate based on normal or cancer
     processed.map.matrix$type<-substr(processed.map.matrix$patient.sample, 14,15)
