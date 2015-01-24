@@ -174,11 +174,13 @@ output.file<-args[4]
 #output.file<-"/Users/jzamalloa/Desktop/FOLDER/ECLIPSE/workspace/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/BRCA/102514.CANCER.MATRICES.NORMALIZED.OBJ.rds"
 
 processed.map.matrix<-Function.process.RNAseq.map.files(map.file, rnaseq.folder, rna.version)
-print ("map file constructed")
+print ("map file constructed\n")
 
+print ("Building main expression matrix")
 cancer.matrices<-Function.read.RNAseq.files(rnaseq.folder, processed.map.matrix, cancer.sep=T, rna.version)
 print ("main table built")
 
+print ("Normalizing expression values")
 output.obj<-Function.RNAseq.Matrices.Normalization(cancer.matrices$normal, cancer.matrices$tumor, rm.batch.effect=F)
 print ("done normalizing")
 
