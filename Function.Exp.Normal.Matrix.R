@@ -75,7 +75,6 @@ Function.read.RNAseq.files<- function(folder, processed.map.matrix, cancer.sep=T
   
   if (cancer.sep==T) {
     processed.map.matrix<-as.data.frame(processed.map.matrix, stringAsFactors=F)
-    print (processed.map.matrix)
     
     #Separate based on normal or cancer
     processed.map.matrix$type<-substr(processed.map.matrix$patient.sample, 14,15)
@@ -174,7 +173,7 @@ output.file<-args[4]
 #output.file<-"/Users/jzamalloa/Desktop/FOLDER/ECLIPSE/workspace/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/BRCA/102514.CANCER.MATRICES.NORMALIZED.OBJ.rds"
 
 processed.map.matrix<-Function.process.RNAseq.map.files(map.file, rnaseq.folder, rna.version)
-print ("map file constructed\n")
+print ("map file constructed")
 
 print ("Building main expression matrix")
 cancer.matrices<-Function.read.RNAseq.files(rnaseq.folder, processed.map.matrix, cancer.sep=T, rna.version)
