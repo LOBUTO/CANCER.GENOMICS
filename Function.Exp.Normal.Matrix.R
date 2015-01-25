@@ -110,29 +110,16 @@ Function.RNAseq.Matrices.Normalization<-function(normal.matrix, cancer.matrix, r
   G1.patients<-colnames(cancer.matrix)
   G0.patients<-colnames(normal.matrix)
   
-  #Build design matrix
-  G1.n.samples<-length(colnames(cancer.matrix))
+  #Build design matrix - Make sure to remove duplicated samples!!!
+  G1.n.samples<-length(colnames(cancer.matrix)[!duplicated(colnames(cancer.matrix))])
   G0.n.samples<-length(colnames(normal.matrix))
   G.design.matrix<-data.frame(G=c(rep("G1", G1.n.samples), rep("G0", G0.n.samples)))
   G.design.matrix<-model.matrix(~G, G.design.matrix)
   
   #Combine matrices
-  print (length(rownames(cancer.matrix)))
-  print (rownames(cancer.matrix)[duplicated(rownames(cancer.matrix))])
-  print (length(rownames(cancer.matrix)[!duplicated(rownames(cancer.matrix))]))
-  
-  print (length(rownames(normal.matrix)))
-  print (rownames(normal.matrix)[duplicated(rownames(normal.matrix))])
-  print (length(rownames(normal.matrix)[!duplicated(rownames(normal.matrix))]))
-  
   cancer.matrix$rn<-rownames(cancer.matrix)
   normal.matrix$rn<-rownames(normal.matrix)
   dummy.expression.matrix<-join_all(list(as.data.frame(cancer.matrix), as.data.frame(normal.matrix)), by="rn", type="inner")
-  
-  
-  print (length(dummy.expression.matrix$rn))
-  print (dummy.expression.matrix$rn[duplicated(dummy.expression.matrix$rn)])
-  print (length(dummy.expression.matrix$rn[!duplicated(dummy.expression.matrix$rn)]))
   
   rownames(dummy.expression.matrix)<-dummy.expression.matrix$rn
   dummy.expression.matrix$rn<-NULL #Remove column used to combine data frames
