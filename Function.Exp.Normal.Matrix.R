@@ -128,6 +128,11 @@ Function.RNAseq.Matrices.Normalization<-function(normal.matrix, cancer.matrix, r
   cancer.matrix$rn<-rownames(cancer.matrix)
   normal.matrix$rn<-rownames(normal.matrix)
   dummy.expression.matrix<-join_all(list(as.data.frame(cancer.matrix), as.data.frame(normal.matrix)), by="rn", type="inner")
+  
+  print (length(rownames(dummy.expression.matrix)))
+  print (rownames(dummy.expression.matrix)[duplicated(rownames(dummy.expression.matrix))])
+  print (length(rownames(dummy.expression.matrix)[!duplicated(rownames(dummy.expression.matrix))]))
+  
   rownames(dummy.expression.matrix)<-dummy.expression.matrix$rn
   dummy.expression.matrix$rn<-NULL #Remove column used to combine data frames
   dummy.expression.matrix<-dummy.expression.matrix[complete.cases(dummy.expression.matrix),] #Remove NAs
