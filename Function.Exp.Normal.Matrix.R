@@ -129,6 +129,7 @@ Function.RNAseq.Matrices.Normalization<-function(normal.matrix, cancer.matrix, r
   normal.matrix$rn<-rownames(normal.matrix)
   dummy.expression.matrix<-join_all(list(as.data.frame(cancer.matrix), as.data.frame(normal.matrix)), by="rn", type="inner")
   
+  
   print (length(dummy.expression.matrix$rn))
   print (dummy.expression.matrix$rn[duplicated(dummy.expression.matrix$rn)])
   print (length(dummy.expression.matrix$rn[!duplicated(dummy.expression.matrix$rn)]))
@@ -136,6 +137,9 @@ Function.RNAseq.Matrices.Normalization<-function(normal.matrix, cancer.matrix, r
   rownames(dummy.expression.matrix)<-dummy.expression.matrix$rn
   dummy.expression.matrix$rn<-NULL #Remove column used to combine data frames
   dummy.expression.matrix<-dummy.expression.matrix[complete.cases(dummy.expression.matrix),] #Remove NAs
+  
+  #Remove duplicated columns due to double data sample issues
+  dummy.expression.matrix<-dummy.expression.matrix[,colnames(dummy.expression.matrix)[!duplicated(colnames(dummy.expression.matrix))]]
   
   #Convert RNAseq counts to log-count per million and normalize
   G.all<-as.matrix(dummy.expression.matrix)
