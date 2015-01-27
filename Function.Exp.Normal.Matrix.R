@@ -61,6 +61,7 @@ Function.read.RNAseq.files<- function(folder, processed.map.matrix, cancer.sep=T
     dummy.expression.table<-dummy.expression.table[dummy.expression.table$gene!="?",]
     
     #Assign genes as rownames and clean up
+    print (dummy.expression.table$gene[duplicated(dummy.expression.table$gene)])
     rownames(dummy.expression.table)<-dummy.expression.table$gene
     dummy.expression.table$gene<-NULL
     dummy.expression.table$gene_id<-NULL
