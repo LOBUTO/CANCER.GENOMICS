@@ -152,6 +152,8 @@ Function.RNAseq.Matrices.Normalization<-function(normal.matrix, cancer.matrix, r
   
   #Quantile normalization
   print("converting log log-count per million")
+  print (dim(G.all))
+  print (dim(G.design.matrix))
   G.all<-voom(G.all, G.design.matrix,normalize.method="quantile") #Convert RNAseq expression values to log-count per million + quantile normalization
   
   #Need to correct for batch effects?
