@@ -84,6 +84,12 @@ Function.read.RNAseq.files<- function(folder, processed.map.matrix, cancer.sep=T
     processed.map.matrix.normal<-processed.map.matrix[processed.map.matrix$type=="11",]
     processed.map.matrix.cancer<-processed.map.matrix[processed.map.matrix$type=="01",]
     
+    #Throw error if don't have any samples of normal expression to compare to
+    if (nrow(processed.map.matrix.normal)==0){
+      stop("No normal samples found (Tissue - 11)")
+    }
+    
+    #If no error continue
     dummy.normal<-Internal.Function.1(as.matrix(processed.map.matrix.normal), folder)
     dummy.cancer<-Internal.Function.1(as.matrix(processed.map.matrix.cancer), folder)
     
