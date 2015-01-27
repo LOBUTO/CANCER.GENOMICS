@@ -109,6 +109,9 @@ Function.RNAseq.Matrices.Normalization<-function(normal.matrix, cancer.matrix, r
   require(edgeR)
   require(sva)
   
+  print (dim(normal.matrix))
+  print (dim(cancer.matrix))
+  
   #Remove duplicated samples
   cancer.matrix<-cancer.matrix[,!duplicated(colnames(cancer.matrix))]
   normal.matrix<-normal.matrix[,!duplicated(colnames(normal.matrix))]
