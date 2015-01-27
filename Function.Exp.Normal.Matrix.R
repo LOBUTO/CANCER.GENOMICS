@@ -109,12 +109,16 @@ Function.RNAseq.Matrices.Normalization<-function(normal.matrix, cancer.matrix, r
   require(edgeR)
   require(sva)
   
+  #Remove duplicated samples
+  cancer.matrix<-cancer.matrix[,!duplicated(colnames(cancer.matrix))]
+  normal.matrix<-normal.matrix[,!duplicated(colnames(normal.matrix))]
+  
   #Get patient cohorts
   G1.patients<-colnames(cancer.matrix)
   G0.patients<-colnames(normal.matrix)
   
-  #Build design matrix - Make sure to remove duplicated samples!!!
-  G1.n.samples<-length(colnames(cancer.matrix)[!duplicated(colnames(cancer.matrix))])
+  #Build design matrix
+  G1.n.samples<-length(colnames(cancer.matrix))
   G0.n.samples<-length(colnames(normal.matrix))
   G.design.matrix<-data.frame(G=c(rep("G1", G1.n.samples), rep("G0", G0.n.samples)))
   G.design.matrix<-model.matrix(~G, G.design.matrix)
