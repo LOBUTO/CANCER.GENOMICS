@@ -438,13 +438,15 @@ Function.Bayes.Test<-function(main.table, cosmic.genes){
 BRCA.COSMIC.GENES<-c("AKT1", "BAP1", "BRCA1", "BRCA2", "BRIP1", "CDH1", "EP300", "ERBB2",
                      "FOXA1", "MAP2K4","PALB2","PBRM1", "PIK3CA", "RB1","TP53")
 
-#Load TCGA file
+####Load TCGA files
 TCGA.MUT.45<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/BRCA/011015.BRCA.MAF.TRIMERS.45.csv", header=F, sep="\t",
                    stringsAsFactors=F, drop=c(8:9,11))
 setnames(TCGA.MUT.45, c("Chrom","Position","Hugo_Symbol", "MUT.FREQ", "TYPE", "REF","ALT","PHAST.45"))
 TCGA.MUT.45.MID.4<-merge(TCGA.MUT.45, CHEN.REP, by="Hugo_Symbol")
 setkey(TCGA.MUT.45.MID.4)
 TCGA.MUT.45.MID.4<-unique(TCGA.MUT.45.MID.4)
+
+TCGA.GBM<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/GBM/020215.GBM.MAF", header=T, sep="\t",stringsAsFactors=F)
 
 #Apply functions
 thousand.prop.table<-Function.THOUSAND.Prob(THOUSAND.PHAST.45.MID.4, CUTS=F, PHAST=T)
@@ -625,11 +627,25 @@ Function.Main.Bayes.Joint<-function(thousand.prop.joint, tcga.prob.joint, cancer
   return(main.table)
 }
 
+Function.bayes.prob.plot<-function(test.bayes.plot) {
+  bayes.box.test<-data.table()
+  for (prob in c(0.99,0.95,0.9,0.85, 0.80, 0.75, 0.7, 0.6, 0.5,0.4,0.3,0.2,0)){
+    n.cancer<-length(unique(as.vector(test.bayes.plot[BAYES.PROB>=prob & cancer==TRUE & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)))
+    n.non.cancer<-length(unique(as.vector(test.bayes.plot[BAYES.PROB>=prob & cancer==FALSE & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)))
+    bayes.box.test<-rbind(bayes.box.test, data.table(PROB=prob, CANCER=n.cancer, NON.CANCER=n.non.cancer))
+    print (c(prob, n.cancer, n.non.cancer))
+  }
+  ggplot(melt(bayes.box.test,id.vars="PROB"), aes(PROB, value, colour=variable)) + geom_bar(stat="identity", position="dodge") + theme.format +
+    geom_text(aes(label=value), position=position_dodge(width=0.04), vjust=-0.25)   
+  
+}
+
 #Apply
-thousand.test<-Function.THOUSAND.Prob.Joint(THOUSAND.PHAST.45[MAF!=0,], CHEN.REP, c("TYPE","REF.ALT","REP.TIME","degree", Chrom) ,
+thousand.test<-Function.THOUSAND.Prob.Joint(THOUSAND.PHAST.45[MAF!=0,], CHEN.REP, c("TYPE","REF.ALT","REP.TIME","degree", "Chrom") ,
                                             brca.exp,hic,biogrid.degree,exon,noise=1,rounded=2,var.cut=4,rep.cut=5)
-tcga.test<-Function.TCGA.Prob.Joint(TCGA.MUT.45,THOUSAND.PHAST.45, CHEN.REP, brca.exp,hic,biogrid.degree,exon,rounded=2,var.cut=4,rep.cut=5)
-test.bayes<-Function.Main.Bayes.Joint(thousand.test, tcga.test, cancer.prob=0.12, FF=T)
+tcga.test<-Function.TCGA.Prob.Joint(TCGA.MUT.45,THOUSAND.PHAST.45[MAF!=0,], c("TYPE","REF.ALT","REP.TIME","degree", "Chrom"),CHEN.REP ,
+                                    brca.exp,hic,biogrid.degree,exon,rounded=2,var.cut=4,rep.cut=5)
+test.bayes<-Function.Main.Bayes.Joint(thousand.test, tcga.test, cancer.prob=0.12, FF=F)
 test.bayes.plot<-Function.Bayes.Test(test.bayes, COSMIC$Hugo_Symbol)
 
 ggplot(test.bayes.plot, aes(cancer, BAYES.PROB, colour=cancer)) + geom_boxplot() + geom_jitter(size=0.5) + theme.format + facet_wrap(~TYPE)
@@ -644,31 +660,28 @@ for (prob in c(0.99,0.95,0.9,0.85, 0.80, 0.75, 0.7, 0.6, 0.5,0.4,0.3,0.2,0)){
 ggplot(melt(bayes.box.test,id.vars="PROB"), aes(PROB, value, colour=variable)) + geom_bar(stat="identity", position="dodge") + theme.format +
   geom_text(aes(label=value), position=position_dodge(width=0.04), vjust=-0.25) 
 
-test.bayes[Hugo_Symbol=="PIK3CA",]
+test.bayes[Hugo_Symbol=="BRCA1",]
 unique(test.bayes[BAYES.PROB>0.75 & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)
 
 length(unique(maf.record[Hugo_Symbol %in% unique(test.bayes[BAYES.PROB>0.75 & TYPE=="nonsynonymous SNV",]$Hugo_Symbol),]$PATIENT))
 
-test.model<-test.bayes[TYPE=="nonsynonymous SNV",]
-test.model$REF.ALT<-as.factor(test.model$REF.ALT)
-test.model$CANCER<-test.model$Hugo_Symbol %in% BRCA.COSMIC.GENES
-testing.model<-glm(CANCER~TCGA.FF+THOUSAND.FF + degree/REP.TIME, test.model, family=binomial)
-summary(testing.model)
-test.model$PREDICTED<-predict(testing.model, test.model)
-ggplot(test.model, aes(CANCER, PREDICTED, colour=CANCER)) + geom_boxplot() + geom_jitter() + scale_y_log10()
+#Apply to GBM
+tcga.gbm.test<-Function.TCGA.Prob.Joint(TCGA.GBM, THOUSAND.PHAST.45[MAF!=0,], c("TYPE","REF.ALT","REP.TIME","degree", "Chrom"), CHEN.REP, biogrid=biogrid.degree, 
+                                        rounded=2, rep.cut=5)
+gbm.test.bayes<-Function.Main.Bayes.Joint(thousand.test, tcga.gbm.test, cancer.prob=0.12, FF=T)
+gbm.test.bayes.plot<-Function.Bayes.Test(gbm.test.bayes, COSMIC$Hugo_Symbol)
 
-ggplot(thousand.test[,CANCER:=Hugo_Symbol %in% BRCA.COSMIC.GENES,by="Hugo_Symbol"], aes(THOUSAND.FF, THOUSAND.PROB, colour=CANCER)) + geom_point() + theme.format +
-  facet_grid(~CANCER) + scale_x_log10()
-ggplot(tcga.test[,CANCER:=Hugo_Symbol %in% BRCA.COSMIC.GENES,by="Hugo_Symbol"], aes(log(TCGA.FF), TCGA.PROB, colour=CANCER, label=Hugo_Symbol)) + geom_point() + theme.format +
-  facet_grid(~CANCER)  + geom_text(data=tcga.test[CANCER==T,], aes(label=Hugo_Symbol))
-ggplot(test.bayes[,CANCER:=Hugo_Symbol %in% BRCA.COSMIC.GENES, by="Hugo_Symbol"], aes(TCGA.FF, THOUSAND.FF, colour=CANCER, label=Hugo_Symbol)) + geom_point() + theme.format +
-  facet_grid(~CANCER) + geom_text(data=test.bayes[CANCER==T,], aes(label=Hugo_Symbol)) + scale_y_log10() + scale_x_log10()
-ggplot(test.bayes[,CANCER:=Hugo_Symbol %in% BRCA.COSMIC.GENES, by="Hugo_Symbol"], aes(CANCER, TCGA.FF-THOUSAND.FF, colour=CANCER, label=Hugo_Symbol)) + geom_boxplot() + geom_jitter() +
-  geom_text(data=test.bayes[CANCER==T,], aes(label=Hugo_Symbol))
+ggplot(gbm.test.bayes.plot, aes(cancer, BAYES.PROB, colour=cancer)) + geom_boxplot() + geom_jitter(size=0.5) + theme.format + facet_wrap(~TYPE)
 
-ggplot(test.bayes[,CANCER:=Hugo_Symbol %in% BRCA.COSMIC.GENES, by="Hugo_Symbol"], aes(TCGA.FF/THOUSAND.FF, degree*REP.TIME, colour=CANCER, label=Hugo_Symbol)) + geom_point() + theme.format +
-  geom_text(data=test.bayes[CANCER==T,], aes(label=Hugo_Symbol)) + facet_grid(~CANCER) + scale_x_log10() + scale_y_log10()
+Function.bayes.prob.plot(gbm.test.bayes.plot)
+unique(gbm.test.bayes[BAYES.PROB>0.90 & TYPE=="nonsynonymous SNV",]$Hugo_Symbol)
 
+gbm.test.bayes[Hugo_Symbol=="HCN1",]
+
+ggplot(gbm.test.bayes, aes(REP.TIME, BAYES.PROB)) + geom_point()+ theme.format
+ggplot(gbm.test.bayes, aes(degree, BAYES.PROB)) + geom_point()+ theme.format + scale_x_log10()
+
+######
 length(as.vector(unique(test.bayes$Hugo_Symbol)))
 length(as.vector(unique(TCGA.MUT.45.MID.4$Hugo_Symbol))) #13427 (2), 14447(4)
 length(unique(intersect(TCGA.MUT.45.MID.4$Hugo_Symbol, THOUSAND.PHAST.45.MID.4$Hugo_Symbol))) #13338(2), 14346(4)
