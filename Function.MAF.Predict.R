@@ -241,6 +241,7 @@ THOUSAND.PHAST.45.FILTERED$PHAST.CUT<-cut(THOUSAND.PHAST.45.FILTERED$PHAST.45, c
 ######Inclusde replication time
 CHEN.REP<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/010815.CHEN.REP.TIMES.MID.4.EXP", header=T, sep="\t",stringsAsFactors=F, drop=2)
 setkey(CHEN.REP)
+CHEN.REP<-unique(CHEN.REP)
 ggplot(CHEN.REP, aes(REP.CLASS, REP.TIME)) + geom_boxplot() + theme.format
 table(CHEN.REP$REP.CLASS)
 
@@ -455,10 +456,21 @@ TCGA.MUT.45.MID.4<-merge(TCGA.MUT.45, CHEN.REP, by="Hugo_Symbol")
 setkey(TCGA.MUT.45.MID.4)
 TCGA.MUT.45.MID.4<-unique(TCGA.MUT.45.MID.4)
 
+TCGA.BRCA<-copy(TCGA.MUT.45)
 TCGA.GBM<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/GBM/020215.GBM.MAF", header=T, sep="\t",stringsAsFactors=F)
 TCGA.OV<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/OV/020115.OV.BCM.CURATED.MAF", header=T, sep="\t",stringsAsFactors=F)
 TCGA.SKCM<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/SKCM/020115.SKCM.MAF", header=T, sep="\t",stringsAsFactors=F)
 TCGA.AML<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/AML/020315.AML.MAF", header=T, sep="\t",stringsAsFactors=F)
+TCGA.COAD<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/COAD/020315.COAD.I.GA.MAF", header=T, sep="\t",stringsAsFactors=F)
+TCGA.HNSC<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/HNSC/020315.HNSC.I.GA.MAF", header=T, sep="\t",stringsAsFactors=F)
+TCGA.KIRC<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/KIRC/020315.KIRC.MAF", header=T, sep="\t",stringsAsFactors=F)
+TCGA.LUAD<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/LUAD/020315.LUAD.MAF", header=T, sep="\t",stringsAsFactors=F)
+TCGA.LUSC<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/LUSC/020315.LUSC.MAF", header=T, sep="\t",stringsAsFactors=F)
+TCGA.PRAD<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/PRAD/020315.PRAD.MAF", header=T, sep="\t",stringsAsFactors=F)
+TCGA.READ<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/READ/020315.READ.I.GA.MAF", header=T, sep="\t",stringsAsFactors=F)
+TCGA.SKCM<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/SKCM/020115.SKCM.MAF", header=T, sep="\t",stringsAsFactors=F)
+TCGA.STAD<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/STAD/020315.STAD.MAF", header=T, sep="\t",stringsAsFactors=F)
+TCGA.UCEC<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/UCEC/020315.UCEC.MAF", header=T, sep="\t",stringsAsFactors=F)
 
 #Apply functions
 thousand.prop.table<-Function.THOUSAND.Prob(THOUSAND.PHAST.45.MID.4, CUTS=F, PHAST=T)
@@ -535,16 +547,20 @@ Function.THOUSAND.Prob.Joint<-function(THOUSAND.PHAST.TABLE,  CHEN.TABLE, FEATUR
   #Modified joint
   n.maf<-sum(main.table$MAF)
   #main.table$PHAST.CUT<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)
-#   main.table[,TYPE.P:=sum(MAF)/n.maf, by="TYPE"]
-#   main.table[,REF.ALT.P:=sum(MAF)/n.maf, by= "REF.ALT"]
-#   main.table[,REP.CLASS.P:=sum(MAF)/n.maf, by="REP.CLASS"]
-#   main.table[,REP.TIME.P:=sum(MAF)/n.maf, by="REP.TIME"]
-#   main.table[,Chrom.P:=sum(MAF)/n.maf, by="Chrom"]
-#   main.table[,DEGREE.CUT.P:=sum(MAF)/n.maf,by="DEGREE.CUT"]
-#   main.table[,Hugo.P:=sum(MAF)/n.maf, by="Hugo_Symbol"]
-#   main.table$THOUSAND.PROB<-main.table$TYPE.P * main.table$REF.ALT.P   *main.table$Hugo.P * main.table$REP.TIME.P
+  main.table[,TYPE.P:=sum(MAF)/n.maf, by="TYPE"]
+  main.table[,REF.ALT.P:=sum(MAF)/n.maf, by= "REF.ALT"]
+  main.table[,REP.CLASS.P:=sum(MAF)/n.maf, by="REP.CLASS"] #SHOULD BE PRIOR PER GENE
+  main.table[,REP.TIME.P:=sum(MAF)/n.maf, by="REP.TIME"] #SHOULD BE PRIOR PER GENE?
+  main.table[,Chrom.P:=sum(MAF)/n.maf, by="Chrom"]
+  main.table[,DEGREE.CUT.P:=sum(MAF)/n.maf,by="DEGREE.CUT"]
+  main.table[,degree.P:=sum(MAF)/n.maf, by="degree"]
+  main.table[,Hugo.P:=sum(MAF)/n.maf, by="Hugo_Symbol"]
+  main.table[,hic.P:=sum(MAF)/n.maf, by="hic"]
+  main.table[,HIC.CUT.P:=sum(MAF)/n.maf, by="HIC.CUT"]
   
-  main.table[,THOUSAND.PROB:=sum(MAF)/n.maf, by=FEATURES]
+  main.table$THOUSAND.PROB<-main.table$TYPE.P * main.table$REF.ALT.P *main.table$REP.TIME.P * main.table$degree.P * main.table$Chrom.P
+  
+  #main.table[,THOUSAND.PROB:=sum(MAF)/n.maf, by=FEATURES]
   
   #Add fudge factor
   main.table[,THOUSAND.FF:=sum(MAF)/n.maf,by="Hugo_Symbol"]
@@ -618,16 +634,20 @@ Function.TCGA.Prob.Joint<-function(TCGA.PHAST.TABLE, THOUSAND.PHAST.TABLE, FEATU
   #main.table$PHAST.CUT<-cut(main.table$PHAST.45, c(0,0.0005,0.005,0.02,0.1,0.3,0.8,0.98,0.995,0.999,1.0), include.lowest=T)
   n.maf<-sum(main.table$C.MUT.FREQ)
   
-#   main.table[,TYPE.P:=sum(C.MUT.FREQ)/n.maf, by="TYPE"]
-#   main.table[,REF.ALT.P:=sum(C.MUT.FREQ)/n.maf, by= "REF.ALT"]
-#   main.table[,REP.CLASS.P:=sum(C.MUT.FREQ)/n.maf, by="REP.CLASS"]
-#   main.table[,REP.TIME.P:=sum(C.MUT.FREQ)/n.maf, by="REP.TIME"]
-#   main.table[,Chrom.P:=sum(C.MUT.FREQ)/n.maf, by="Chrom"]
-#   main.table[,DEGREE.CUT.P:=sum(C.MUT.FREQ)/n.maf,by="DEGREE.CUT"]
-#   main.table[,Hugo.P:=sum(C.MUT.FREQ)/n.maf, by="Hugo_Symbol"]
-#   main.table$TCGA.PROB=main.table$TYPE.P * main.table$REF.ALT.P   *main.table$Hugo.P *main.table$REP.TIME.P
+  main.table[,TYPE.P:=sum(C.MUT.FREQ)/n.maf, by="TYPE"]
+  main.table[,REF.ALT.P:=sum(C.MUT.FREQ)/n.maf, by= "REF.ALT"]
+  main.table[,REP.CLASS.P:=sum(C.MUT.FREQ)/n.maf, by="REP.CLASS"]
+  main.table[,REP.TIME.P:=sum(C.MUT.FREQ)/n.maf, by="REP.TIME"]
+  main.table[,Chrom.P:=sum(C.MUT.FREQ)/n.maf, by="Chrom"]
+  main.table[,DEGREE.CUT.P:=sum(C.MUT.FREQ)/n.maf,by="DEGREE.CUT"]
+  main.table[,degree.P:=sum(C.MUT.FREQ)/n.maf, by="degree"]
+  main.table[,Hugo.P:=sum(C.MUT.FREQ)/n.maf, by="Hugo_Symbol"]
+  main.table[,hic.P:=sum(C.MUT.FREQ)/n.maf, by="hic"]
+  main.table[,HIC.CUT.P:=sum(C.MUT.FREQ)/n.maf, by="HIC.CUT"]
   
-  main.table[,TCGA.PROB:=sum(C.MUT.FREQ)/n.maf, by=FEATURES]
+  main.table$TCGA.PROB = main.table$TYPE.P * main.table$REF.ALT.P   *main.table$REP.TIME.P * main.table$degree.P * main.table$Chrom.P
+  
+  #main.table[,TCGA.PROB:=sum(C.MUT.FREQ)/n.maf, by=FEATURES]
   
   #Add fudge factor
   main.table[,TCGA.FF:=sum(C.MUT.FREQ)/n.maf,by="Hugo_Symbol"]
@@ -677,7 +697,7 @@ Function.bayes.prob.plot<-function(test.bayes.plot) {
 }
 
 #Apply to BRCA
-FEATURES=c("TYPE","REF.ALT", "REP.TIME", "degree","Chrom","hic")
+FEATURES=c("TYPE","REF.ALT", "REP.CLASS","DEGREE.CUT","nt.length","hic")
 thousand.test<-Function.THOUSAND.Prob.Joint(THOUSAND.PHAST.45[MAF!=0,], CHEN.REP, FEATURES ,
                                             brca.exp,hic,biogrid.degree,exon,noise=1,rounded=2,nt.cut=4,rep.cut=4)
 tcga.test<-Function.TCGA.Prob.Joint(TCGA.MUT.45, THOUSAND.PHAST.45[MAF!=0,],FEATURES ,CHEN.REP ,noise=1,
