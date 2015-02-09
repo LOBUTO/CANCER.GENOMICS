@@ -257,11 +257,27 @@ for (x in 1:nrow(cancer.prob)) {
   cancer.main.table<-rbind(cancer.main.table, test.bayes.plot)
 }
 
-
-cancer.main.table<-cancer.main.table[,c("Hugo_Symbol","BAYES.PROB","cancer","TUMOR"),with=F]
+cancer.main.table<-cancer.main.table[,c("Hugo_Symbol","BAYES.PROB","all.cancers","TUMOR"),with=F]
 setkey(cancer.main.table)
 cancer.main.table<-unique(cancer.main.table)
-cancer.main.table[order(BAYES.PROB,decreasing=T),]
+cancer.main.table<-cancer.main.table[,list(BAYES.PROB=max(BAYES.PROB)),by=c("Hugo_Symbol","all.cancers","TUMOR")]
+cancer.main.table[,cancer.presence:=length(unique(TUMOR)), by="Hugo_Symbol"]
+cancer.main.table[order(cancer.presence, decreasing=T),]
 
-biogrid.comb[A %in% cancer.main.table[TUMOR=="BRCA",]$Hugo_Symbol,]
+unique(cancer.main.table[,c(1,2,5),with=F][order(cancer.presence, decreasing=T),])[11:20]
+unique(cancer.main.table$TUMOR)
+cancer.main.table[TUMOR=="AML",]
 
+#HEATMAP
+cancer.main.melted<-dcast(cancer.main.table[BAYES.PROB>0.85,][,c(1,3,4), with=F], TUMOR~Hugo_Symbol, fill=0, value.var="BAYES.PROB")
+rownames(cancer.main.melted)<-cancer.main.melted$TUMOR
+cancer.main.melted$TUMOR<-NULL
+cancer.annotated<-data.frame(row.names=colnames(cancer.main.melted), 
+                                     COSMIC=ifelse(colnames(cancer.main.melted) %in% COSMIC$Hugo_Symbol, "CENSUS", "NON.CENSUS"))
+
+pheatmap(as.matrix(cancer.main.melted), scale="none",trace="none",annotation=cancer.annotated)
+
+#BIOGRID??
+biogrid.brca<-biogrid.comb[(B %in% cancer.main.table[TUMOR=="BRCA",]$Hugo_Symbol) | (A %in% cancer.main.table[TUMOR=="BRCA",]$Hugo_Symbol),]
+biogrid.brca$cancer<-biogrid.brca$B %in% COSMIC$Hugo_Symbol
+write.table(biogrid.brca, "PIPELINES/METABOLIC.DRIVERS/NETWORKS/BAYES.BRCA.80",sep="\t", quote=F, row.names=F, col.names=T)
