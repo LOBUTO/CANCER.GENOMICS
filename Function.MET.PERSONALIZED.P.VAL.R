@@ -2,6 +2,7 @@
 #021015
 #Calculate P.VAL per metabolite with associated mutations in each individual
 
+
 ##################FUNCTIONS################
 library(data.table)
 library(reshape2)
@@ -83,6 +84,11 @@ Function.Empirical.PVALS<-function(maf, table.2, exon){
   
   #Calculate metabolic mutation count per metabolite in each patient
   main.table[,met.mut.count:=length(Start_Position), by=c("Tumor_Sample_Barcode", "METABOLITE","KEGG_ID")]
+  
+  #Filter out non-used columns to ease out parallelization
+  main.table<-main.table[,c("sample.n.mut","met.mut.count","KEGG_ID","METABOLITE", "Tumor_Sample_Barcode"),with=F]
+  
+  #main.table<-main.table[Tumor_Sample_Barcode %in% unique(main.table$Tumor_Sample_Barcode)[201:900],] ##Subset if need to do portions of it
   
   #Split table to parallelize job
   main.split<-split(main.table, list(main.table$Tumor_Sample_Barcode, main.table$METABOLITE, main.table$KEGG_ID), drop=T)
