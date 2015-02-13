@@ -52,7 +52,7 @@ Function.Main<-function(maf, exp.matrix){
   maf<-unique(maf)
   
   #Obtain mutated gene list
-  gene.list<-unique(maf$Hugo_Symbol)[1:4]
+  gene.list<-unique(maf$Hugo_Symbol)
   
   #Prepping parallelization
   print ("prepping for parallelization")
