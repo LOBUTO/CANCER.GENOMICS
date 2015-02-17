@@ -51,10 +51,12 @@ Function.Prep.EXP<-function(exp.rds, paired=T){
     exp.matrix$cancer.patients<-cancer.patients
     
     #Return filtered matrix
+    print (dim(exp.matrix$combined.matrices))
     return(exp.matrix)
     
   } else {
     #Return unfiltered matrix
+    print (dim(exp.matrix$combined.matrices))
     return(exp.matrix)  
   }
   
@@ -78,7 +80,7 @@ Function.Main<-function(maf, exp.matrix){
   maf<-maf[,c("Hugo_Symbol","SAMPLE", "Start_Position", "N.SAMPLES.POS"),with=F]
   setkey(maf)
   maf<-unique(maf)
-  print (maf)
+  print (maf[order(N.SAMPLES.POS, decreasing=T),])
   
   #Split into tables 
   main.list<-split(maf, list(maf$Hugo_Symbol, maf$Start_Position),drop=T)
