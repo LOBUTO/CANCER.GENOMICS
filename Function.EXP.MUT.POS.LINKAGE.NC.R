@@ -14,6 +14,11 @@ Function.Prep.MAF<-function(maf.file) {
   #Load cancer data
   maf<-fread(maf.file, header=T, sep="\t",stringsAsFactors=F)
   maf<-maf[,c("Hugo_Symbol","Chrom","Start_Position","Variant_Classification","Variant_Type", "Tumor_Sample_Barcode"),with=F]
+  
+  #Filter for "Unknown" gene
+  maf<-maf[Hugo_Symbol!="Unknown",]
+  
+  #Unique
   setkey(maf)
   maf<-unique(maf)
   

@@ -1,7 +1,8 @@
-#Function.EXP.MUT.POS.LINKAGE.R
+#Function.EXP.MUT.POS.LINKAGE.R - NOTHING FOUND ON TEST RUN
 #021215
 #Calculates the linkage between mutation position and expression
 #Will only take into account sites that are seen mutated at least 2 times in population
+#NOTE - Did test run on 3 genes, PIK3CA, TP53, TTN, did not find anything interesting
 
 ##################FUNCTIONS################
 library(data.table)
@@ -13,6 +14,11 @@ Function.Prep.MAF<-function(maf.file) {
   #Load cancer data
   maf<-fread(maf.file, header=T, sep="\t",stringsAsFactors=F)
   maf<-maf[,c("Hugo_Symbol","Chrom","Start_Position","Variant_Classification","Variant_Type", "Tumor_Sample_Barcode"),with=F]
+  
+  #Filter for "Unknown" gene
+  maf<-maf[Hugo_Symbol!="Unknown",]
+  
+  #Unique
   setkey(maf)
   maf<-unique(maf)
   
@@ -57,11 +63,7 @@ Function.Main<-function(maf, exp.matrix){
   maf<-unique(maf)
   
   #Split into tables 
-  print ("Spliting maf")
-  main.list<-split(maf, list(maf$Hugo_Symbol, maf$Start_Position))
-  
-  #Obtain mutated gene list
-  #gene.list<-unique(maf$Hugo_Symbol)
+  main.list<-split(maf, list(maf$Hugo_Symbol, maf$Start_Position),drop=T)
   
   #Prepping parallelization
   print ("prepping for parallelization")
@@ -74,20 +76,20 @@ Function.Main<-function(maf, exp.matrix){
   
   #Execute parallelization
   print ("Finding linkage")
-  main.table<-parLapply(cl, main.list, function(x) {
-    
+  main.table<-lapply(main.list, function(x) {
     #To perform wilcoxon need to have at least 2 samples with mutations
+    mut.gene<-unique(x$Hugo_Symbol)
     target.patients<-unique(x$SAMPLE)
     
     if (length(target.patients)>1){
       non.target.patients<-setdiff(patients, target.patients)
       
       wilcox.matrix<-apply(exp.matrix, 1, function(y) wilcox.test(y[target.patients], y[non.target.patients], paired=F)$p.value)
-      wilcox.matrix<-data.table(Hugo_MUT=x, Position.MUT=unique(x$Start_Position) , Hugo_EXP=names(wilcox.matrix), 
+      wilcox.matrix<-data.table(Hugo_MUT=mut.gene, Position.MUT=unique(x$Start_Position) , Hugo_EXP=names(wilcox.matrix), 
                                 N.PATIENTS=length(target.patients), P.VAL=as.vector(wilcox.matrix))  
       
     } else {
-      wilcox.matrix<-data.table(Hugo_MUT=x, Position.MUT=unique(x$Start_Position), Hugo_EXP=rownames(exp.matrix), 
+      wilcox.matrix<-data.table(Hugo_MUT=mut.gene, Position.MUT=unique(x$Start_Position), Hugo_EXP=rownames(exp.matrix), 
                                 N.PATIENTS=length(target.patients), P.VAL="NONE")  
     }
     
