@@ -1,7 +1,8 @@
 #Function.EXP.MUT.POS.LINKAGE.NC.R
 #021515
-#Calculates the linkage between mutated gene and expression between normal and cancer populations
+#Calculates the linkage between mutated gene (regardless of position) and expression between normal and cancer populations
 #Will only take into account sites that are seen mutated at least 2 times in population
+#NOTE: HYPBRID, based on mutation at site ocurrence but statistic calculate per gene
 
 ##################FUNCTIONS################
 library(data.table)
@@ -76,40 +77,45 @@ Function.Main<-function(maf, exp.matrix){
   exp.matrix$cancer.patients<-intersect(exp.matrix$cancer.patients, patients)
   exp.matrix$combined.matrices<-exp.matrix$combined.matrices[,c(exp.matrix$normal.patients, exp.matrix$cancer.patients)]
   
-  #Filter for samples that are seeing mutated in at least more than 2 samples
-  maf[,N.SAMPLES:=length(unique(SAMPLE)), by=c("Hugo_Symbol")]
-  maf<-maf[N.SAMPLES>=2,]
+  #Filter for samples that are seeing mutated in at least more than 2 of the same position
+  maf[,N.SAMPLES.POS:=length(unique(SAMPLE)), by=c("Hugo_Symbol"."Start_Position")]
+  maf<-maf[N.SAMPLES.POS>=2,]
   
   #Simplify maf table
-  maf<-maf[,c("Hugo_Symbol","SAMPLE", "N.SAMPLES"),with=F]
+  maf<-maf[,c("Hugo_Symbol","SAMPLE"),with=F]
+  maf<-maf[,N.SAMPLES:=length(unique(SAMPLE)), by="Hugo_Symbol"]
   setkey(maf)
   maf<-unique(maf)
   print (maf[order(N.SAMPLES, decreasing=T),])
   
-  #Split into tables 
-  main.list<-split(maf, maf$Hugo_Symbol ,drop=T)
+  #Produce gene list
+  gene.list<-unique(as.vector(maf$Hugo_Symbol))
   
-  #Prepping parallelization
+  #Split into tables 
+  #main.list<-split(maf, maf$Hugo_Symbol ,drop=T)
+  
+  #Prepping second parallelization
   print ("prepping for parallelization")
   
   nodes<-detectCores()
   cl<-makeCluster(nodes)
   setDefaultCluster(cl)
-  clusterExport(cl, varlist=c("main.list", "maf","as.data.table","exp.matrix","data.table") ,envir=environment())
+  clusterExport(cl, varlist=c("gene.list", "maf","as.data.table","exp.matrix","data.table") ,envir=environment())
   print ("Done exporting values")
   
   #Execute parallelization
   print ("Finding linkage")
-  main.table<-parLapply(cl, main.list, function(x) {
+  main.table<-parLapply(cl, gene.list, function(x) {
     
-    mut.gene<-unique(x$Hugo_Symbol)
-    target.patients<-unique(x$SAMPLE)
+    mut.gene<-x
+    target.patients<-unique(maf[Hugo_Symbol==x,]$SAMPLE)
     non.target.patients<-exp.matrix$normal.patients
     
     wilcox.matrix<-apply(exp.matrix$combined.matrices, 1, function(y) wilcox.test(y[target.patients], y[non.target.patients], paired=F)$p.value)
     wilcox.matrix<-data.table(Hugo_MUT=mut.gene , Hugo_EXP=names(wilcox.matrix), 
                               N.PATIENTS=length(target.patients), P.VAL=as.vector(wilcox.matrix))  
     
+    #Return
     return(wilcox.matrix)
   })
   
@@ -151,3 +157,4 @@ print ("done")
 
 ###############WRITING OUTPUT############
 write.table(file=output.file, main.function, sep="\t", quote=F, row.names=F, col.names=T)
+
