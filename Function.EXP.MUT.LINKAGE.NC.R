@@ -78,7 +78,7 @@ Function.Main<-function(maf, exp.matrix){
   exp.matrix$combined.matrices<-exp.matrix$combined.matrices[,c(exp.matrix$normal.patients, exp.matrix$cancer.patients)]
   
   #Filter for samples that are seeing mutated in at least more than 2 of the same position
-  maf[,N.SAMPLES.POS:=length(unique(SAMPLE)), by=c("Hugo_Symbol"."Start_Position")]
+  maf[,N.SAMPLES.POS:=length(unique(SAMPLE)), by=c("Hugo_Symbol","Start_Position")]
   maf<-maf[N.SAMPLES.POS>=2,]
   
   #Simplify maf table
