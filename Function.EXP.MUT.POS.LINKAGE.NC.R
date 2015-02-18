@@ -67,6 +67,16 @@ Function.Prep.EXP<-function(exp.rds, paired=T){
   
 }
 
+internal.function<-function(n, exp.matrix, patients, normal.patients){
+  
+  #Obtain count of genes that are significantly differentiated between sample and normal cohorts
+  target.patients<-sample(patients, n)
+  p.vals<-apply(exp.matrix$combined.matrices, 1, function(y) wilcox.test(y[target.patients], y[normal.patients], paired=F)$p.value)
+  p.vals.adj<-p.adjust(p.vals, method="fdr")
+  
+  return(sum(p.vals.adj<0.05))
+}
+
 Function.Main<-function(maf, exp.matrix){
   
   #Get set of total patients with expression and mutation data
@@ -87,11 +97,40 @@ Function.Main<-function(maf, exp.matrix){
   maf<-unique(maf)
   print (maf[order(N.SAMPLES.POS, decreasing=T),])
   
+  #####################Create null distribution for empirical p-val calculation##########################
+  print ("Creating null sample distribution")
+  sample.dist<-unique(as.vector(maf$N.SAMPLES.POS))
+  print (length(sample.dist))
+  
+  #Prepping first parallelization
+  print ("prepping for first parallelization")
+  
+  nodes<-detectCores()
+  cl<-makeCluster(nodes)
+  setDefaultCluster(cl)
+  clusterExport(cl, varlist=c("sample.dist", "patients","as.data.table","exp.matrix","data.table", "internal.function") ,envir=environment())
+  print ("Done exporting values")
+  
+  normal.patients<-exp.matrix$normal.patients
+  
+  print ("calculating null distributions")
+  main.dist<-parLapply(cl, sample.dist, function(x) {
+    sample.pop<-replicate(100, internal.function(x, exp.matrix, patients, normal.patients )) ###TESTING####
+    return(sample.pop)
+  })
+  
+  names(main.dist)<-as.character(sample.dist)
+  
+  #Stop parallelization
+  stopCluster(cl)
+  print ("Done with sample distributions")
+  #############################################################################################
+  
   #Split into tables 
   main.list<-split(maf, list(maf$Hugo_Symbol, maf$Start_Position),drop=T)
   
   #Prepping parallelization
-  print ("prepping for parallelization")
+  print ("prepping for second parallelization")
   
   nodes<-detectCores()
   cl<-makeCluster(nodes)
@@ -111,6 +150,9 @@ Function.Main<-function(maf, exp.matrix){
     wilcox.matrix<-data.table(Hugo_MUT=mut.gene, Position.MUT=unique(x$Start_Position) , Hugo_EXP=names(wilcox.matrix), 
                               N.PATIENTS=length(target.patients), P.VAL=as.vector(wilcox.matrix))  
     
+    #Correct for multiple hypothesis 
+    wilcox.matrix$P.VAL.ADJ<-p.adjust(wilcox.matrix$P.VAL, method="fdr")
+    
     return(wilcox.matrix)
   })
   
@@ -121,12 +163,19 @@ Function.Main<-function(maf, exp.matrix){
   #Merge gene tables
   main.table<-do.call(rbind, main.table)
   
+  #Calculate per site empirical p-value based on empirical distribution
+  print ("Calculating empirical p-values")
+  main.table<-main.table[,list(EXP.P.VAL=   mean(main.dist[[as.character(unique(N.PATIENTS))]]  >= sum(P.VAL.ADJ<0.05)) ), 
+                         by=c("Hugo_MUT","Position.MUT","N.PATIENTS")]
+  
+  print (main.table)
+  
   #Correct for multiple hypothesis
   print ("Correcting for multiple hypothesis testing")
-  main.table$P.VAL.ADJ<-p.adjust(main.table$P.VAL, method="fdr")
+  main.table$EXP.P.VAL.ADJ<-p.adjust(main.table$EXP.P.VAL, method="fdr")
   
   #Cleaup and return
-  main.table<-main.table[order(P.VAL.ADJ),]
+  main.table<-main.table[order(EXP.P.VAL.ADJ),]
   return(main.table)
 }
 
