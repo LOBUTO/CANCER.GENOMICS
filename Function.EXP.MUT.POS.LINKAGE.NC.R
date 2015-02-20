@@ -8,6 +8,7 @@
 library(data.table)
 library(reshape2)
 library(parallel)
+library(qvalue)
 
 Function.Prep.MAF<-function(maf.file) {
   
@@ -89,7 +90,15 @@ Function.Main<-function(maf, exp.matrix){
   
   #Filter for samples that are seeing mutated in at least more than 2 samples at the same position
   maf[,N.SAMPLES.POS:=length(unique(SAMPLE)), by=c("Start_Position","Hugo_Symbol")]
+  maf[,N.MUT.HUGO.SAMPLE:=length(Start_Position), by=c("Hugo_Symbol","SAMPLE")] #Number of mutations per gene in each sample
   maf<-maf[N.SAMPLES.POS>=2,]
+  
+  #Pre-filter using wilcoxon test for sites than are significantly mutated than the rest of gene
+  maf.hyper<-maf[,list(P.VAL=wilcox.test(rep(1,length(N.MUT.HUGO.SAMPLE)), N.MUT.HUGO.SAMPLE-1, paired=T, alternative="greater")$p.value), 
+                                 by=c("Hugo_Symbol","Start_Position")]
+  maf.hyper$Q.VAL<-qvalue(maf.hyper$P.VAL)$qvalues
+  maf.hyper<-maf.hyper[Q.VAL<0.05,]
+  maf<-merge(maf, unique(maf.hyper[,c("Hugo_Symbol","Start_Position", "Q.VAL"), with=F]), by=c("Hugo_Symbol","Start_Position"))
   
   #Simplify maf table
   maf<-maf[,c("Hugo_Symbol","SAMPLE", "Start_Position", "N.SAMPLES.POS"),with=F]
@@ -98,39 +107,39 @@ Function.Main<-function(maf, exp.matrix){
   print (maf[order(N.SAMPLES.POS, decreasing=T),])
   
   #####################Create null distribution for empirical p-val calculation##########################
-  print ("Creating null sample distribution")
-  sample.dist<-unique(as.vector(maf$N.SAMPLES.POS))
-  print (length(sample.dist))
-  
-  #Prepping first parallelization
-  print ("prepping for first parallelization")
-  
-  nodes<-detectCores()
-  cl<-makeCluster(nodes)
-  setDefaultCluster(cl)
-  clusterExport(cl, varlist=c("sample.dist", "patients","as.data.table","exp.matrix","data.table", "internal.function") ,envir=environment())
-  print ("Done exporting values")
-  
-  normal.patients<-exp.matrix$normal.patients
-  
-  print ("calculating null distributions")
-  main.dist<-parLapply(cl, sample.dist, function(x) {
-    sample.pop<-replicate(100, internal.function(x, exp.matrix, patients, normal.patients )) ###TESTING####
-    return(sample.pop)
-  })
-  
-  names(main.dist)<-as.character(sample.dist)
-  
-  #Stop parallelization
-  stopCluster(cl)
-  print ("Done with sample distributions")
+#   print ("Creating null sample distribution")
+#   sample.dist<-unique(as.vector(maf$N.SAMPLES.POS))
+#   print (length(sample.dist))
+#   
+#   #Prepping first parallelization
+#   print ("prepping for first parallelization")
+#   
+#   nodes<-detectCores()
+#   cl<-makeCluster(nodes)
+#   setDefaultCluster(cl)
+#   clusterExport(cl, varlist=c("sample.dist", "patients","as.data.table","exp.matrix","data.table", "internal.function") ,envir=environment())
+#   print ("Done exporting values")
+#   
+#   normal.patients<-exp.matrix$normal.patients
+#   
+#   print ("calculating null distributions")
+#   main.dist<-parLapply(cl, sample.dist, function(x) {
+#     sample.pop<-replicate(100, internal.function(x, exp.matrix, patients, normal.patients )) ###TESTING####
+#     return(sample.pop)
+#   })
+#   
+#   names(main.dist)<-as.character(sample.dist)
+#   
+#   #Stop parallelization
+#   stopCluster(cl)
+#   print ("Done with sample distributions")
   #############################################################################################
   
   #Split into tables 
   main.list<-split(maf, list(maf$Hugo_Symbol, maf$Start_Position),drop=T)
   
   #Prepping parallelization
-  print ("prepping for second parallelization")
+  print ("prepping for parallelization")
   
   nodes<-detectCores()
   cl<-makeCluster(nodes)
@@ -150,9 +159,6 @@ Function.Main<-function(maf, exp.matrix){
     wilcox.matrix<-data.table(Hugo_MUT=mut.gene, Position.MUT=unique(x$Start_Position) , Hugo_EXP=names(wilcox.matrix), 
                               N.PATIENTS=length(target.patients), P.VAL=as.vector(wilcox.matrix))  
     
-    #Correct for multiple hypothesis 
-    wilcox.matrix$P.VAL.ADJ<-p.adjust(wilcox.matrix$P.VAL, method="fdr")
-    
     return(wilcox.matrix)
   })
   
@@ -164,15 +170,15 @@ Function.Main<-function(maf, exp.matrix){
   main.table<-do.call(rbind, main.table)
   
   #Calculate per site empirical p-value based on empirical distribution
-  print ("Calculating empirical p-values")
-  main.table<-main.table[,list(EXP.P.VAL=   mean(main.dist[[as.character(unique(N.PATIENTS))]]  >= sum(P.VAL.ADJ<0.05)) ), 
-                         by=c("Hugo_MUT","Position.MUT","N.PATIENTS")]
-  
-  print (main.table)
+#   print ("Calculating empirical p-values")
+#   main.table<-main.table[,list(EXP.P.VAL=   mean(main.dist[[as.character(unique(N.PATIENTS))]]  >= sum(P.VAL.ADJ<0.05)) ), 
+#                          by=c("Hugo_MUT","Position.MUT","N.PATIENTS")]
+#   
+#   print (main.table)
   
   #Correct for multiple hypothesis
   print ("Correcting for multiple hypothesis testing")
-  main.table$EXP.P.VAL.ADJ<-p.adjust(main.table$EXP.P.VAL, method="fdr")
+  main.table$P.VAL.ADJ<-p.adjust(main.table$P.VAL, method="fdr")
   
   #Cleaup and return
   main.table<-main.table[order(EXP.P.VAL.ADJ),]
