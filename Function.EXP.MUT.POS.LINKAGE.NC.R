@@ -181,7 +181,7 @@ Function.Main<-function(maf, exp.matrix){
   main.table$P.VAL.ADJ<-p.adjust(main.table$P.VAL, method="fdr")
   
   #Cleaup and return
-  main.table<-main.table[order(EXP.P.VAL.ADJ),]
+  main.table<-main.table[order(P.VAL.ADJ),]
   return(main.table)
 }
 
