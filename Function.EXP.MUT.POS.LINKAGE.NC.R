@@ -159,7 +159,7 @@ Function.Main<-function(maf, exp.matrix){
     wilcox.matrix<-data.table(Hugo_MUT=mut.gene, Position.MUT=unique(x$Start_Position) , Hugo_EXP=names(wilcox.matrix), 
                               N.PATIENTS=length(target.patients), P.VAL=as.vector(wilcox.matrix))  
     
-    wilcox.matrx$P.VAL.ADJ.INT<-p.adjust(wilcox.matrix$P.VAL, method="fdr" )
+    wilcox.matrix$P.VAL.ADJ.INT<-p.adjust(wilcox.matrix$P.VAL, method="fdr" )
     
     return(wilcox.matrix)
   })
