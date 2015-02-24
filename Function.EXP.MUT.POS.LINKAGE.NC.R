@@ -10,6 +10,43 @@ library(reshape2)
 library(parallel)
 library(qvalue)
 
+Function.BRCA.SUBTYPE<-function(brca.normalized.obj, version=1){
+  #Takes normalized expression object from breast cancer and returns subtype score and assigns subtype to each patient based on maximum score
+  
+  require(genefu)
+  require(data.table)
+  
+  #Choose pam50 method
+  if (version==1){
+    data(pam50)
+    pam<-copy(pam50)
+  } else if(version==2){
+    data(pam50.scale)
+    pam<-copy(pam50.scale)
+  } else if(version==3){
+    data(pam50.robust)
+    pam<-copy(pam50.robust)
+  }
+  
+  #Obtain target pam gene in expression matrix
+  target.genes<-intersect(rownames(pam$centroids), rownames(brca.normalized.obj$combined.matrices))
+  
+  #Simplify pam and expression matrices
+  simplified.pam<-pam$centroids[target.genes,]
+  simplified.exp<-brca.normalized.obj$combined.matrices[target.genes, brca.normalized.obj$cancer.patients]
+  
+  #Obtain predicted type based on correlation
+  BRCA.SCORES<-cor(simplified.exp, simplified.pam, method="spearman")
+  BRCA.SCORES<-as.data.frame(BRCA.SCORES)
+  BRCA.SCORES$PATIENT<-rownames(BRCA.SCORES)
+  BRCA.SCORES$TYPE<-colnames(BRCA.SCORES)[max.col(BRCA.SCORES[,1:5])]
+  
+  #Clean up and return
+  BRCA.SCORES<-as.data.table(BRCA.SCORES)
+  BRCA.SCORES<-BRCA.SCORES[order(TYPE),]
+  return(BRCA.SCORES)
+}
+
 Function.Prep.MAF<-function(maf.file) {
   
   #Load cancer data
@@ -193,6 +230,37 @@ Function.Main<-function(maf, exp.matrix){
   return(main.table)
 }
 
+Function.Main.Subtype<-function(maf, exp.matrix){
+  
+  #Classify based on brca subtype
+  subtype.table<-Function.BRCA.SUBTYPE(exp.matrix)
+  subtypes<-unique(as.vector(subtype.table$TYPE))
+  
+  #Apply main function by subtype
+  subtype.list<-list()
+  print ("Calculating linkage per subtype")
+  for (type in subtypes) {
+    print (type)
+    
+    #Obtain subtype samples
+    type.samples<-unique(as.vector(subtype.table[TYPE==type,]$PATIENT))
+    type.maf<-maf[SAMPLE %in% type.samples,]
+    
+    #Execute
+    subtype.linkage<-Function.Main(type.maf, exp.matrix)
+    
+    #Classify and append to main list
+    subtype.linkage$SUBTYPE<-type
+    subtype.list[[type]]<-subtype.linkage
+  }
+  
+  #Combine all linkage tables
+  subtype.main<-do.call(rbind, subtype.list)
+  
+  #Return
+  return(subtype.main)
+}
+
 ##########################################
 
 ################LOAD FILES################
@@ -210,7 +278,7 @@ print ("done prepping maf")
 exp.matrix<-Function.Prep.EXP(exp.rds, paired=F)
 print ("done prepping expression rds")
 
-main.function<-Function.Main(maf, exp.matrix)
+main.function<-Function.Main.Subtype(maf, exp.matrix)
 print ("done")
 
 ###############WRITING OUTPUT############
