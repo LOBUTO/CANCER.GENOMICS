@@ -11,6 +11,7 @@ Function.Main<-function(linkage.nc.file, exp.rds){
   
   #Load linkage file
   main.table<-fread(linkage.nc.file, header=T, sep="\t", stringsAsFactors=F)
+  print (main.table)
   print ("Done loading linkage file")
   
   #Obtain vector of population sizes
