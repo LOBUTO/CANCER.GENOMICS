@@ -7,7 +7,41 @@ library(data.table)
 library(reshape2)
 library(parallel)
 
-Function.Main<-function(linkage.nc.file, exp.rds){
+Function.Prep.MAF<-function(maf.file) {
+  
+  #Load cancer data
+  maf<-fread(maf.file, header=T, sep="\t",stringsAsFactors=F)
+  maf<-maf[,c("Hugo_Symbol","Chrom","Start_Position","Variant_Classification","Variant_Type", "Tumor_Sample_Barcode"),with=F]
+  
+  #Filter for "Unknown" gene
+  maf<-maf[Hugo_Symbol!="Unknown",]
+  
+  #Unique
+  setkey(maf)
+  maf<-unique(maf)
+  
+  #Filter for Nonfunctional mutations types
+  non.func.class<-c("Frame_Shift_Del", "Frame_Shift_Ins", "Nonstop_Mutation", "Nonsense_Mutation","Splice_Site", "In_Frame_Del","In_Frame_Ins")
+  non.func.type<-c("DEL","INS")
+  maf<-maf[!(Variant_Classification %in% non.func.class),]
+  maf<-maf[!(Variant_Type %in% non.func.type),]
+  
+  #For now classify as change and no-change, later we will also calculate separate probabilities for INS, DEL and non-missense SNPs
+  maf$TYPE<-ifelse(maf$Variant_Classification=="Silent", "NO.CHANGE","CHANGE")
+  
+  #Filter for non-silent only
+  maf<-maf[TYPE=="CHANGE",]
+  maf$TYPE<-NULL
+  
+  #Convert IDs to expression sample IDs
+  maf$SAMPLE<-sapply(maf$Tumor_Sample_Barcode, function(x) paste0(unlist(strsplit(x, "-"))[1:4],collapse="." ))
+  maf$Tumor_Sample_Barcode<-NULL
+  
+  #Return
+  return(maf)
+}
+
+Function.Main<-function(linkage.nc.file, exp.rds, maf){
   
   #Load linkage file
   main.table<-fread(linkage.nc.file, header=T, sep="\t", stringsAsFactors=F)
@@ -20,6 +54,14 @@ Function.Main<-function(linkage.nc.file, exp.rds){
   #Load expression file
   exp.matrix<-readRDS(exp.rds)
   print ("Done loading expression file")
+  
+  #Get set of total patients with expression and mutation data
+  patients<-intersect(unique(maf$SAMPLE), colnames(exp.matrix$combined.matrices))
+  
+  #Filter both tables for these patients
+  maf<-maf[SAMPLE %in% patients,]
+  exp.matrix$cancer.patients<-intersect(exp.matrix$cancer.patients, patients)
+  exp.matrix$combined.matrices<-exp.matrix$combined.matrices[,c(exp.matrix$normal.patients, exp.matrix$cancer.patients)]
   
   #Subset samples
   normal<-unique(exp.matrix$normal.patients)
@@ -40,6 +82,7 @@ Function.Main<-function(linkage.nc.file, exp.rds){
   
   #Loop for each sample size in population of samples
   for (pop in population){
+    print (pop)
     
     #Create random populations of pop size
     random.sampling<-replicate(200, sample(cancer,pop), simplify=F)
@@ -75,12 +118,16 @@ Function.Main<-function(linkage.nc.file, exp.rds){
 args<-commandArgs(trailingOnly=T)
 linkage.nc.file<-args[1]
 exp.rds<-args[2]
-output.file<-args[3]
+cancer.maf<-args[3]
+output.file<-args[4]
 print("opened files")
 ##########################################
 
 ##################EXECUTE#################
-main.function<-Function.Main(linkage.nc.file, exp.rds)
+maf<-Function.Prep.MAF(cancer.maf)
+print ("done prepping maf")
+
+main.function<-Function.Main(linkage.nc.file, exp.rds, maf)
 print ("Done")
 
 ###############WRITING OUTPUT############
