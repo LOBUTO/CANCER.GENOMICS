@@ -11,12 +11,10 @@ Function.Main<-function(linkage.nc.file, exp.rds){
   
   #Load linkage file
   main.table<-fread(linkage.nc.file, header=T, sep="\t", stringsAsFactors=F)
-  print (main.table)
   print ("Done loading linkage file")
   
   #Obtain vector of population sizes
   population<-unique(main.table$N.PATIENTS)
-  population<-population[1:2]
   print (population)
   
   #Load expression file
@@ -44,7 +42,7 @@ Function.Main<-function(linkage.nc.file, exp.rds){
   for (pop in population){
     
     #Create random populations of pop size
-    random.sampling<-replicate(100, sample(cancer,pop), simplify=F)
+    random.sampling<-replicate(200, sample(cancer,pop), simplify=F)
     
     #Calculate proportion of diff expressed genes for each random population
     random.prop<-parSapply(cl, random.sampling, function(x){
