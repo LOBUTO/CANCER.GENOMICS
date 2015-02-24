@@ -23,6 +23,12 @@ Function.Prep.MAF<-function(maf.file) {
   setkey(maf)
   maf<-unique(maf)
   
+  #Filter for Nonfunctional mutations types
+  non.func.class<-c("Frame_Shift_Del", "Frame_Shift_Ins", "Nonstop_Mutation", "Nonsense_Mutation","Splice_Site", "In_Frame_Del","In_Frame_Ins")
+  non.func.type<-c("DEL","INS")
+  maf<-maf[!(Variant_Classification %in% non.func.class),]
+  maf<-maf[!(Variant_Type %in% non.func.type),]
+  
   #For now classify as change and no-change, later we will also calculate separate probabilities for INS, DEL and non-missense SNPs
   maf$TYPE<-ifelse(maf$Variant_Classification=="Silent", "NO.CHANGE","CHANGE")
   
@@ -94,11 +100,11 @@ Function.Main<-function(maf, exp.matrix){
   maf<-maf[N.SAMPLES.POS>=2,]
   
   #Pre-filter using wilcoxon test for sites than are significantly mutated than the rest of gene
-  maf.hyper<-maf[,list(P.VAL=wilcox.test(rep(1,length(N.MUT.HUGO.SAMPLE)), N.MUT.HUGO.SAMPLE-1, paired=T, alternative="greater")$p.value), 
-                                 by=c("Hugo_Symbol","Start_Position")]
-  maf.hyper$Q.VAL<-qvalue(maf.hyper$P.VAL)$qvalues
-  maf.hyper<-maf.hyper[Q.VAL<0.05,]
-  maf<-merge(maf, unique(maf.hyper[,c("Hugo_Symbol","Start_Position", "Q.VAL"), with=F]), by=c("Hugo_Symbol","Start_Position"))
+#   maf.hyper<-maf[,list(P.VAL=wilcox.test(rep(1,length(N.MUT.HUGO.SAMPLE)), N.MUT.HUGO.SAMPLE-1, paired=T, alternative="greater")$p.value), 
+#                                  by=c("Hugo_Symbol","Start_Position")]
+#   maf.hyper$Q.VAL<-qvalue(maf.hyper$P.VAL)$qvalues
+#   maf.hyper<-maf.hyper[Q.VAL<0.05,]
+#   maf<-merge(maf, unique(maf.hyper[,c("Hugo_Symbol","Start_Position", "Q.VAL"), with=F]), by=c("Hugo_Symbol","Start_Position"))
   
   #Simplify maf table
   maf<-maf[,c("Hugo_Symbol","SAMPLE", "Start_Position", "N.SAMPLES.POS"),with=F]
