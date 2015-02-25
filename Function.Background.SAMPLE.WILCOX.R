@@ -21,10 +21,10 @@ Function.Prep.MAF<-function(maf.file) {
   maf<-unique(maf)
   
   #Filter for Nonfunctional mutations types
-  non.func.class<-c("Frame_Shift_Del", "Frame_Shift_Ins", "Nonstop_Mutation", "Nonsense_Mutation","Splice_Site", "In_Frame_Del","In_Frame_Ins")
-  non.func.type<-c("DEL","INS")
-  maf<-maf[!(Variant_Classification %in% non.func.class),]
-  maf<-maf[!(Variant_Type %in% non.func.type),]
+#   non.func.class<-c("Frame_Shift_Del", "Frame_Shift_Ins", "Nonstop_Mutation", "Nonsense_Mutation","Splice_Site", "In_Frame_Del","In_Frame_Ins")
+#   non.func.type<-c("DEL","INS")
+#   maf<-maf[!(Variant_Classification %in% non.func.class),]
+#   maf<-maf[!(Variant_Type %in% non.func.type),]
   
   #For now classify as change and no-change, later we will also calculate separate probabilities for INS, DEL and non-missense SNPs
   maf$TYPE<-ifelse(maf$Variant_Classification=="Silent", "NO.CHANGE","CHANGE")
