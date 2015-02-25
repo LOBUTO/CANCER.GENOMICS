@@ -250,7 +250,7 @@ print ("done prepping maf")
 exp.matrix<-Function.Prep.EXP(exp.rds, paired=F)
 print ("done prepping expression rds")
 
-main.function<-Function.Main.Subtype(maf, exp.matrix)
+main.function<-Function.Main(maf, exp.matrix)
 print ("Done with main function")
 
 ###############WRITING OUTPUT############
