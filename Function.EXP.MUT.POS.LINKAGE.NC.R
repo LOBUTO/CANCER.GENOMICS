@@ -242,6 +242,8 @@ Function.Main.Subtype<-function(maf, exp.matrix){
   for (type in subtypes) {
     print (type)
     
+    print (subtype.table[TYPE==type,])
+    
     #Check that we have enough data in each subtype
     if (nrow(subtype.table[TYPE==type,])>1){
       
