@@ -242,16 +242,20 @@ Function.Main.Subtype<-function(maf, exp.matrix){
   for (type in subtypes) {
     print (type)
     
-    #Obtain subtype samples
-    type.samples<-unique(as.vector(subtype.table[TYPE==type,]$PATIENT))
-    type.maf<-maf[SAMPLE %in% type.samples,]
-    
-    #Execute
-    subtype.linkage<-Function.Main(type.maf, exp.matrix)
-    
-    #Classify and append to main list
-    subtype.linkage$SUBTYPE<-type
-    subtype.list[[type]]<-subtype.linkage
+    #Check that we have enough data in each subtype
+    if (nrow(subtype.table[TYPE==type,])>1){
+      
+      #Obtain subtype samples
+      type.samples<-unique(as.vector(subtype.table[TYPE==type,]$PATIENT))
+      type.maf<-maf[SAMPLE %in% type.samples,]
+      
+      #Execute
+      subtype.linkage<-Function.Main(type.maf, exp.matrix)
+      
+      #Classify and append to main list
+      subtype.linkage$SUBTYPE<-type
+      subtype.list[[type]]<-subtype.linkage  
+    }
   }
   
   #Combine all linkage tables
@@ -279,7 +283,8 @@ exp.matrix<-Function.Prep.EXP(exp.rds, paired=F)
 print ("done prepping expression rds")
 
 main.function<-Function.Main.Subtype(maf, exp.matrix)
-print ("done")
+print ("Done with main function")
 
 ###############WRITING OUTPUT############
 write.table(file=output.file, main.function, sep="\t", quote=F, row.names=F, col.names=T)
+print ("Done writing to file")
