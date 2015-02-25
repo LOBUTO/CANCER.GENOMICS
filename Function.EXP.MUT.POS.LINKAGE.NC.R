@@ -136,98 +136,58 @@ Function.Main<-function(maf, exp.matrix){
   maf[,N.MUT.HUGO.SAMPLE:=length(Start_Position), by=c("Hugo_Symbol","SAMPLE")] #Number of mutations per gene in each sample
   maf<-maf[N.SAMPLES.POS>=2,]
   
-  #Pre-filter using wilcoxon test for sites than are significantly mutated than the rest of gene
-#   maf.hyper<-maf[,list(P.VAL=wilcox.test(rep(1,length(N.MUT.HUGO.SAMPLE)), N.MUT.HUGO.SAMPLE-1, paired=T, alternative="greater")$p.value), 
-#                                  by=c("Hugo_Symbol","Start_Position")]
-#   maf.hyper$Q.VAL<-qvalue(maf.hyper$P.VAL)$qvalues
-#   maf.hyper<-maf.hyper[Q.VAL<0.05,]
-#   maf<-merge(maf, unique(maf.hyper[,c("Hugo_Symbol","Start_Position", "Q.VAL"), with=F]), by=c("Hugo_Symbol","Start_Position"))
-  
-  #Simplify maf table
-  maf<-maf[,c("Hugo_Symbol","SAMPLE", "Start_Position", "N.SAMPLES.POS"),with=F]
-  setkey(maf)
-  maf<-unique(maf)
-  print (maf[order(N.SAMPLES.POS, decreasing=T),])
-  
-  #####################Create null distribution for empirical p-val calculation##########################
-#   print ("Creating null sample distribution")
-#   sample.dist<-unique(as.vector(maf$N.SAMPLES.POS))
-#   print (length(sample.dist))
-#   
-#   #Prepping first parallelization
-#   print ("prepping for first parallelization")
-#   
-#   nodes<-detectCores()
-#   cl<-makeCluster(nodes)
-#   setDefaultCluster(cl)
-#   clusterExport(cl, varlist=c("sample.dist", "patients","as.data.table","exp.matrix","data.table", "internal.function") ,envir=environment())
-#   print ("Done exporting values")
-#   
-#   normal.patients<-exp.matrix$normal.patients
-#   
-#   print ("calculating null distributions")
-#   main.dist<-parLapply(cl, sample.dist, function(x) {
-#     sample.pop<-replicate(100, internal.function(x, exp.matrix, patients, normal.patients )) ###TESTING####
-#     return(sample.pop)
-#   })
-#   
-#   names(main.dist)<-as.character(sample.dist)
-#   
-#   #Stop parallelization
-#   stopCluster(cl)
-#   print ("Done with sample distributions")
-  #############################################################################################
-  
-  #Split into tables 
-  main.list<-split(maf, list(maf$Hugo_Symbol, maf$Start_Position),drop=T)
-  
-  #Prepping parallelization
-  print ("prepping for parallelization")
-  
-  nodes<-detectCores()
-  cl<-makeCluster(nodes)
-  setDefaultCluster(cl)
-  clusterExport(cl, varlist=c("main.list", "maf","as.data.table","exp.matrix","data.table") ,envir=environment())
-  print ("Done exporting values")
-  
-  #Execute parallelization
-  print ("Finding linkage")
-  main.table<-parLapply(cl, main.list, function(x) {
+  #Check that we have enough data to pursue
+  if(nrow(maf)>1){
     
-    mut.gene<-unique(x$Hugo_Symbol)
-    target.patients<-unique(x$SAMPLE)
-    non.target.patients<-exp.matrix$normal.patients
+    #Simplify maf table
+    maf<-maf[,c("Hugo_Symbol","SAMPLE", "Start_Position", "N.SAMPLES.POS"),with=F]
+    setkey(maf)
+    maf<-unique(maf)
+    print (maf[order(N.SAMPLES.POS, decreasing=T),])
     
-    wilcox.matrix<-apply(exp.matrix$combined.matrices, 1, function(y) wilcox.test(y[target.patients], y[non.target.patients], paired=F)$p.value)
-    wilcox.matrix<-data.table(Hugo_MUT=mut.gene, Position.MUT=unique(x$Start_Position) , Hugo_EXP=names(wilcox.matrix), 
-                              N.PATIENTS=length(target.patients), P.VAL=as.vector(wilcox.matrix))  
+    #Split into tables 
+    main.list<-split(maf, list(maf$Hugo_Symbol, maf$Start_Position),drop=T)
     
-    wilcox.matrix$P.VAL.ADJ.INT<-p.adjust(wilcox.matrix$P.VAL, method="fdr" )
+    #Prepping parallelization
+    print ("prepping for parallelization")
     
-    return(wilcox.matrix)
-  })
-  
-  #Stop parallelization
-  stopCluster(cl)
-  print ("Done with linkages")
-  
-  #Merge gene tables
-  main.table<-do.call(rbind, main.table)
-  
-  #Calculate per site empirical p-value based on empirical distribution
-#   print ("Calculating empirical p-values")
-#   main.table<-main.table[,list(EXP.P.VAL=   mean(main.dist[[as.character(unique(N.PATIENTS))]]  >= sum(P.VAL.ADJ<0.05)) ), 
-#                          by=c("Hugo_MUT","Position.MUT","N.PATIENTS")]
-#   
-#   print (main.table)
-  
-  #Correct for multiple hypothesis
-  print ("Correcting for multiple hypothesis testing")
-  main.table$P.VAL.ADJ<-p.adjust(main.table$P.VAL, method="fdr")
-  
-  #Cleaup and return
-  main.table<-main.table[order(P.VAL.ADJ),]
-  return(main.table)
+    nodes<-detectCores()
+    cl<-makeCluster(nodes)
+    setDefaultCluster(cl)
+    clusterExport(cl, varlist=c("main.list", "maf","as.data.table","exp.matrix","data.table") ,envir=environment())
+    print ("Done exporting values")
+    
+    #Execute parallelization
+    print ("Finding linkage")
+    main.table<-parLapply(cl, main.list, function(x) {
+      
+      mut.gene<-unique(x$Hugo_Symbol)
+      target.patients<-unique(x$SAMPLE)
+      non.target.patients<-exp.matrix$normal.patients
+      
+      wilcox.matrix<-apply(exp.matrix$combined.matrices, 1, function(y) wilcox.test(y[target.patients], y[non.target.patients], paired=F)$p.value)
+      wilcox.matrix<-data.table(Hugo_MUT=mut.gene, Position.MUT=unique(x$Start_Position) , Hugo_EXP=names(wilcox.matrix), 
+                                N.PATIENTS=length(target.patients), P.VAL=as.vector(wilcox.matrix))  
+      
+      wilcox.matrix$P.VAL.ADJ<-p.adjust(wilcox.matrix$P.VAL, method="fdr" )
+      
+      return(wilcox.matrix)
+    })
+    
+    #Stop parallelization
+    stopCluster(cl)
+    print ("Done with linkages")
+    
+    #Merge gene tables
+    main.table<-do.call(rbind, main.table)
+    
+    #Cleaup and return
+    main.table<-main.table[order(P.VAL.ADJ),]
+    return(main.table)
+    
+    #If no maf data tto work with, return empty table
+  } else
+    return(data.table())
 }
 
 Function.Main.Subtype<-function(maf, exp.matrix){
@@ -256,9 +216,12 @@ Function.Main.Subtype<-function(maf, exp.matrix){
         #Execute
         subtype.linkage<-Function.Main(type.maf, exp.matrix)
         
-        #Classify and append to main list
-        subtype.linkage$SUBTYPE<-type
-        subtype.list[[type]]<-subtype.linkage    
+        #Check that we have linkage data per subtype
+        if(nrow(subtype.maf)>0){
+          #Classify and append to main list
+          subtype.linkage$SUBTYPE<-type
+          subtype.list[[type]]<-subtype.linkage      
+        }
       }
     }
   }
