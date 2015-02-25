@@ -47,7 +47,7 @@ Function.BRCA.SUBTYPE<-function(brca.normalized.obj, version=1){
   return(BRCA.SCORES)
 }
 
-Function.Prep.MAF<-function(maf.file) {
+Function.Prep.MAF<-function(maf.file, mut.filter=T) {
   
   #Load cancer data
   maf<-fread(maf.file, header=T, sep="\t",stringsAsFactors=F)
@@ -60,11 +60,13 @@ Function.Prep.MAF<-function(maf.file) {
   setkey(maf)
   maf<-unique(maf)
   
-  #Filter for Nonfunctional mutations types
-  non.func.class<-c("Frame_Shift_Del", "Frame_Shift_Ins", "Nonstop_Mutation", "Nonsense_Mutation","Splice_Site", "In_Frame_Del","In_Frame_Ins")
-  non.func.type<-c("DEL","INS")
-  maf<-maf[!(Variant_Classification %in% non.func.class),]
-  maf<-maf[!(Variant_Type %in% non.func.type),]
+  #Filter for Nonfunctional mutations types if needed
+  if (mut.filter==T){
+    non.func.class<-c("Frame_Shift_Del", "Frame_Shift_Ins", "Nonstop_Mutation", "Nonsense_Mutation","Splice_Site", "In_Frame_Del","In_Frame_Ins")
+    non.func.type<-c("DEL","INS")
+    maf<-maf[!(Variant_Classification %in% non.func.class),]
+    maf<-maf[!(Variant_Type %in% non.func.type),]  
+  }
   
   #For now classify as change and no-change, later we will also calculate separate probabilities for INS, DEL and non-missense SNPs
   maf$TYPE<-ifelse(maf$Variant_Classification=="Silent", "NO.CHANGE","CHANGE")
@@ -244,7 +246,7 @@ print("opened files")
 ##########################################
 
 ##################EXECUTE#################
-maf<-Function.Prep.MAF(cancer.maf)
+maf<-Function.Prep.MAF(cancer.maf, mut.filter=F)
 print ("done prepping maf")
 
 exp.matrix<-Function.Prep.EXP(exp.rds, paired=F)
