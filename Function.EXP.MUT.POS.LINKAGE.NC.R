@@ -217,7 +217,7 @@ Function.Main.Subtype<-function(maf, exp.matrix){
         subtype.linkage<-Function.Main(type.maf, exp.matrix)
         
         #Check that we have linkage data per subtype
-        if(nrow(subtype.maf)>0){
+        if(nrow(subtype.linkage)>0){
           #Classify and append to main list
           subtype.linkage$SUBTYPE<-type
           subtype.list[[type]]<-subtype.linkage      
