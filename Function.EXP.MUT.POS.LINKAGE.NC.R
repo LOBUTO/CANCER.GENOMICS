@@ -241,6 +241,7 @@ Function.Main.Subtype<-function(maf, exp.matrix){
   print ("Calculating linkage per subtype")
   for (type in subtypes) {
     print (type)
+    print (subtype.table[TYPE==type,])
     
     #Check that we have enough data in each subtype
     if (nrow(subtype.table[TYPE==type,])>1){
@@ -250,6 +251,7 @@ Function.Main.Subtype<-function(maf, exp.matrix){
       type.maf<-maf[SAMPLE %in% type.samples,]
       
       #Check that we have enough data in processed maf file
+      print (type.maf)
       if (nrow(type.maf)>1){
         #Execute
         subtype.linkage<-Function.Main(type.maf, exp.matrix)
