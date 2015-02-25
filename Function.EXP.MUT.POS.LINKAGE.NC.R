@@ -242,8 +242,6 @@ Function.Main.Subtype<-function(maf, exp.matrix){
   for (type in subtypes) {
     print (type)
     
-    print (subtype.table[TYPE==type,])
-    
     #Check that we have enough data in each subtype
     if (nrow(subtype.table[TYPE==type,])>1){
       
@@ -251,12 +249,15 @@ Function.Main.Subtype<-function(maf, exp.matrix){
       type.samples<-unique(as.vector(subtype.table[TYPE==type,]$PATIENT))
       type.maf<-maf[SAMPLE %in% type.samples,]
       
-      #Execute
-      subtype.linkage<-Function.Main(type.maf, exp.matrix)
-      
-      #Classify and append to main list
-      subtype.linkage$SUBTYPE<-type
-      subtype.list[[type]]<-subtype.linkage  
+      #Check that we have enough data in processed maf file
+      if (nrow(type.maf)>1){
+        #Execute
+        subtype.linkage<-Function.Main(type.maf, exp.matrix)
+        
+        #Classify and append to main list
+        subtype.linkage$SUBTYPE<-type
+        subtype.list[[type]]<-subtype.linkage    
+      }
     }
   }
   
