@@ -58,11 +58,11 @@ Function.GENE.MATRIX.MI<-function(exp.matrix){
     gene.table<-data.table(Hugo.1=x, Hugo.2=rownames(exp.matrix), MI=mi.gene.vector)
     
     #Remove gene from matrix
-    exp.matrix<-exp.matrix[setdiff(rownames(exp.matrix), x),]
+    exp.matrix<<-exp.matrix[setdiff(rownames(exp.matrix), x),]
     
     #Update count
     count<<-count+1
-    print (count/length(genes))
+    print (c(count/length(genes), nrow(exp.matrix)))
     
     #Return mi table
     return(gene.table)
