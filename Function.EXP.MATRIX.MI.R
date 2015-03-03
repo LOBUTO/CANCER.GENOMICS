@@ -61,7 +61,7 @@ Function.GENE.MATRIX.MI<-function(exp.matrix){
     exp.matrix<-exp.matrix[setdiff(rownames(exp.matrix), x),]
     
     #Update count
-    count<-count+1
+    count<<-count+1
     print (count/length(genes))
     
     #Return mi table
