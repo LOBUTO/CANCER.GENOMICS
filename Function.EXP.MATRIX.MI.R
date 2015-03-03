@@ -91,7 +91,7 @@ print("opened files")
 ##########################################
 
 ##################EXECUTE#################
-exp.matrix<-Function.Prep.EXP(exp.rds, patients="NORMAL")
+exp.matrix<-Function.PREP.EXP.MATRIX(exp.rds, patients="NORMAL")
 print ("done prepping expression rds")
 
 main.function<-Function.GENE.MATRIX.MI(exp.matrix)
