@@ -57,12 +57,12 @@ Function.GENE.MATRIX.MI<-function(exp.matrix){
     #Construct table for gene table
     gene.table<-data.table(Hugo.1=x, Hugo.2=rownames(exp.matrix), MI=mi.gene.vector)
     
-    #Remove gene from matrix
+    #Remove gene from matrix 
     exp.matrix<<-exp.matrix[setdiff(rownames(exp.matrix), x),]
     
-    #Update count
+    #Update count - Don't need to know matrix dimensions, it throws an error when it reaches zero, removed
     count<<-count+1
-    print (c(count/length(genes), nrow(exp.matrix)))
+    print (count/length(genes))
     
     #Return mi table
     return(gene.table)
