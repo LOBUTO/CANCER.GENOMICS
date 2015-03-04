@@ -13,7 +13,7 @@ theme.format<-theme(axis.text.y=element_text(size=rel(2.5)), axis.text.x=element
                     legend.text = element_text(size = 22))
 
 Function.Process.Cluster<-function(cluster.file){
-  #Processes clusters into lists of gene sets
+  #Processes cluster files from SPICI results into lists of gene sets
   
   #Load file
   clusters<-scan(cluster.file, what="", sep="\n")
@@ -22,7 +22,7 @@ Function.Process.Cluster<-function(cluster.file){
   cluster.list<-lapply(clusters, function(x) unlist(strsplit(x, "\t")))
   
   #Name clusters to keep track
-  name(cluster.list)<-letters[1:length(cluster.list)]
+  names(cluster.list)<-paste("C", 1:length(cluster.list) , sep=".")
   
   #Return
   return(cluster.list)
@@ -67,6 +67,7 @@ Function.CANCER.COHORT.CLUSTER.MI<-function(cluster.list, samples, cancer.matrix
   require(parallel)
   
   #Filter cancer expression matrix for patients of interest
+  samples<-intersect(samples, colnames(cancer.matrix))
   cancer.matrix<-cancer.matrix[,samples]
   
   #Prepping parallelization
@@ -168,4 +169,12 @@ Function.CLUSTERS.MI.WICOXON<-function(filtered.normal.mi, cancer.mi, figures.fo
 }
 
 ###TESTING###
-#test.process.file<-
+test.process.file<-Function.Process.Cluster("PIPELINES/METABOLIC.DRIVERS/NETWORKS/SPICI.RESULTS/BRCA.EXP.NORMAL.TH.0.75.cluster")
+
+test.simplify<-Function.SIMPLIFY.NORMAL.MI(BRCA.NORMAL.MI, test.process.file)
+
+PIK3CA<-unique(brca.maf[Hugo_Symbol=="PIK3CA",]$SAMPLE)
+TTN<-unique(brca.maf[Hugo_Symbol=="TTN",]$SAMPLE)
+PIK3CA.NO.TTN<-setdiff(PIK3CA, TTN)
+PIK3CA.NO.TTN.cohort.cluster.mi<-Function.CANCER.COHORT.CLUSTER.MI(test.process.file, PIK3CA.NO.TTN, brca.exp.nb$combined.matrices)
+
