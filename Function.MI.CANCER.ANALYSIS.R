@@ -6,6 +6,11 @@
 library(data.table)
 library(reshape2)
 library(parallel)
+library(ggplot2)
+
+theme.format<-theme(axis.text.y=element_text(size=rel(2.5)), axis.text.x=element_text(size=rel(2.5)),
+                    axis.title.y=element_text(size=22), axis.title.x=element_text(size=22),
+                    legend.text = element_text(size = 22))
 
 Function.Process.Cluster<-function(cluster.file){
   #Processes clusters into lists of gene sets
@@ -116,15 +121,51 @@ Function.CANCER.COHORT.CLUSTER.MI<-function(cluster.list, samples, cancer.matrix
   return(cluster.mi.table)
 }
 
-Function.CLUSTERS.MI.WICOXON<-function(filtered.normal.mi, cancer.mi) {
+Function.CLUSTERS.MI.WICOXON<-function(filtered.normal.mi, cancer.mi, figures.folder, gene.pos, samples) {
   #Calculates the wilcoxon statistic between the cancer clusters and our clusters
   
   #Merge cancer and normal mi tables
-  main.table<-merge(filtered.normal.mi, cancer.mi)
+  main.table<-merge(filtered.normal.mi, cancer.mi, by=c("Hugo.1", "Hugo.2"))
+  
+  #Number of samples covered by gene.pos mutation
+  n.samples<-length(samples)
   
   #Calcualte wilcoxon per cluster
   #NOTE: This will be a paired test, so p-value when comparing cancer to normal per cluster across all mutated genes will be independent of sample size
+  main.wilcox<-main.table[,list(P.VAL=wilcox.test(MI, MI.CANCER, paired=T)$p.value),
+                         by="CLUSTER"]
   
+  #Correct for multiple hypothesis testing
+  main.wilcox$P.VAL.ADJ<-p.adjust(main.wilcox$P.VAL, method="fdr")
   
+  #Split table to plot figures
+  main.list<-split(main.table, main.table$CLUSTER)
   
+  #Plot figures
+  for (cluster in main.list) {
+    cluster.name<-unique(cluster$CLUSTER)
+    
+    #Melt table to separate for plotting 
+    cluster$PAIR.ID<-paste("G", c(1:nrow(cluster)), sep=".")
+    cluster.melt<-melt(cluster[,c("MI","CANCER.MI","PAIR.ID"), with=F], id.vars=c("PAIR.ID"))
+    setnames(cluster.melt, c("PAIR.ID", "TYPE", "MI"))
+    
+    #Plot
+    my.plot<-ggplot(cluster.melt, aes(TYPE, MI, group=PAIR.ID, colour=PAIR.ID)) + geom_line() + theme.format+
+      geom_point( size=4, shape=21, fill="white") + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      ggtitle(paste(gene.pos, " - ","CLUSTER:",cluster.name," - ", n.samples, sep=""))
+    
+    filename=paste(gene.pos, cluster.name, sep=".")
+    jpeg(filename=paste(figures.folder, filename, sep="/") ,width=1200,height=800, quality=100,type="quartz")
+    print (my.plot)
+    dev.off() 
+  }
+  
+  #Clean up and Return 
+  main.wilcox<-main.wilcox[order(P.VAL.ADJ),]
+  return(main.wilcox)
 }
+
+###TESTING###
+#test.process.file<-
