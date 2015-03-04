@@ -46,7 +46,7 @@ Function.GENE.MATRIX.MI<-function(exp.matrix){
     mi.gene.vector<-parApply(cl, exp.matrix, 1, function(y) {
       
       #Discretize pairs
-      gene.disc<-discretize2d(gene.exp, as.vector(y), numBins1=10, numBins2=10)
+      gene.disc<-discretize2d(gene.exp, as.vector(y), numBins1=5, numBins2=5)
       mi.pair<-mi.empirical(gene.disc)
       
       #Return pair mi
