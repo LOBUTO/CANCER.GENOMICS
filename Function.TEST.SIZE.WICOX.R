@@ -23,7 +23,7 @@ Function.Main<-function(exp.matrix){
   
   #Randomly sample one cohort of 100 individuals
   set.seed(43)
-  test.cohort<-sample(100, colnames(exp.matrix))
+  test.cohort<-sample(colnames(exp.matrix),100)
   
   #Set rest of patients
   rest<-setdiff(colnames(exp.matrix), test.cohort)
