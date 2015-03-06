@@ -40,10 +40,10 @@ Function.GENE.MATRIX.MI<-function(exp.matrix){
   main.list<-lapply(genes, function(x) {
     
     #Get expression for looping gene
-    gene.exp<-as.vector(exp.matrix[x,])
+    gene.exp<-as.vector(exp.matrix[x,,drop=F]) 
     
     #Apply over all others pairwise
-    mi.gene.vector<-parApply(cl, exp.matrix, 1, function(y) {
+    mi.gene.vector<-parApply(cl, exp.matrix[,,drop=F], 1, function(y) {
       
       #Discretize pairs
       gene.disc<-discretize2d(gene.exp, as.vector(y), numBins1=5, numBins2=5)
@@ -55,10 +55,10 @@ Function.GENE.MATRIX.MI<-function(exp.matrix){
     })
     
     #Construct table for gene table
-    gene.table<-data.table(Hugo.1=x, Hugo.2=rownames(exp.matrix), MI=mi.gene.vector)
+    gene.table<-data.table(Hugo.1=x, Hugo.2=rownames(exp.matrix[,,drop=F]), MI=mi.gene.vector)
     
     #Remove gene from matrix 
-    exp.matrix<<-exp.matrix[setdiff(rownames(exp.matrix), x),]
+    exp.matrix<<-exp.matrix[setdiff(rownames(exp.matrix[,,drop=F]), x),]
     
     #Update count - Don't need to know matrix dimensions, it throws an error when it reaches zero, removed
     count<<-count+1
