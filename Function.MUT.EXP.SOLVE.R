@@ -143,7 +143,8 @@ Function.SOLVE.EXP<-function(prepped.maf.cast, exp.diff.table, prepped.maf.table
   nodes<-detectCores()
   cl<-makeCluster(nodes)
   setDefaultCluster(cl)
-  clusterExport(cl, varlist=c("as.data.table","data.table", "exp.genes", "prepped.maf.cast", "target.samples","exp.diff.table", "Solve") ,envir=environment())
+  clusterExport(cl, varlist=c("as.data.table","data.table", "exp.genes", "prepped.maf.cast", "target.samples","exp.diff.table", 
+                              "Solve","setnames") ,envir=environment())
   print ("Done exporting values")
   
   #Execute
