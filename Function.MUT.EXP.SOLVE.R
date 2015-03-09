@@ -101,7 +101,10 @@ Function.PREP.MAF<-function(maf, train.patients, POS=T){
   #Cast table to long format
   maf.cast<-acast(maf, SAMPLE~CHANGE ,fill=0,value.var="COUNT", fun.aggregate=sum)
   
-  #Return as list
+  #Clean up and Return as list
+  maf<-maf[,c("CHANGE","POS.SAMPLES"),with=F]
+  setkey(maf)
+  maf<-unique(maf)
   return(list(CAST=maf.cast, TABLE=maf)) 
 }
 
