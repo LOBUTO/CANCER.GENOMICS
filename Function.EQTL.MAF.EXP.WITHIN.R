@@ -64,7 +64,7 @@ Function.Main<-function(maf, exp.obj){
   
   #Filter maf and exp.obj by common patients
   samples<-intersect(unique(maf$SAMPLE), colnames(exp.obj$combined.matrices))
-  maf<-maf[SAMPLES %in% samples,]
+  maf<-maf[SAMPLE %in% samples,]
   exp.matrix<-exp.obj$combined.matrices[,samples]
   
   #Classify mutation by functional impact, that is MISS are position dependent and NON.FUNC
