@@ -68,7 +68,7 @@ Function.Main<-function(maf, exp.obj){
   exp.matrix<-exp.obj$combined.matrices[,samples]
   
   #Classify mutation by functional impact, that is MISS are position dependent and NON.FUNC
-  maf$CLASS<-ifelse(maf$TYPE=="MISS", paste(maf$Hugo_Symbol, maf$Start_Position, maf$TYPE, sep="."), paste(maf$Hugo_Symbol, maf$TYPE))
+  maf$CLASS<-ifelse(maf$TYPE=="MISS", paste(maf$Hugo_Symbol, maf$Start_Position, maf$TYPE, sep="."), paste(maf$Hugo_Symbol, maf$TYPE, sep="."))
   
   #Filter out those mutations classes that do not appear in at least 2 samples
   maf[,CLASS.POP:=length(SAMPLE), by="CLASS"]
