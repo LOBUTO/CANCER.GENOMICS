@@ -88,7 +88,7 @@ Function.Main<-function(maf, exp.obj){
   print ("Done exporting values")
   
   #Execute
-  main.list<-lapply(mut.classes, function(x) {
+  main.list<-parLapply(cl,mut.classes, function(x) {
     
     #Obtain population for mutation class
     subtable<-maf[CLASS==x,]
@@ -96,8 +96,8 @@ Function.Main<-function(maf, exp.obj){
     non.pop<-setdiff(all.samples, pop)
     
     #Calculate p.values for both sides
-    greater.pval<-parApply(cl, exp.matrix, 1, function(x) wilcox.test(x[pop], x[non.pop], paired=F, alternative="greater")$p.value)
-    less.pval<-parApply(cl, exp.matrix, 1, function(x) wilcox.test(x[pop], x[non.pop], paired=F, alternative="less")$p.value)
+    greater.pval<-apply(exp.matrix, 1, function(x) wilcox.test(x[pop], x[non.pop], paired=F, alternative="greater")$p.value)
+    less.pval<-apply(exp.matrix, 1, function(x) wilcox.test(x[pop], x[non.pop], paired=F, alternative="less")$p.value)
     
     #Correct for multiple hypothesis with fdr
     greater.pval.adj<-p.adjust(greater.pval, method="fdr")
