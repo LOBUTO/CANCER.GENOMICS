@@ -146,4 +146,4 @@ print ("Done with main function")
 
 ###############WRITING OUTPUT############
 write.table(file=output.file, main.function, sep="\t", quote=F, row.names=F, col.names=T)
-print ("Done writing to file")
+print ("Done writing to output file")
