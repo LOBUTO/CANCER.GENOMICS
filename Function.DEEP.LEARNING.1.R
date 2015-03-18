@@ -121,9 +121,9 @@ TEST_MAF<-as.factor(MAF.ANNOVAR.CLASS$MAF.CUT[TEST_ROWS])
 #Model without dropout
 print ("building model")
 MAF.MODEL<-h2o.deeplearning(x=c(1:7,11), y=8, data=h2o_maf[TRAIN_ROWS[1:100000],],
-                            activation = "TanhWithDropout", balance_classes = TRUE, hidden = c(500,100,10), epochs = 300,
-                            input_dropout_ratio = 0.2, hidden_dropout_ratios = c(0.5,0.5, 0.5))
+                            activation = "Tanh", balance_classes = TRUE, hidden = c(5000,1000,100), epochs = 500)
+                            #input_dropout_ratio = 0.2, hidden_dropout_ratios = c(0.5,0.5, 0.5))
 print ("done with dnn")
 #Save model
-h2o.saveModel(MAF.MODEL, "RESULTS", "MAF.MODEL.FILTERED.NT.REP.CLASS.100000.3.500.250.50.E.300.DROP.0.2.h2o")
+h2o.saveModel(MAF.MODEL, "RESULTS", "MAF.MODEL.FILTERED.NT.REP.CLASS.100000.3.5000.1000.100.E.500.h2o")
 print ("done saving")
