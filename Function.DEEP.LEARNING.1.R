@@ -104,7 +104,7 @@ MAF.ANNOVAR.CLASS<-Function.PREP.MAF.CLASS.ML(MAF.ANNOVAR,  CHEN.REP)
 
 ######## Predicting with H2O on classifiable MAF variable#########################
 print ("building annovar class")
-MAF.ANNOVAR.CLASS<-Function.PREP.MAF.CLASS.ML(MAF.ANNOVAR,  CHEN.REP, EXON.NT, "MAF", FILTER=T)
+MAF.ANNOVAR.CLASS<-Function.PREP.MAF.CLASS.ML(MAF.ANNOVAR,  REP.TIME=CHEN.REP, NT.LENGTH=EXON.NT, EXTRA="MAF", FILTER=T)
 
 # Start a local cluster with 30GB RAM
 print ("setting up h2o")
