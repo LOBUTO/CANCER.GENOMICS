@@ -89,7 +89,8 @@ print ("setting up h2o")
 localH2O = h2o.init(ip = "localhost", port = 54321, startH2O = TRUE, max_mem_size= '30g', nthreads=-1) 
 
 #Convert data into h2o
-h2o_maf <- as.h2o(localH2O, MAF.ANNOVAR.CLASS) 
+key.v<-sample(letters,1)
+h2o_maf <- as.h2o(localH2O, MAF.ANNOVAR.CLASS, key=key.v) 
 
 #Break into train and test set
 set.seed(1234)
