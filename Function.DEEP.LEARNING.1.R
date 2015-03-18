@@ -106,5 +106,5 @@ MAF.MODEL<-h2o.deeplearning(x=c(1:6), y=7, data=h2o_maf[TRAIN_ROWS[1:10000],],
                             activation = "Tanh", balance_classes = TRUE, hidden = c(100,50,10), epochs = 2000)
 print ("done with dnn")
 #Save model
-h2o.saveModel(MAF.MODEL, "RESULTS", "MAF.MODEL.10000.3.100.50.10.E.1000.REP.CLASS.h2o")
+h2o.saveModel(MAF.MODEL, "RESULTS", "MAF.MODEL.10000.3.100.50.10.E.2000.REP.CLASS.h2o")
 print ("done saving")
