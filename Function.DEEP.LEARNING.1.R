@@ -55,11 +55,11 @@ Function.PREP.MAF.CLASS.ML<-function(MAF.ANNOVAR, REP.TIME, HUGO=F){
   MAF.ANNOVAR$MAF.CUT<-cut(MAF.ANNOVAR$MAF, quantile(MAF.ANNOVAR$MAF, c(0,0.33,0.66,1)), include.lowest=T, 
                            labels=as.factor(c("low", "medium", "high")))
   
-  #Filter out not needed columns and place classificaiton column at the end
+  #Filter out not needed columns and place classificaiton column at the end - Removing melting temperature
   if (HUGO==F){
-    MAF.ANNOVAR<-MAF.ANNOVAR[,c("TYPE", "Chrom", "PHAST", "REF.ALT","REP.CLASS", "TRIMER", "MT", "MAF.CUT", "REP.TIME"), with=F]  
+    MAF.ANNOVAR<-MAF.ANNOVAR[,c("TYPE", "Chrom", "PHAST", "REF.ALT","REP.CLASS", "TRIMER", "MAF.CUT", "REP.TIME"), with=F]  
   } else{
-    MAF.ANNOVAR<-MAF.ANNOVAR[,c("TYPE", "Hugo_Symbol", "Chrom", "PHAST", "REF.ALT","REP.CLASS", "TRIMER", "MT", "MAF.CUT", "REP.TIME"), with=F]  
+    MAF.ANNOVAR<-MAF.ANNOVAR[,c("TYPE", "Hugo_Symbol", "Chrom", "PHAST", "REF.ALT","REP.CLASS", "TRIMER", "MAF.CUT", "REP.TIME"), with=F]  
   }
   
   #Return
@@ -102,7 +102,7 @@ TEST_MAF<-as.factor(MAF.ANNOVAR.CLASS$MAF.CUT[TEST_ROWS]) #Test on 1/3
 
 #Model without dropout
 print ("building model")
-MAF.MODEL<-h2o.deeplearning(x=c(1:7), y=8, data=h2o_maf[TRAIN_ROWS[1:10000],],
+MAF.MODEL<-h2o.deeplearning(x=c(1:6), y=7, data=h2o_maf[TRAIN_ROWS[1:10000],],
                             activation = "Tanh", balance_classes = TRUE, hidden = c(1000,500,100), epochs = 400)
 print ("done with dnn")
 #Save model
