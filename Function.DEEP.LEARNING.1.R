@@ -102,7 +102,7 @@ TEST_MAF<-as.factor(MAF.ANNOVAR.CLASS$MAF.CUT[TEST_ROWS]) #Test on 1/3
 
 #Model without dropout
 print ("building model")
-MAF.MODEL<-h2o.deeplearning(x=c(1:8), y=8, data=h2o_maf[TRAIN_ROWS[1:10000],],
+MAF.MODEL<-h2o.deeplearning(x=c(1:7), y=8, data=h2o_maf[TRAIN_ROWS[1:10000],],
                             activation = "Tanh", balance_classes = TRUE, hidden = c(1000,500,100), epochs = 400)
 print ("done with dnn")
 #Save model
