@@ -63,6 +63,8 @@ Function.PREP.MAF.CLASS.ML<-function(MAF.ANNOVAR, REP.TIME, NT.LENGTH, EXTRA=c()
   MAF.ANNOVAR<-merge(MAF.ANNOVAR, REP.TIME, by="Hugo_Symbol")
   
   #Enter length info
+  print (MAF.ANNOVAR)
+  print(NT.LENGTH)
   MAF.ANNOVAR<-merge(MAF.ANNOVAR, NT.LENGTH, by="Hugo_Symbol")
   MAF.ANNOVAR$NT<-normalize.vector(MAF.ANNOVAR$NT)
   
@@ -96,12 +98,13 @@ CHEN.REP<-fread(chen.rep, header=T, sep="\t",stringsAsFactors=F, drop=2)
 
 EXON.NT<-fread(exon.nt, header=T, sep="\t", stringsAsFactors=F, drop=2:6)
 EXON.NT<-EXON.NT[,list(NT=sum(FEAT_END-FEAT_START)), by=Hugo_Symbol]
+print(EXON.NT)
 
 MAF.ANNOVAR.CLASS<-Function.PREP.MAF.CLASS.ML(MAF.ANNOVAR,  CHEN.REP)
 
 ######## Predicting with H2O on classifiable MAF variable#########################
 print ("building annovar class")
-MAF.ANNOVAR.CLASS<-Function.PREP.MAF.CLASS.ML(MAF.ANNOVAR,  CHEN.REP, EXON.NT,"MAF", FILTER=T)
+MAF.ANNOVAR.CLASS<-Function.PREP.MAF.CLASS.ML(MAF.ANNOVAR,  CHEN.REP, EXON.NT, "MAF", FILTER=T)
 
 # Start a local cluster with 30GB RAM
 print ("setting up h2o")
