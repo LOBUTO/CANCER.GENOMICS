@@ -94,11 +94,11 @@ h2o_maf <- as.h2o(localH2O, MAF.ANNOVAR.CLASS)
 #Break into train and test set
 set.seed(1234)
 ALL_ROWS<-1:nrow(h2o_maf)
-RAND_FOLDS<-createFolds(ALL_ROWS,3)
-TRAIN_ROWS<-unlist(RAND_FOLDS[1:2])
-TEST_ROWS<-unlist(RAND_FOLDS[3])
-TRAIN_MAF<-as.factor(MAF.ANNOVAR.CLASS$MAF.CUT[TRAIN_ROWS]) #Train with 2/3
-TEST_MAF<-as.factor(MAF.ANNOVAR.CLASS$MAF.CUT[TEST_ROWS]) #Test on 1/3
+RAND_FOLDS<-createFolds(ALL_ROWS,5)
+TRAIN_ROWS<-unlist(RAND_FOLDS[1:3]) #Train with 60%
+TEST_ROWS<-unlist(RAND_FOLDS[4:5]) #Test on 40%
+TRAIN_MAF<-as.factor(MAF.ANNOVAR.CLASS$MAF.CUT[TRAIN_ROWS]) 
+TEST_MAF<-as.factor(MAF.ANNOVAR.CLASS$MAF.CUT[TEST_ROWS]) 
 
 #Model without dropout
 print ("building model")
