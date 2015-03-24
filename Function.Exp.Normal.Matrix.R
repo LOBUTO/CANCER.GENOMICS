@@ -146,7 +146,7 @@ Function.RNAseq.Matrices.Normalization<-function(normal.matrix, cancer.matrix, r
   
   #Convert RNAseq counts to log-count per million and normalize
   G.all<-as.matrix(dummy.expression.matrix)
-  G.isexpr<- rowSums(cpm(G.all)>1) >= 3 #Keep genes with at least 1 count-per-million reads (cpm) in at least 20 samples
+  G.isexpr<- rowSums(cpm(G.all)>1) >= 2 #Keep genes with at least 1 count-per-million reads (cpm) in at least 20 samples
   G.all<-G.all[G.isexpr,]
   G.all<-DGEList(counts=G.all) #For scale normalization
   G.all<-calcNormFactors(G.all) #TMM - Scale normalization #KEEP IN MIND THAT THIS MAY NOT BE NECESSARY AS RNASEQ V2 files may already be
