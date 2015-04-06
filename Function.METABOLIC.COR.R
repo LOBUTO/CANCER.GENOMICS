@@ -127,8 +127,10 @@ Function.Main<-function(maf, cancer.exp, normal.exp, enzymes){
   
   main.list<-lapply( mut.class, function(x) {
     
+    print (mut.class)
     #Obtain samples under class
     samples<-as.vector(maf[CLASS %in% x,]$SAMPLE)
+    print (samples)
     
     #Perform class correlation in cancer
     cancer.cor<-cor(t(cancer.exp[,samples]), method="spearman")
