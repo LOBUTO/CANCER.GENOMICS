@@ -136,6 +136,8 @@ Function.Main<-function(maf, cancer.exp, normal.exp, enzymes){
     #############Substract background correlation(NORMAL) from main correlation (CANCER)###############
     #Substract
     signal.cor<-cancer.cor[genes.order, genes.order]-BRCA.EXP.COR.NORMAL
+    print (dim(signal.cor))
+    print (signal.cor[1:3,1:3])
     
     #Get sum of absolute value of change of enzyme with respect to all (LOG-CONVERTED)
     sum.delta.abs<-log(apply(signal.cor, 1, function(x) sum(abs(x))))
