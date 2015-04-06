@@ -88,7 +88,7 @@ Function.Main<-function(n.cor, cancer.exp, normal.exp, enzymes){
     
     #Assign to genes
     main.table<-do.call(cbind, simul.list)
-    rownames(main.table)<-gene.order
+    rownames(main.table)<-genes.order
     
     #Clean up of NAs
     main.table<-t(main.table)
