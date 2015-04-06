@@ -125,7 +125,7 @@ Function.Main<-function(maf, cancer.exp, normal.exp, enzymes){
                               "genes.order") ,envir=environment())
   print ("Done exporting values")
   
-  main.list<-parLapply(cl, mut.class, function(x) {
+  main.list<-lapply( mut.class, function(x) {
     
     #Obtain samples under class
     samples<-as.vector(maf[CLASS %in% x,]$SAMPLE)
