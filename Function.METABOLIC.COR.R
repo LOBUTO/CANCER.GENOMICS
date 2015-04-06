@@ -169,7 +169,7 @@ print("opened files")
 ##########################################
 
 ##################EXECUTE#################
-maf<-Function.Prep.MAF(cancer.maf, mut.filter=F)
+maf<-Function.Prep.MAF(cancer.maf)
 print ("done prepping maf")
 
 exp<-Function.exp.cor(exp.rds)
