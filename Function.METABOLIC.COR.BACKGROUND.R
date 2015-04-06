@@ -77,7 +77,7 @@ Function.Main<-function(n.cor, cancer.exp, normal.exp, enzymes){
       main.cor<-cor(t(cancer.exp[,y]), method="spearman")
       
       #Substract
-      signal.cor<-main.cor[gene.order, gene.order]-back.cor
+      signal.cor<-main.cor[genes.order, genes.order]-back.cor
       
       #Get sum of absolute value of change of enzyme with respect to all - LOG-TRANSFORMED
       sum.delta.abs<-log(apply(signal.cor, 1, function(z) sum(abs(z))))
