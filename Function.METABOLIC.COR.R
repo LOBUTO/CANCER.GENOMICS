@@ -106,9 +106,11 @@ Function.Main<-function(maf, cancer.exp, normal.exp, enzymes){
   cancer.exp<-cancer.exp[, all.patients]
   
   #Filter maf for mutation classes (including grouped missense now) that occur more than once
+  print (maf)
   maf[,POP.CLASS:=length(SAMPLE), by="CLASS"]
   maf<-maf[POP.CLASS>1,]
   maf$POP.CLASS<-NULL
+  print (maf)
   
   #Extract mutation classes
   mut.class<-unique(as.vector(maf$CLASS))
