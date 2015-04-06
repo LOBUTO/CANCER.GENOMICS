@@ -127,7 +127,7 @@ Function.Main<-function(maf, cancer.exp, normal.exp, enzymes){
   
   main.list<-lapply( mut.class, function(x) {
     
-    print (mut.class)
+    print (x)
     #Obtain samples under class
     samples<-as.vector(maf[CLASS %in% x,]$SAMPLE)
     print (samples)
