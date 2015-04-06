@@ -59,7 +59,7 @@ Function.Main<-function(n.cor, cancer.exp, normal.exp, enzymes){
   nodes<-detectCores()
   cl<-makeCluster(nodes)
   setDefaultCluster(cl)
-  clusterExport(cl, varlist=c("as.data.table","data.table", "n.cor",  "cancer.exp", "maf", "BRCA.EXP.COR.NORMAL",
+  clusterExport(cl, varlist=c("as.data.table","data.table", "n.cor", "cancer.exp", "BRCA.EXP.COR.NORMAL",
                               "genes.order") ,envir=environment())
   print ("Done exporting values")
   
