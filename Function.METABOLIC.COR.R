@@ -105,6 +105,11 @@ Function.Main<-function(maf, cancer.exp, normal.exp, enzymes){
   maf<-maf[SAMPLE %in% all.patients,]
   cancer.exp<-cancer.exp[, all.patients]
   
+  #Filter maf for mutation classes (including grouped missense now) that occur more than once
+  maf[,POP.CLASS:=length(SAMPLE), by="CLASS"]
+  maf<-maf[POP.CLASS>1,]
+  maf$POP.CLASS<-NULL
+  
   #Extract mutation classes
   mut.class<-unique(as.vector(maf$CLASS))
   
@@ -125,12 +130,10 @@ Function.Main<-function(maf, cancer.exp, normal.exp, enzymes){
                               "genes.order") ,envir=environment())
   print ("Done exporting values")
   
-  main.list<-lapply( mut.class, function(x) {
+  main.list<-lapply(cl, mut.class, function(x) {
     
-    print (x)
     #Obtain samples under class
     samples<-as.vector(maf[CLASS %in% x,]$SAMPLE)
-    print (samples)
     
     #Perform class correlation in cancer
     cancer.cor<-cor(t(cancer.exp[,samples]), method="spearman")
@@ -138,8 +141,6 @@ Function.Main<-function(maf, cancer.exp, normal.exp, enzymes){
     #############Substract background correlation(NORMAL) from main correlation (CANCER)###############
     #Substract
     signal.cor<-cancer.cor[genes.order, genes.order]-BRCA.EXP.COR.NORMAL
-    print (dim(signal.cor))
-    print (signal.cor[1:3,1:3])
     
     #Get sum of absolute value of change of enzyme with respect to all (LOG-CONVERTED)
     sum.delta.abs<-log(apply(signal.cor, 1, function(x) sum(abs(x))))
