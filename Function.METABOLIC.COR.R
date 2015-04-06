@@ -172,7 +172,7 @@ print("opened files")
 maf<-Function.Prep.MAF(cancer.maf)
 print ("done prepping maf")
 
-exp<-Function.exp.cor(exp.rds)
+exp<-Function.exp(exp.rds)
 print ("done building cancer and normal correlations")
 
 enzyme<-Function.Enzyme(enzyme.file)
