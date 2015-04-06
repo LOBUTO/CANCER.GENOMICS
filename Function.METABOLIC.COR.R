@@ -122,7 +122,7 @@ Function.Main<-function(maf, cancer.exp, normal.exp, enzymes){
   cl<-makeCluster(nodes)
   setDefaultCluster(cl)
   clusterExport(cl, varlist=c("as.data.table","data.table", "mut.class", "cancer.exp", "maf", "BRCA.EXP.COR.NORMAL",
-                              "gene.order") ,envir=environment())
+                              "genes.order") ,envir=environment())
   print ("Done exporting values")
   
   main.list<-parLapply(cl, mut.class, function(x) {
