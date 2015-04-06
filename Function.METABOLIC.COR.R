@@ -157,6 +157,9 @@ Function.Main<-function(maf, cancer.exp, normal.exp, enzymes){
   stopCluster(cl)
   print ("Done parallelizing")
   
+  #Assign mut class names to list of matrices produced
+  names(main.list)<-mut.class
+  
   #Return
   return(main.list)
   
