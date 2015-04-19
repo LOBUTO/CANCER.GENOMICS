@@ -43,3 +43,4 @@ main.obj<-Function.MAIN(rnaseq.obj)
 
 #Write out
 saveRDS(main.obj, output.file)
+print ("done writing file")
