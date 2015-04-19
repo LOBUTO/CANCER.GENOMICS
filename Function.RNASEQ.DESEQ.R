@@ -8,7 +8,7 @@ library(BiocParallel)
 
 Function.MAIN<-function(rnaseq.obj){
   
-  brca.V1.RAW<-readRDS(rnseq.obj)
+  brca.V1.RAW<-readRDS(rnaseq.obj)
 
   combined.matrices<-cbind(brca.V1.RAW$normal, brca.V1.RAW$tumor[rownames(brca.V1.RAW$normal),])
   combined.matrices<-combined.matrices[complete.cases(combined.matrices),]
