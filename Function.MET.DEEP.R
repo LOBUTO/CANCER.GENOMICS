@@ -7,7 +7,7 @@ library(reshape2)
 library(h2o)
 
 #Functions
-Function.Main<-function(met.obj, method){
+Function.Main<-function(met.obj, method, hidden){
   
   #Load met table
   MET<-readRDS(met.obj)
@@ -22,7 +22,7 @@ Function.Main<-function(met.obj, method){
   #Introduce parameters for training
   DEEP.MET<-data.table()
   METHOD=method
-  HIDDEN<-c(80,40,10)
+  HIDDEN<-as.numeric(unlist(strsplit(hidden,"[.]")))
   INPUT.DR<-0
   HIDDEN.DR<-c(0.5,0.5,0.5)
   FEATURES<-"ALL.RECON.EXP"
@@ -53,10 +53,11 @@ Function.Main<-function(met.obj, method){
 args<-commandArgs(trailingOnly=T)
 met.obj<-args[1]
 output.file<-args[2]
+hidden<-args[3] #hidden layers as character string "80.40.10"
 print("opened files")
 
 #Execute
-main.obj<-Function.Main(met.obj, method="TanhWithDropout")
+main.obj<-Function.Main(met.obj, method="TanhWithDropout", hidden=hidden)
 
 #Write out
 saveRDS(main.obj, output.file)
