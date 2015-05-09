@@ -31,7 +31,7 @@ Function.Main<-function(met.obj, method, hidden, hidden.dr){
     
     #Model with/out dropout
     print (c("building model:",n))
-    MODEL.MET<-h2o.deeplearning(x=5:ncol(MET), y=2, data=h2o_MET, classification = F, nfolds = 5,
+    MODEL.MET<-h2o.deeplearning(x=3:ncol(MET), y=2, data=h2o_MET, classification = F, nfolds = 5,
                                 activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500,
                                 input_dropout_ratio = INPUT.DR , hidden_dropout_ratios = HIDDEN.DR)
     
