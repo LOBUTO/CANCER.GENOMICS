@@ -7,7 +7,7 @@ library(reshape2)
 library(h2o)
 
 #Functions
-Function.Main<-function(met.obj, method, hidden){
+Function.Main<-function(met.obj, method, hidden, hidden.dr){
   
   #Load met table
   MET<-readRDS(met.obj)
@@ -24,7 +24,7 @@ Function.Main<-function(met.obj, method, hidden){
   METHOD=method
   HIDDEN<-as.numeric(unlist(strsplit(hidden,"[.]")))
   INPUT.DR<-0
-  HIDDEN.DR<-c(0.5,0.5,0.5)
+  HIDDEN.DR<-1/as.numeric(unlist(strsplit(hidden.dr,"[.]")))
   FEATURES<-"ALL.RECON.EXP"
   
   for (n in 1:10) {
@@ -54,10 +54,11 @@ args<-commandArgs(trailingOnly=T)
 met.obj<-args[1]
 output.file<-args[2]
 hidden<-args[3] #hidden layers as character string "80.40.10"
+hidden.dr<-args[4] #hidden.dr layers as denomitor character strings "2.2.2" for "0.5 0.5 0.5" (1/2)
 print("opened files")
 
 #Execute
-main.obj<-Function.Main(met.obj, method="TanhWithDropout", hidden=hidden)
+main.obj<-Function.Main(met.obj, method="TanhWithDropout", hidden=hidden, hidden.dr=hidden.dr)
 
 #Write out
 saveRDS(main.obj, output.file)
