@@ -7,7 +7,7 @@ library(reshape2)
 library(h2o)
 
 #Functions
-Function.Main<-function(met.obj, method, hidden, hidden.dr){
+Function.Main<-function(met.obj, method, hidden, hidden.dr, input.dr){
   
   #Load met table
   MET<-readRDS(met.obj)
@@ -23,7 +23,7 @@ Function.Main<-function(met.obj, method, hidden, hidden.dr){
   DEEP.MET<-data.table()
   METHOD=method
   HIDDEN<-as.numeric(unlist(strsplit(hidden,"[.]")))
-  INPUT.DR<-0
+  INPUT.DR<-as.numeric(input.dr)
   HIDDEN.DR<-1/as.numeric(unlist(strsplit(hidden.dr,"[.]")))
   FEATURES<-"ALL.RECON.EXP"
   
@@ -31,9 +31,17 @@ Function.Main<-function(met.obj, method, hidden, hidden.dr){
     
     #Model with/out dropout
     print (c("building model:",n))
-    MODEL.MET<-h2o.deeplearning(x=3:ncol(MET), y=2, data=h2o_MET, classification = F, nfolds = 5,
-                                activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500,
-                                input_dropout_ratio = INPUT.DR , hidden_dropout_ratios = HIDDEN.DR)
+    
+    if (METHOD=="TanhWithDropout"){
+      MODEL.MET<-h2o.deeplearning(x=5:ncol(MET), y=2, data=h2o_MET, classification = F, nfolds = 5,
+                                  activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500,
+                                  input_dropout_ratio = INPUT.DR , hidden_dropout_ratios = HIDDEN.DR)  
+    } else if (METHOD=="Tanh"){
+      MODEL.MET<-h2o.deeplearning(x=5:ncol(MET), y=2, data=h2o_MET, classification = F, nfolds = 5,
+                                  activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500)
+    }
+    
+    
     
     TRAIN.ERROR<-MODEL.MET@model$train_sqr_error
     TEST.ERROR<-MODEL.MET@model$valid_sqr_error
@@ -55,10 +63,12 @@ met.obj<-args[1]
 output.file<-args[2]
 hidden<-args[3] #hidden layers as character string "80.40.10"
 hidden.dr<-args[4] #hidden.dr layers as denomitor character strings "2.2.2" for "0.5 0.5 0.5" (1/2)
+input.dr<-args[5] #input dropout rate for input layer
+method=args[6] #choose between "Tanh" or ""TanhWithDropout"
 print("opened files")
 
 #Execute
-main.obj<-Function.Main(met.obj, method="TanhWithDropout", hidden=hidden, hidden.dr=hidden.dr)
+main.obj<-Function.Main(met.obj, method=method, hidden=hidden, hidden.dr=hidden.dr, input.dr=input.dr)
 
 #Write out
 saveRDS(main.obj, output.file)
