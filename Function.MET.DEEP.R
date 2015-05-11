@@ -92,11 +92,11 @@ Function.Main.Bin<-function(met.obj, method, hidden, hidden.dr, input.dr){
     print (c("building model",n))
     
     if (METHOD=="TanhWithDropout"){
-      MODEL.MET<-h2o.deeplearning(x=5:ncol(MET), y=2, data=h2o_MET, classification = F, nfolds = 5,
+      MODEL.MET<-h2o.deeplearning(x=5:ncol(MET), y=2, data=h2o_MET[TRAIN_ROWS,], classification = F, nfolds = 5,
                                   activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500,
                                   input_dropout_ratio = INPUT.DR , hidden_dropout_ratios = HIDDEN.DR)  
     } else {
-      MODEL.MET<-h2o.deeplearning(x=5:ncol(MET), y=2, data=h2o_2HG[TRAIN_ROWS,], classification = F, nfolds = 5,
+      MODEL.MET<-h2o.deeplearning(x=5:ncol(MET), y=2, data=h2o_MET[TRAIN_ROWS,], classification = F, nfolds = 5,
                                   activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500)  
     }
     
@@ -108,7 +108,7 @@ Function.Main.Bin<-function(met.obj, method, hidden, hidden.dr, input.dr){
     
     TEST.SAMPLE<-MET[TEST_ROWS, c("SAMPLE", "MET"), with=F]
     TEST.SAMPLE$BIN.MET<-ifelse(TEST.SAMPLE$MET>2, 1, 0)
-    TEST.SAMPLE$PREDICT<-as.numeric(as.matrix(h2o.predict(MODEL.2HG, h2o_2HG[TEST_ROWS,])$predict))
+    TEST.SAMPLE$PREDICT<-as.numeric(as.matrix(h2o.predict(MODEL.MET, h2o_MET[TEST_ROWS,])$predict))
     TEST.SAMPLE$BIN.PRED<-ifelse(TEST.SAMPLE$PREDICT>2, 1, 0)
     VALID.ACC<-mean(TEST.SAMPLE$BIN.MET==TEST.SAMPLE$BIN.PRED)
     
