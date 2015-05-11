@@ -92,11 +92,11 @@ Function.Main.Bin<-function(met.obj, method, hidden, hidden.dr, input.dr){
     print (c("building model",n))
     
     if (METHOD=="TanhWithDropout"){
-      MODEL.MET<-h2o.deeplearning(x=5:ncol(MET), y=2, data=h2o_MET[TRAIN_ROWS,], classification = F, nfolds = 4,
+      MODEL.MET<-h2o.deeplearning(x=5:200, y=2, data=h2o_MET[TRAIN_ROWS,], classification = F, nfolds = 4,
                                   activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500,
                                   input_dropout_ratio = INPUT.DR , hidden_dropout_ratios = HIDDEN.DR)  
     } else {
-      MODEL.MET<-h2o.deeplearning(x=5:ncol(MET), y=2, data=h2o_MET[TRAIN_ROWS,], classification = F, nfolds = 4,
+      MODEL.MET<-h2o.deeplearning(x=5:200, y=2, data=h2o_MET[TRAIN_ROWS,], classification = F, nfolds = 4,
                                   activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500)  
     }
     
@@ -112,7 +112,7 @@ Function.Main.Bin<-function(met.obj, method, hidden, hidden.dr, input.dr){
     TEST.SAMPLE$BIN.PRED<-ifelse(TEST.SAMPLE$PREDICT>2, 1, 0)
     VALID.ACC<-mean(TEST.SAMPLE$BIN.MET==TEST.SAMPLE$BIN.PRED)
     
-    CUR.PRED<-data.table(TRAIN.ACC=TRAIN.ACC, TEST.ACC=TEST.ACC, VALID.ACC, METHOD=METHOD, FEATURES=FEATURES,
+    CUR.PRED<-data.table(TRAIN.ACC=TRAIN.ACC, TEST.ACC=TEST.ACC, VALID.ACC=VALID.ACC, METHOD=METHOD, FEATURES=FEATURES,
                          HIDDEN=paste(HIDDEN,collapse="."), INPUT.DR=INPUT.DR, HIDDEN.DR=paste(HIDDEN.DR,collapse="."))  
     
     #Assign predictors
