@@ -81,15 +81,10 @@ Function.Main.Bin<-function(met.obj, method, hidden, hidden.dr, input.dr){
   
   #Break into equal representative folds of 1/0 dysregulated cohorts
   x<-ifelse(MET$MET>2, 1, 0)
-  print (x)
   RAND_FOLDS.1<-createFolds(which(x==1),5)
-  print (RAND_FOLDS.1)
   RAND_FOLDS.0<-createFolds(which(x==0),5)
-  print (RAND_FOLDS.0)
   TEST_ROWS<-c( which(x==1)[RAND_FOLDS.1[[1]]], which(x==0)[RAND_FOLDS.0[[1]]])
-  print (TEST_ROWS)
   TRAIN_ROWS<-setdiff(1:nrow(MET), TEST_ROWS)
-  print(TRAIN_ROWS)
   
   for (n in 1:10) {
     
