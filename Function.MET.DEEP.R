@@ -27,7 +27,7 @@ Function.Main<-function(met.obj, method, hidden, hidden.dr, input.dr){
   HIDDEN.DR<-1/as.numeric(unlist(strsplit(hidden.dr,"[.]")))
   FEATURES<-"ALL.RECON.EXP"
   
-  for (n in 1:10) {
+  for (n in c(1)) {
     
     #Model with/out dropout
     print (c("building model:",n))
