@@ -173,11 +173,6 @@ Function.Main.Class<-function(met.obj, method, hidden, hidden.dr, input.dr){
         PREDICT.MET.TEST<-h2o.predict(MODEL.MET, h2o_MET[TEST_ROWS,])$predict
         PREDICT.MET.TEST<-as.factor(as.matrix(PREDICT.MET.TEST))
         
-        print (PREDICT.MET.TRAIN)
-        print (PREDICT.MET.TEST)
-        print (MET$MET[TRAIN_ROWS])
-        print (MET$MET[TEST_ROWS])
-        
         TRAIN.ACC<-round(confusionMatrix(PREDICT.MET.TRAIN, MET$MET[TRAIN_ROWS])$overall[1],4)
         TEST.ACC<-round(confusionMatrix(PREDICT.MET.TEST, MET$MET[TEST_ROWS])$overall[1],4)  
         
