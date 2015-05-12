@@ -181,6 +181,9 @@ Function.Main.Class<-function(met.obj, method, hidden, hidden.dr, input.dr){
         
         #Assign predictors
         DEEP.MET<-rbind(DEEP.MET,CUR.PRED)
+        
+        #Clean H2o memory
+        h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$Key,key.v))
       }
     }
   }
