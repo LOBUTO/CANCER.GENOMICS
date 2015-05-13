@@ -194,30 +194,28 @@ Function.Main.Class<-function(met.obj, method, hidden, hidden.dr, input.dr){
 
 Function.Main.Class.2<-function(met.obj, method, hidden, hidden.dr, input.dr){
   
-  print (method)
-  print (hidden)
-  print (hidden.dr)
-  print (input.dr)
-  
   #Load met table
   MET<-readRDS(met.obj)
+  print ("loaded met")
   
   #Open h2o connection
   localH2O = h2o.init(ip = "localhost", port = 54321, startH2O = TRUE, max_mem_size= '32g', nthreads=-1) 
+  print ("opened h2o")
   
   #Introduce met obj as h2o object
   key.v<-sample(letters,1)
+  print (key.v)
   MET<-MET[sample(nrow(MET)),] #Too balanace classes!!!!
+  print (MET$MET)
   h2o_MET<-as.h2o(localH2O, MET, key=key.v) 
+  print ("made h2o_met")
   
   #Introduce parameters for training
   DEEP.MET<-data.table()
   METHOD=method
   HIDDEN<-as.numeric(unlist(strsplit(hidden,"[.]")))
-  print (HIDDEN)
   INPUT.DR<-as.numeric(input.dr)
   HIDDEN.DR<-1/as.numeric(unlist(strsplit(hidden.dr,"[.]")))
-  print (HIDDEN.DR)
   FEATURES<-c(7,10,20,50,100,200,400,800,ncol(MET))
   
   for (f in FEATURES){
