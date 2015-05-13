@@ -229,7 +229,7 @@ Function.Main.Class.2<-function(met.obj, method, hidden, hidden.dr, input.dr){
                                     activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500)  
       }
       
-      CUR.PRED<-data.table(TRAIN.ACC=1-MODEL.2HG@model$train_class_error, TEST.ACC=1-MODEL.2HG@model$valid_class_error, ITER=n, METHOD=METHOD, FEATURES=f,
+      CUR.PRED<-data.table(TRAIN.ACC=1-MODEL.MET@model$train_class_error, TEST.ACC=1-MODEL.MET@model$valid_class_error, ITER=n, METHOD=METHOD, FEATURES=f,
                            HIDDEN=paste(HIDDEN,collapse="."), INPUT.DR=INPUT.DR, HIDDEN.DR=paste(HIDDEN.DR,collapse="."))  
       
       #Assign predictors
