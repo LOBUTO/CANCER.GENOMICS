@@ -192,6 +192,58 @@ Function.Main.Class<-function(met.obj, method, hidden, hidden.dr, input.dr){
   return(DEEP.MET)
 }
 
+Function.Main.Class.2<-function(met.obj, method, hidden, hidden.dr, input.dr){
+  
+  #Load met table
+  MET<-readRDS(met.obj)
+  
+  #Open h2o connection
+  localH2O = h2o.init(ip = "localhost", port = 54321, startH2O = TRUE, max_mem_size= '32g', nthreads=-1) 
+  
+  #Introduce met obj as h2o object
+  key.v<-sample(letters,1)
+  MET<-MET[sample(nrow(MET)),] #Too balanace classes!!!!
+  h2o_MET<-as.h2o(localH2O, MET, key=key.v) 
+  
+  #Introduce parameters for training
+  DEEP.MET<-data.table()
+  METHOD=method
+  HIDDEN<-as.numeric(unlist(strsplit(hidden,"[.]")))
+  INPUT.DR<-as.numeric(input.dr)
+  HIDDEN.DR<-1/as.numeric(unlist(strsplit(hidden.dr,"[.]")))
+  FEATURES<-c(7,10,20,50,100,200,400,800,ncol(MET))
+  
+  for (f in FEATURES){
+    for (n in 1:10) {
+      
+      #Model with/out dropout
+      print (c("building model", f, n))
+      
+      #Model with/out dropout
+      if (METHOD=="TanhWithDropout"){
+        MODEL.MET<-h2o.deeplearning(x=5:f, y=2, data=h2o_MET, classification = T, nfolds=5,
+                                    activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500,
+                                    input_dropout_ratio = INPUT.DR , hidden_dropout_ratios = HIDDEN.DR)  
+      } else if (METHOD=="Tanh"){
+        MODEL.MET<-h2o.deeplearning(x=5:f, y=2, data=h2o_MET, classification = T, nfolds=5, 
+                                    activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500)  
+      }
+      
+      CUR.PRED<-data.table(TRAIN.ACC=1-MODEL.2HG@model$train_class_error, TEST.ACC=1-MODEL.2HG@model$valid_class_error, ITER=n, METHOD=METHOD, FEATURES=f,
+                           HIDDEN=paste(HIDDEN,collapse="."), INPUT.DR=INPUT.DR, HIDDEN.DR=paste(HIDDEN.DR,collapse="."))  
+      
+      #Assign predictors
+      DEEP.MET<-rbind(DEEP.MET, CUR.PRED)
+      
+      #Clean H2o memory
+      h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$Key,key.v))
+    } 
+  }
+  
+  #Return
+  return(DEEP.MET)
+}
+
 #Arguments
 args<-commandArgs(trailingOnly=T)
 met.obj<-args[1]
@@ -203,7 +255,7 @@ method=args[6] #choose between "Tanh" or ""TanhWithDropout"
 print("opened files")
 
 #Execute
-main.obj<-Function.Main.Class(met.obj, method=method, hidden=hidden, hidden.dr=hidden.dr, input.dr=input.dr)
+main.obj<-Function.Main.Class.2(met.obj, method=method, hidden=hidden, hidden.dr=hidden.dr, input.dr=input.dr)
 
 #Write out
 saveRDS(main.obj, output.file)
