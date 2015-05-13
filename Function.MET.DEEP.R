@@ -194,6 +194,11 @@ Function.Main.Class<-function(met.obj, method, hidden, hidden.dr, input.dr){
 
 Function.Main.Class.2<-function(met.obj, method, hidden, hidden.dr, input.dr){
   
+  print (method)
+  print (hidden)
+  print (hidden.dr)
+  print (input.dr)
+  
   #Load met table
   MET<-readRDS(met.obj)
   
@@ -209,8 +214,10 @@ Function.Main.Class.2<-function(met.obj, method, hidden, hidden.dr, input.dr){
   DEEP.MET<-data.table()
   METHOD=method
   HIDDEN<-as.numeric(unlist(strsplit(hidden,"[.]")))
+  print (HIDDEN)
   INPUT.DR<-as.numeric(input.dr)
   HIDDEN.DR<-1/as.numeric(unlist(strsplit(hidden.dr,"[.]")))
+  print (HIDDEN.DR)
   FEATURES<-c(7,10,20,50,100,200,400,800,ncol(MET))
   
   for (f in FEATURES){
