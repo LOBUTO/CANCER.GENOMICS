@@ -195,16 +195,15 @@ Function.Main.Class<-function(met.obj, method, hidden, hidden.dr, input.dr){
 Function.Main.Class.2<-function(met.obj, method, hidden, hidden.dr, input.dr){
   
   #Load met table
-  MET<-readRDS(met.obj)
-  print (MET)
+  MET.TABLE<-readRDS(met.obj)
   
   #Open h2o connection
   localH2O = h2o.init(ip = "localhost", port = 54321, startH2O = TRUE, max_mem_size= '32g', nthreads=-1) 
   
   #Introduce met obj as h2o object
   key.v<-sample(letters,1)
-  MET<-MET[sample(1:nrow(MET)),] #Too balanace classes!!!!
-  h2o_MET<-as.h2o(localH2O, MET, key=key.v) 
+  MET.TABLE<-MET.TABLE[sample(nrow(MET.TABLE)),] #Too balanace classes!!!!
+  h2o_MET<-as.h2o(localH2O, MET.TABLE, key=key.v) 
   
   #Introduce parameters for training
   DEEP.MET<-data.table()
@@ -212,7 +211,7 @@ Function.Main.Class.2<-function(met.obj, method, hidden, hidden.dr, input.dr){
   HIDDEN<-as.numeric(unlist(strsplit(hidden,"[.]")))
   INPUT.DR<-as.numeric(input.dr)
   HIDDEN.DR<-1/as.numeric(unlist(strsplit(hidden.dr,"[.]")))
-  FEATURES<-c(7,10,20,50,100,200,400,800,ncol(MET))
+  FEATURES<-c(7,10,20,50,100,200,400,800,ncol(MET.TABLE))
   
   for (f in FEATURES){
     for (n in 1:10) {
