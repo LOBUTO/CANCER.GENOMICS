@@ -196,6 +196,7 @@ Function.Main.Class.2<-function(met.obj, method, hidden, hidden.dr, input.dr){
   
   #Load met table
   MET<-readRDS(met.obj)
+  print (MET)
   
   #Open h2o connection
   localH2O = h2o.init(ip = "localhost", port = 54321, startH2O = TRUE, max_mem_size= '32g', nthreads=-1) 
@@ -254,6 +255,7 @@ input.dr<-args[5] #input dropout rate for input layer
 method=args[6] #choose between "Tanh" or ""TanhWithDropout"
 print("opened files")
 
+print (met.obj)
 #Execute
 main.obj<-Function.Main.Class.2(met.obj, method=method, hidden=hidden, hidden.dr=hidden.dr, input.dr=input.dr)
 
