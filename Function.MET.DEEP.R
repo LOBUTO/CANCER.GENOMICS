@@ -312,9 +312,9 @@ Function.MET.RANDOM.DEEP<-function(met.obj) {
 
 Function.MET.COR.DEEP<-function(met.obj, cor.obj){
   
-  #Load cor.obj
+  #Load cor.obj and sort by absolute value of correlation
   met.cor<-readRDS(cor.obj)
-  met.cor<-met.cor[order(COR,decreasing = T),]
+  met.cor<-met.cor[order(abs(COR),decreasing = T),]
  
   ##########SET UP###########
   #Load met table
