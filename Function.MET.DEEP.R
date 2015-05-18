@@ -334,7 +334,7 @@ Function.MET.COR.DEEP<-function(met.obj, cor.obj){
   
   #Get gene walk order and filter for those genes that are actually in feature table
   gene.order<-unique(met.cor$Hugo_Symbol)
-  gene.order<-gene.order[gene.order %in% colnames(MET.TABLE),]
+  gene.order<-gene.order[gene.order %in% colnames(MET.TABLE)]
   
   #Go through all correlation genes every n genes
   STD.SEQ<-c(seq(1,50,5), seq(51,100,10), seq(101,1000,100), seq(1001,20000,1000))
