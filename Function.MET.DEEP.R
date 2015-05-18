@@ -272,7 +272,12 @@ Function.MET.RANDOM.DEEP<-function(met.obj) {
   DEEP.2HG<-data.table()
   
   #Go through all random samples every 5 samples
-  FIVE.FEAT<-seq(1,length(FEAT.COLUMNS),5)
+  STD.SEQ<-c(seq(1,50,5), seq(51,100,10), seq(101,400,50), seq(401,1000,100), seq(1001,20000,1000))
+  FIVE.FEAT<-intersect(STD.SEQ, 1:length(FEAT.COLUMNS))
+  if (!(length(FEAT.COLUMNS) %in% FIVE.FEAT)){
+    FIVE.FEAT<-c(FIVE.FEAT, length(FEAT.COLUMNS))
+  }
+  
   for (f in FIVE.FEAT[2:length(FIVE.FEAT)]){
     
     hidden.1<-f
