@@ -347,7 +347,7 @@ Function.MET.COR.DEEP<-function(met.obj, cor.obj){
   DEEP.2HG<-data.table()
   
   #Iterate through ordered genes in correlation
-  or (f in FIVE.FEAT[2:length(FIVE.FEAT)]){
+  for (f in FIVE.FEAT[2:length(FIVE.FEAT)]){
     
     hidden.1<-f
     hidden.2<-round(f/2)
