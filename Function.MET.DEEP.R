@@ -244,6 +244,69 @@ Function.Main.Class.2<-function(met.obj, method, hidden, hidden.dr, input.dr){
   return(DEEP.MET)
 }
 
+Function.MET.RANDOM.DEEP<-function(met.obj) {
+  
+  ##########SET UP###########
+  #Load met table
+  MET.TABLE<-readRDS(met.obj)
+  
+  #Open h2o connection
+  localH2O = h2o.init(ip = "localhost", port = 54321, startH2O = TRUE, max_mem_size= '32g', nthreads=-1) 
+  
+  #Introduce met obj as h2o object
+  key.v<-sample(letters,1)
+  MET.TABLE<-MET.TABLE[sample(nrow(MET.TABLE)),] #Too balanace classes!!!!
+  h2o_MET<-as.h2o(localH2O, MET.TABLE, key=key.v) 
+  ###########################
+  
+  ########EXECUTE###########
+  FEAT.COLUMNS<-colnames(MET.TABLE)[5:ncol(MET.TABLE)]
+  TARGET.COLUMN<-"MET"
+  
+  #Randomize feature columns 
+  seed<-sample(1:10000,1)
+  set.seed(seed)
+  ran.feat<-sample(FEAT.COLUMNS)
+  
+  #Set up input frame
+  DEEP.2HG<-data.table()
+  
+  #Go through all random samples every 5 samples
+  FIVE.FEAT<-seq(1,length(FEAT.COLUMNS),5)
+  for (f in FIVE.FEAT[2:length(FIVE.FEAT)]){
+    
+    hidden.1<-f
+    hidden.2<-round(f/2)
+    HIDDEN<-c(hidden.1, hidden.2)
+    id=0.3
+    HIDDEN.DR<-c(0.5,0.5)
+    METHOD="TanhWithDropout"
+    
+    for (n in 1:5){
+      print (c("current:", f, n ))
+      
+      MODEL.2HG<-h2o.deeplearning(x=1:f, y=TARGET.COLUMN, data=h2o_MET[,c(ran.feat, TARGET.COLUMN)], classification = T, nfolds = 5,
+                                  activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500,
+                                  input_dropout_ratio = id , hidden_dropout_ratios =HIDDEN.DR )
+      
+      CUR.PRED<-data.table(TRAIN.ACC=1-MODEL.2HG@model$train_class_error, TEST.ACC=1-MODEL.2HG@model$valid_class_error, ITER=n, METHOD=METHOD, FEATURES=f,
+                           HIDDEN=paste(HIDDEN,collapse="."), INPUT.DR=id, HIDDEN.DR=paste(HIDDEN.DR,collapse="."))  
+      
+      #Assign predictors
+      DEEP.2HG<-rbind(DEEP.2HG, CUR.PRED)
+      
+      #Clean H2o memory
+      h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$Key,key.v))  
+    }
+    
+  }
+  
+  #Clean up and return
+  DEEP.2HG$SEED<-seed
+  return(DEEP.2HG)
+}
+
+
 #Arguments
 args<-commandArgs(trailingOnly=T)
 met.obj<-args[1]
@@ -256,7 +319,8 @@ print("opened files")
 
 print (met.obj)
 #Execute
-main.obj<-Function.Main.Class.2(met.obj, method=method, hidden=hidden, hidden.dr=hidden.dr, input.dr=input.dr)
+#main.obj<-Function.MET.RANDOM.DEEP(met.obj, method=method, hidden=hidden, hidden.dr=hidden.dr, input.dr=input.dr)
+main.obj<-Function.MET.RANDOM.DEEP(met.obj)
 
 #Write out
 saveRDS(main.obj, output.file)
