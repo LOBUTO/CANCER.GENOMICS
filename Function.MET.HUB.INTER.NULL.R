@@ -70,7 +70,7 @@ Function.Main<-function(teru.exp.obj, teru.met.hub.obj){
       })
       
       #Obtain aggregate MAPCD score for random iteration of size x
-      AMAPCD=mean(hub.inter.MAPCD)
+      AMAPCD=median(hub.inter.MAPCD)
       
       #Return
       return(AMAPCD)
