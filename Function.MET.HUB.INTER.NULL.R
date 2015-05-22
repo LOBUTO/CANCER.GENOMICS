@@ -41,6 +41,7 @@ Function.Main<-function(teru.exp.obj, teru.met.hub.obj){
   
   #Loop through random sizes
   main.list<-lapply(gene.counts, function(x) {
+    print (x)
     
     #Obtain 100 random hubs of size x
     random.hubs<-replicate(100, sample(gene.pool, x), simplify = F)
