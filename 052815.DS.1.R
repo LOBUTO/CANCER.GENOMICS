@@ -25,7 +25,7 @@ INPUT.DR<-c(0.1,0.2)
 for (feat in FEATURES){
   HIDDEN<-c(feat, round(feat/2), round(feat/10))
   HIDDEN.DR<-rep(0.5, length(HIDDEN))
-  for (method in METHOD){
+  for (method in METHODS){
     for (id in INPUT.DR){
       for (n in 1:10) {
         #Model with/out dropout
