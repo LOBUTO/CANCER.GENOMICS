@@ -33,11 +33,11 @@ for (feat in FEATURES){
         
         if (method=="TanhWithDropout"){
           MODEL.2HG<-h2o.deeplearning(x=2:feat, y=1, data=h2o_2HG, classification = F, nfolds = 5,
-                                      activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 300,
+                                      activation = method, balance_classes = TRUE, hidden = HIDDEN, epochs = 300,
                                       input_dropout_ratio = id , hidden_dropout_ratios =HIDDEN.DR )  
         } else {
           MODEL.2HG<-h2o.deeplearning(x=2:feat, y=1, data=h2o_2HG, classification = F, nfolds = 5,
-                                      activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 300)
+                                      activation = method, balance_classes = TRUE, hidden = HIDDEN, epochs = 300)
         }
         
         
