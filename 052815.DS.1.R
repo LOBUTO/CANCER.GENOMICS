@@ -36,7 +36,7 @@ for (id in INPUT.DR){
     #     MODEL.2HG@model$train_class_error
     #     MODEL.2HG@model$valid_class_error
     
-    CURE.PRED<-data.table(TR.SQR.ERROR=MODEL.2HG@model$train_sqr_error, VALID.SQR.ERROR=MODEL.2HG@model$valid_sqr_error,
+    CUR.PRED<-data.table(TR.SQR.ERROR=MODEL.2HG@model$train_sqr_error, VALID.SQR.ERROR=MODEL.2HG@model$valid_sqr_error,
                           ITER=n, METHOD=METHOD, INPUT.DR=id, HIDDEN=paste(HIDDEN,collapse="."), HIDDEN.DR=paste(HIDDEN.DR,collapse="."))
     
     #Assign predictors
