@@ -17,34 +17,41 @@ TERU.2HG.EXP<-TERU.2HG.EXP[sample(nrow(TERU.2HG.EXP)),]
 h2o_2HG<-as.h2o(localH2O, TERU.2HG.EXP, key=key.v) 
 
 DEEP.2HG<-data.table()
-METHOD="TanhWithDropout"
-HIDDEN<-c(1600,800,400)
-INPUT.DR<-seq(0.1,0.3,0.1)
-HIDDEN.DR<-rep(0.5, length(HIDDEN))
 
-for (id in INPUT.DR){
-  for (n in 1:10) {
-    #Model with/out dropout
-    print (c("building model", id, n))
-    
-    MODEL.2HG<-h2o.deeplearning(x=2:ncol(TERU.2HG.EXP), y=1, data=h2o_2HG, classification = F, nfolds = 5,
-                                activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 300,
-                                input_dropout_ratio = id , hidden_dropout_ratios =HIDDEN.DR )
-    
-    #     MODEL.2HG@xval
-    #     MODEL.2HG@model
-    #     MODEL.2HG@model$train_class_error
-    #     MODEL.2HG@model$valid_class_error
-    
-    CUR.PRED<-data.table(TR.SQR.ERROR=MODEL.2HG@model$train_sqr_error, VALID.SQR.ERROR=MODEL.2HG@model$valid_sqr_error,
-                          ITER=n, METHOD=METHOD, INPUT.DR=id, HIDDEN=paste(HIDDEN,collapse="."), HIDDEN.DR=paste(HIDDEN.DR,collapse="."))
-    
-    #Assign predictors
-    DEEP.2HG<-rbind(DEEP.2HG, CUR.PRED)
-    
-    #Clean H2o memory
-    h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$Key,key.v))
-  }  
+FEATURES<-c(10,20,30,40,50,100,200,400)
+METHODS=c("Tanh", "TanhWithDropout")
+INPUT.DR<-c(0.1,0.2)
+
+for (feat in FEATURES){
+  HIDDEN<-c(feat, round(feat/2), round(feat/10))
+  HIDDEN.DR<-rep(0.5, length(HIDDEN))
+  for (method in METHOD){
+    for (id in INPUT.DR){
+      for (n in 1:10) {
+        #Model with/out dropout
+        print (c("building model", method, feat, id, n))
+        
+        if (method=="TanhWithDropout"){
+          MODEL.2HG<-h2o.deeplearning(x=2:feat, y=1, data=h2o_2HG, classification = F, nfolds = 5,
+                                      activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 300,
+                                      input_dropout_ratio = id , hidden_dropout_ratios =HIDDEN.DR )  
+        } else {
+          MODEL.2HG<-h2o.deeplearning(x=2:feat, y=1, data=h2o_2HG, classification = F, nfolds = 5,
+                                      activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 300)
+        }
+        
+        
+        CUR.PRED<-data.table(TR.SQR.ERROR=MODEL.2HG@model$train_sqr_error, VALID.SQR.ERROR=MODEL.2HG@model$valid_sqr_error,
+                             ITER=n, METHOD=method, INPUT.DR=id, HIDDEN=paste(HIDDEN,collapse="."), HIDDEN.DR=paste(HIDDEN.DR,collapse="."))
+        
+        #Assign predictors
+        DEEP.2HG<-rbind(DEEP.2HG, CUR.PRED)
+        
+        #Clean H2o memory
+        h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$Key,key.v))
+      }  
+    }
+  }
 }
 
 saveRDS(object = DEEP.2HG , file = output.file)
