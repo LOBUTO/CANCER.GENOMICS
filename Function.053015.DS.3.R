@@ -74,7 +74,7 @@ Function.fit.models<-function(MAIN.2HG, BEST.FEATURES){
     }
     #Return
     return(model.2hg)
-  }
+  })
   
   #Stop parallelization
   stopCluster(cl)
