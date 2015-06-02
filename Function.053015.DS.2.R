@@ -44,12 +44,13 @@ Function.predict.features.lm<-function(target.matrix, feat, target.feat){
         current.feat<-c(current.feat, testing.feat)
         current.AIC<-f.aic
       }
-      print (c(current.feat, current.AIC))
+      print (current.AIC)
       
       #Remove features if we are below 0.5 adjusted r-square and we haven't improved the aic
-      if ((f.adj.sq<0.5) & (f.aic<current.AIC) ){
+      if ((f.adj.sq<0.5) & (f.aic>current.AIC)){
         feat<<-setdiff(feat, testing.feat) #Notice we remove from global feat, and not from local features, so next count will still keep the flow of search for next upcoming feature
       }
+      print (length(feat))
       
       #Update count
       count<-count+1
@@ -64,6 +65,8 @@ Function.predict.features.lm<-function(target.matrix, feat, target.feat){
   return(main.list)
 }
 
+#x<-Function.predict.features.lm(data.frame(MAIN.2HG), setdiff(colnames(data.frame(MAIN.2HG)),c("METABOLITE","ER.STATUS")) ,"METABOLITE")
+
 #Arguments
 args<-commandArgs(trailingOnly=T)
 teru.obj<-args[1]
@@ -74,3 +77,4 @@ TERU.2HG.SELECTED.FEATURES<-Function.predict.features.lm(data.frame(TERU.2HG.EXP
 
 saveRDS(object = TERU.2HG.SELECTED.FEATURES, file = output.file)
 print ("Done writing output")
+
