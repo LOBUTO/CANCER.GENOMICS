@@ -15,7 +15,6 @@ Function.fit.models<-function(MAIN.2HG, BEST.FEATURES){
   print ("Calculating best features")
   BEST.AIC<-parSapply(cl, BEST.FEATURES, function(x) extractAIC(lm(METABOLITE~., data.frame(MAIN.2HG)[,c("METABOLITE", x)]))[2])
   BEST.ADJ.SQR<-parSapply(cl, BEST.FEATURES, function(y) summary(lm(METABOLITE~., data.frame(MAIN.2HG)[,c("METABOLITE", y)]))$adj.r.squared)
-  stopCluster(cl)
   BEST.FEATURES.PLOT<-data.table(AIC=BEST.AIC, ADJ.R.SQR=BEST.ADJ.SQR)
   print ("done calculating best features")
   
@@ -25,7 +24,7 @@ Function.fit.models<-function(MAIN.2HG, BEST.FEATURES){
   main.folds<-createFolds(1:nrow(MAIN.2HG), k=5)
   models.lm.2hg<-data.table()
   
-  models.lm.2hg<-parLapply(cl, 1:length(BEST.FEATURES), function(aic){
+  models.lm.2hg<-parLapply(cl, 1:length(BEST.FEATURES), function(aic) {
     
     AIC=as.vector(BEST.FEATURES.PLOT[aic,]$AIC)
     model.2hg<-data.table()
