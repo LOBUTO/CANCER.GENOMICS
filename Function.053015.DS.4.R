@@ -97,7 +97,7 @@ Function.MH.Exp.Score<-function(recon.table, brca.exp, alpha=0.3){
 args<-commandArgs(trailingOnly=T)
 brca.exp<-readRDS(args[1])
 recon.table<-readRDS(args[2])
-alpha=args[3]
+alpha=as.numeric(args[3])
 output.file<-args[4]
 
 MAIN.OBJ<-Function.Main(brca.exp, recon.table, alpha=alpha)
