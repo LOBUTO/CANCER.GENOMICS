@@ -1,6 +1,7 @@
 library(parallel)
 library(data.table)
 library(reshape2)
+library(Hmisc)
 
 Function.Main<-function(brca.exp, recon.table, alpha=0.3){
   #This will use pre-filtered recon.table that contains either a viable KEGG or HMDB identifier
