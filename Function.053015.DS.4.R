@@ -2,7 +2,7 @@ library(parallel)
 library(data.table)
 library(reshape2)
 
-Function.MH.Exp.Score<-function(recon.table, brca.exp, alpha=0.3){
+Function.Main<-function(recon.table, brca.exp, alpha=0.3){
   #This will use pre-filtered recon.table that contains either a viable KEGG or HMDB identifier
   
   #Get unique identifiers for recon table (Use primarily kegg id, only use hmdb id if kegg id not present)
@@ -99,6 +99,7 @@ brca.exp<-readRDS(args[1])
 recon.table<-readRDS(args[2])
 alpha=as.numeric(args[3])
 output.file<-args[4]
+print ("done loading files")
 
 MAIN.OBJ<-Function.Main(brca.exp, recon.table, alpha=alpha)
 
