@@ -91,7 +91,7 @@ Function.Main<-function(brca.exp, recon.table, alpha=0.3){
   names(main.list)<-as.character(gene.counts)
   
   #Clean up and return
-  return(main.lists)
+  return(main.list)
 }
 
 #Arguments
