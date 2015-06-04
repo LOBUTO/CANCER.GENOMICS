@@ -100,6 +100,7 @@ recon.table<-readRDS(args[2])
 alpha=as.numeric(args[3])
 output.file<-args[4]
 print ("done loading files")
+print (recon.table)
 
 MAIN.OBJ<-Function.Main(brca.exp, recon.table, alpha=alpha)
 
