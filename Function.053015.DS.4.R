@@ -24,10 +24,10 @@ Function.Main<-function(brca.exp, recon.table, alpha=0.3){
   brca.exp$tumor<-brca.exp$tumor[common.genes,]
   brca.exp$normal<-brca.exp$normal[common.genes,]
   
-  #Filter recon.table for mets that have at least 4 genes assigned to them
+  #Filter recon.table for mets that have at least 3 genes assigned to them
   print (length(unique(recon.table$ID)))
   recon.count<-recon.table[,list(N.GENES=length(Hugo_Symbol)), by ="ID"]
-  recon.count<-recon.count[N.GENES>=4, ]
+  recon.count<-recon.count[N.GENES>=3, ]
   recon.table<-recon.table[ID %in% recon.count$ID,]
   print (length(unique(recon.table$ID)))
   
