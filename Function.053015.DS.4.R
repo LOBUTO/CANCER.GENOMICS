@@ -23,13 +23,10 @@ Function.Main<-function(brca.exp, recon.table, HMDB.table, alpha=0.3){
   print ("Processed recon table")
   
   #Add HMDB processed KEGG targeted table
-  print (recon.table)
   hmdb.source<-fread(HMDB.table, header=T, sep="\t", stringsAsFactors = F)
   hmdb.source<-hmdb.source[,c("KEGG_ID", "Hugo_Symbol"),with=F]
   setnames(hmdb.source, c("ID", "Hugo_Symbol"))
-  print (hmdb.source)
   recon.table<-unique(rbind(recon.table, hmdb.source[,c("Hugo_Symbol","ID"),with=F]))
-  print (recon.table)
   
   #Filter recon.table and brca.exp for common genes
   common.genes<-intersect(unique(recon.table$Hugo_Symbol), intersect(rownames(brca.exp$tumor), rownames(brca.exp$normal)))
