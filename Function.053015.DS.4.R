@@ -3,8 +3,12 @@ library(data.table)
 library(reshape2)
 library(Hmisc)
 
-Function.Main<-function(brca.exp, recon.table, alpha=0.3){
+Function.Main<-function(brca.exp, recon.table, HMDB.table, alpha=0.3){
   #This will use pre-filtered recon.table that contains either a viable KEGG or HMDB identifier
+  
+  #Double check and clean up expression datasets
+  brca.exp$normal<-brca.exp$normal[complete.cases(brca.exp$normal),]
+  brca.exp$tumor<-brca.exp$tumor[complete.cases(brca.exp$tumor),]
   
   #Get unique identifiers for recon table (Use primarily kegg id, only use hmdb id if kegg id not present)
   kegg.ids<-recon.table[KEGG_ID!="NONE",]
@@ -18,8 +22,14 @@ Function.Main<-function(brca.exp, recon.table, alpha=0.3){
   recon.table<-unique(rbind(kegg.ids, hmdb.ids))
   print ("Processed recon table")
   
+  #Add HMDB processed KEGG targeted table
+  hmdb.source<-fread(HMDB.table, header=T, sep="\t", stringsAsFactors = F)
+  hmdb.source<-hmdb.source[,c("KEGG_ID", "Hugo_Symbol"),with=F]
+  setnames(hmdb.source, c("ID", "Hugo_Symbol"))
+  recon.table<-unique(rbind(recon.table, hmdb.source[,c("Hugo_Symbol","ID"),with=F]))
+  
   #Filter recon.table and brca.exp for common genes
-  common.genes<-intersect(unique(recon.table$Hugo_Symbol), rownames(brca.exp$tumor))
+  common.genes<-intersect(unique(recon.table$Hugo_Symbol), intersect(rownames(brca.exp$tumor), rownames(brca.exp$normal)))
   recon.table<-recon.table[Hugo_Symbol %in% common.genes,]
   brca.exp$tumor<-brca.exp$tumor[common.genes,]
   brca.exp$normal<-brca.exp$normal[common.genes,]
@@ -98,11 +108,12 @@ Function.Main<-function(brca.exp, recon.table, alpha=0.3){
 args<-commandArgs(trailingOnly=T)
 brca.exp<-readRDS(args[1])
 recon.table<-readRDS(args[2])
-alpha=as.numeric(args[3])
-output.file<-args[4]
+HMDB.table<-args[3]
+alpha=as.numeric(args[4])
+output.file<-args[5]
 print ("done loading files")
 
-MAIN.OBJ<-Function.Main(brca.exp, recon.table, alpha=alpha)
+MAIN.OBJ<-Function.Main(brca.exp, recon.table, HMDB.table, alpha=alpha)
 
 saveRDS(object = MAIN.OBJ, file = output.file)
 print ("Done writing output")
