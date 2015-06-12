@@ -29,6 +29,7 @@ Function.Inter.MH.Score<-function(cleaned.recon, cleaned.cor, beta){
   
   recon.genes<-unique(recon.table$Hugo_Symbol)
   main.list<-lapply(recon.count, function(x) {
+    print (x)
     
     #Sample recon.count n genes 100 times from recon.gene pool
     count.samples<-replicate(100, sample(recon.genes, x), simplify = F)
