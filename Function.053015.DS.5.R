@@ -65,7 +65,7 @@ Function.Inter.MH.Score<-function(cleaned.recon, cleaned.cor, beta){
 args<-commandArgs(trailingOnly=T)
 cleaned.recon<-readRDS(args[1])
 cleaned.cor<-readRDS(args[2])
-beta<-args[3]
+beta<-as.numeric(args[3])
 output.file<-args[4]
 print ("done loading files")
 
