@@ -1,0 +1,36 @@
+Warning message:
+package ‘data.table’ was built under R version 3.1.1 
+[1] "opened files"
+Warning message:
+In fread(maf.file, header = T, sep = "\t", stringsAsFactors = F) :
+  Bumped column 5 to type character on data row 444, field contains 'X'. Coercing previously read values in this column from logical, integer or numeric back to character which may not be lossless; e.g., if '00' and '000' occurred before they will now be just '0', and there may be inconsistencies with treatment of ',,' and ',NA,' too (if they occurred in this column before the bump). If this matters please rerun and set 'colClasses' to 'character' for this column. Please note that column type detection uses the first 5 rows, the middle 5 rows and the last 5 rows, so hopefully this message should be very rare. If reporting to datatable-help, please rerun and include the output from verbose=TRUE.
+[1] "done prepping maf"
+[1] 18185  1203
+[1] "done prepping expression rds"
+     Hugo_Symbol           SAMPLE Start_Position N.SAMPLES.POS
+  1:      PIK3CA TCGA.A1.A0SI.01A      178952085           138
+  2:      PIK3CA TCGA.A2.A04W.01A      178952085           138
+  3:      PIK3CA TCGA.A2.A0CP.01A      178952085           138
+  4:      PIK3CA TCGA.A2.A0CS.01A      178952085           138
+  5:      PIK3CA TCGA.A2.A0D3.01A      178952085           138
+ ---                                                          
+134:      PIK3CA TCGA.LL.A50Y.01A      178952085           138
+135:      PIK3CA TCGA.LL.A5YN.01A      178952085           138
+136:      PIK3CA TCGA.LQ.A4E4.01A      178952085           138
+137:      PIK3CA TCGA.OK.A5Q2.01A      178952085           138
+138:      PIK3CA TCGA.PE.A5DD.01A      178952085           138
+[1] "Creating null sample distribution"
+[1] 1
+[1] "prepping for first parallelization"
+[1] "Done exporting values"
+[1] "calculating null distributions"
+[1] "Done with sample distributions"
+[1] "prepping for second parallelization"
+[1] "Done exporting values"
+[1] "Finding linkage"
+[1] "Done with linkages"
+[1] "Calculating empirical p-values"
+   Hugo_MUT Position.MUT N.PATIENTS EXP.P.VAL
+1:   PIK3CA    178952085        138         0
+[1] "Correcting for multiple hypothesis testing"
+[1] "done"

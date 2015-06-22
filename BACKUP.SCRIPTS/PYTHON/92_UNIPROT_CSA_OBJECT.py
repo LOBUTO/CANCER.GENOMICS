@@ -1,0 +1,12 @@
+#Making UNIPROT_CSA Object from CSA TABLES
+#Object will have the format {UNIPROT:[[RES1, NAM1], [RES2, NAM2]...}
+#08/05/13
+
+from FUNCTIONS import CSA_TO_UNIPROT_CSA_CLASS
+import pickle
+
+UNIPROT=CSA_TO_UNIPROT_CSA_CLASS("TESTING", "localhost", "root", "mysql", "LOGS")
+UNIPROT_CSA=UNIPROT.WITH_MATCH_UNIPROT()
+
+PICKLE_OUT=open("DATABASES/OBJECTS/DICT_UNIPROT_TO_CSA.pi", "w") 
+pickle.dump(UNIPROT_CSA, PICKLE_OUT)
