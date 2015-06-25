@@ -176,7 +176,7 @@ degree.filters<-c(50,60,70,80,90,100,150,250,300)
 MAIN.OBJ<-data.table()
 for (d.f in d.filters){
   for (deg in degree.filters){
-    print (c(d, degree.filters))
+    print (c(d.f, degree.filters))
     TEMP.ROC<-Function.Main.HOO.ROC(kegg.path, recon.directed, path.filter.l=3, path.filter.r=60, d=d.f, degree.filter=deg)
     TEMP.ROC$d<-d.f
     TEMP.ROC$DEGREE.FILTER<-deg
