@@ -138,7 +138,7 @@ Function.Main.HOO.ROC<-function(kegg.path, recon.directed, path.filter.l=3, path
   cl<-makeCluster(nodes)
   setDefaultCluster(cl)
   clusterExport(cl, varlist=c("as.data.table","data.table", "kegg.path", "Function.HOO.PR",
-                              "Function.HOO.ROC", "recon.directed", "kegg.path", "d") ,envir=environment())
+                              "Function.HOO.ROC", "recon.directed", "kegg.path", "d", "Function.met.scoring") ,envir=environment())
   
   #Obtain AUC for all paths that pass initial threshold
   paths<-unique(kegg.path$DESCRIPTION)
