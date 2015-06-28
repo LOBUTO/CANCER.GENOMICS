@@ -4,7 +4,7 @@ library(h2o)
 
 #Arguments
 args<-commandArgs(trailingOnly=T)
-digit.train<-fread(args[1], header=T, sep="\t", stringsAsFactors = F)
+digit.train<-fread(args[1], header=T, sep=",", stringsAsFactors = F)
 output.file<-args[2]
 print ("done loading files")
 
