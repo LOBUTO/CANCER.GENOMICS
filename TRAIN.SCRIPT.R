@@ -5,7 +5,8 @@ library(h2o)
 #Arguments
 args<-commandArgs(trailingOnly=T)
 digit.train<-fread(args[1], header=T, sep=",", stringsAsFactors = F)
-output.file<-args[2]
+results.folder<-args[2]
+output.file<-args[3]
 print ("done loading files")
 
 ######Execute######
@@ -21,12 +22,15 @@ DEEP.2HG<-data.table()
 
 #No dropout model
 print ("modeling without dropout")
-MODEL.2HG<-h2o.deeplearning(x=2:785, y=1, data=train.h2o[1:4200,], classification = T, nfolds = 10,
+MODEL.2HG<-h2o.deeplearning(x=2:785, y=1, data=train.h2o, classification = T, nfolds = 10,
                             activation = "Tanh", balance_classes = TRUE, hidden = c(800,800,800), epochs = 500)
+
+h2o.saveModel(MODEL.2HG, results.folder, "Tanh.800.800.800")
 
 DEEP.2HG<-rbind(DEEP.2HG, data.table(METHOD="Tanh", INPUT.DR=0.5, HIDDEN="800.800.800", HIDDEN.DR=0,
                                      TRAIN.CLASS.ERROR=MODEL.2HG@model$train_class_error,
                                      VALID.CLASS.ERROR=MODEL.2HG@model$valid_class_error))
+h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$Key,key.z))
 
 #Dropout model
 print ("modeling with dropout")
@@ -40,7 +44,7 @@ for (id in INPUT.DR){
   #Model with/out dropout
   print (c("building model", id))
   
-  MODEL.2HG<-h2o.deeplearning(x=2:785, y=1, data=train.h2o[1:4200,], classification = T, nfolds = 10,
+  MODEL.2HG<-h2o.deeplearning(x=2:785, y=1, data=train.h2o, classification = T, nfolds = 10,
                               activation = METHOD, balance_classes = TRUE, hidden = HIDDEN, epochs = 500,
                               input_dropout_ratio = id , hidden_dropout_ratios =HIDDEN.DR)
   
@@ -50,6 +54,9 @@ for (id in INPUT.DR){
   
   #Assign predictors
   DEEP.2HG<-rbind(DEEP.2HG, CUR.PRED)
+  
+  #Save model
+  h2o.saveModel(MODEL.2HG, results.folder, paste(METHOD, paste(HIDDEN.DR,collapse="."), id, sep = "."))
   
   #Clean H2o memory
   h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$Key,key.z))
