@@ -4,13 +4,17 @@ library(reshape2)
 library(ROCR)
 library(pROC)
 
-Function.met.scoring<-function(network.table, met.targets, d=0.85) {
+Function.met.scoring<-function(network.table, met.targets, d=0.85, d.filter=1000) {
+  
+  #Filter network table by degree (filter out currency metabolites)
+  degree.filter<-unique(rbind(data.table(ID.1=network.table$SUBSTRATE, ID.2=network.table$PRODUCT),
+                              data.table(ID.1=network.table$PRODUCT, ID.2=network.table$SUBSTRATE)))
+  degree.filter<-degree.filter[,list(DEGREE=length(unique(ID.2))), by="ID.1"]
+  degree.filter<-degree.filter[DEGREE<d.filter,]
+  
+  network.table<-network.table[SUBSTRATE %in% unique(degree.filter$ID.1),][PRODUCT %in% unique(degree.filter$ID.1),]
   
   #Create transition matrix
-  degree.filter<-network.table[,list(DEGREE=length(unique(PRODUCT))), by="SUBSTRATE"]
-  degree.filter<-degree.filter[DEGREE<1000,]
-  
-  network.table<-network.table[SUBSTRATE %in% unique(degree.filter$SUBSTRATE),]
   t.m<-network.table[,list(DEGREE=length(unique(PRODUCT))), by="SUBSTRATE"]
   t.m<-merge(t.m, network.table[,c("SUBSTRATE", "PRODUCT"), with=F], by = "SUBSTRATE")
   t.m$trans<-1/t.m$DEGREE #may modify depending on weighted jaccard edges
@@ -29,7 +33,7 @@ Function.met.scoring<-function(network.table, met.targets, d=0.85) {
   #Obtain personalized vector for path
   #personalized.vector<-unique(kegg.path[DESCRIPTION==target.path,]$COMPOUND)
   personalized.vector<-met.targets[met.targets %in% rownames(adj.t.m)]
-  personalized.vector<-ifelse(rownames(adj.t.m) %in% personalized.vector, 1/nrow(adj.t.m), 0)
+  personalized.vector<-ifelse(rownames(adj.t.m) %in% personalized.vector, 1/length(personalized.vector), 0)
   
   #####Iterate to minimize mean change per row and converge to stable network####
   initial.rank<-rep(1/nrow(adj.t.m), nrow(adj.t.m))
@@ -44,8 +48,25 @@ Function.met.scoring<-function(network.table, met.targets, d=0.85) {
     A.1<-((adj.t.m*d)%*%A.1 + (1-d)*personalized.vector)
   }
   
+  #####Obtained the non-personalized version####
+  personalized.vector<-rep(1/nrow(adj.t.m), nrow(adj.t.m)) #all equal for all
+  
+  #Obtain first iteration page rank
+  A.2<-(adj.t.m*d)%*%initial.rank + (1-d)*personalized.vector #Implementing personalized vector
+  
+  #Iterate to converge on optimal page rank
+  delta<-Inf
+  while(delta>0.0000000001){
+    delta<-mean(abs(A.2 - ((adj.t.m*d)%*%A.2 + (1-d)*personalized.vector)))
+    A.2<-((adj.t.m*d)%*%A.2 + (1-d)*personalized.vector)
+  }
+  ##############################################
+  A.1<-as.vector(A.1)
+  A.2<-as.vector(A.2)
+  PAGE.RANK<-A.1-A.2
+  
   #Clean up and return
-  main.table<-data.table(SUBSTRATE=rownames(adj.t.m), PAGE.RANK=as.vector(A.1))
+  main.table<-data.table(SUBSTRATE=rownames(adj.t.m), PAGE.RANK, A.1, A.2)
   main.table$PAGE.RANK<-main.table$PAGE.RANK / sum(main.table$PAGE.RANK) #Normalizing page rank to 1
   main.table<-merge(main.table, degree.info, by="SUBSTRATE")
   main.table$TARGET.PATH<-main.table$SUBSTRATE %in% met.targets
@@ -140,8 +161,9 @@ Function.Main.HOO.ROC<-function(kegg.path, recon.directed, path.filter.l=3, path
   clusterExport(cl, varlist=c("as.data.table","data.table", "kegg.path", "Function.HOO.PR",
                               "Function.HOO.ROC", "recon.directed", "kegg.path", "d", "Function.met.scoring") ,envir=environment())
   
-  #Obtain AUC for all paths that pass initial threshold
-  paths<-unique(kegg.path$DESCRIPTION)
+  #Obtain AUC for all cancer paths that pass initial threshold
+  #paths<-unique(kegg.path$DESCRIPTION)
+  paths<-unique(kegg.path[grepl("cancer", DESCRIPTION, ignore.case = T),]$DESCRIPTION)
   print (length(paths))
   main.auc<-parSapply(cl, paths, function(x) {
     print (x)
@@ -170,8 +192,8 @@ output.file<-args[3]
 print ("done loading files")
 
 #Execute
-d.filters=seq(0.60,1,0.05)
-degree.filters<-c(50,60,70,80,90,100,150,250,300)
+d.filters=seq(0.05,0.95,0.05)
+degree.filters<-c(60,70,80,90,100,150,250,300)
 
 MAIN.OBJ<-data.table()
 for (d.f in d.filters){
