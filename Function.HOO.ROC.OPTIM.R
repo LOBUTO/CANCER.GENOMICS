@@ -150,7 +150,7 @@ Function.Main.HOO.ROC<-function(kegg.path, recon.directed, path.filter.l=3, path
   #Consider paths that have enough metabolites found in network
   kegg.path<-kegg.path[COMPOUND %in% unique(recon.directed$SUBSTRATE),]
   kegg.path[,N.MET:=length(unique(COMPOUND)),DESCRIPTION]
-  kegg.path<-kegg.path[N.MET<path.filter.r & N.MET>path.filter.l,]
+  kegg.path<-kegg.path[N.MET<=path.filter.r & N.MET>=path.filter.l,]
   kegg.path$N.MET<-NULL
   kegg.path$DESCRIPTION<-sapply(kegg.path$DESCRIPTION, function(x) unlist(strsplit(x, " - "))[1])
   
@@ -165,6 +165,7 @@ Function.Main.HOO.ROC<-function(kegg.path, recon.directed, path.filter.l=3, path
   #paths<-unique(kegg.path$DESCRIPTION)
   paths<-unique(kegg.path[grepl("cancer", DESCRIPTION, ignore.case = T),]$DESCRIPTION)
   print (length(paths))
+  print (paths)
   main.auc<-parSapply(cl, paths, function(x) {
     print (x)
     hoo.path<-Function.HOO.PR(x, recon.directed, kegg.path, d)
