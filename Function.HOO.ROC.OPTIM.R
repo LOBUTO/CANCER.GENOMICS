@@ -192,14 +192,14 @@ output.file<-args[3]
 print ("done loading files")
 
 #Execute
-d.filters=seq(0.05,0.95,0.05)
+d.filters=seq(0.1,0.9,0.1)
 degree.filters<-c(60,70,80,90,100,150,250,300)
 
 MAIN.OBJ<-data.table()
 for (d.f in d.filters){
   for (deg in degree.filters){
     print (c(d.f, deg))
-    TEMP.ROC<-Function.Main.HOO.ROC(kegg.path, recon.directed, path.filter.l=3, path.filter.r=60, d=d.f, degree.filter=deg)
+    TEMP.ROC<-Function.Main.HOO.ROC(kegg.path, recon.directed, path.filter.l=3, path.filter.r=150, d=d.f, degree.filter=deg)
     TEMP.ROC$d<-d.f
     TEMP.ROC$DEGREE.FILTER<-deg
     MAIN.OBJ<-rbind(MAIN.OBJ, TEMP.ROC)
