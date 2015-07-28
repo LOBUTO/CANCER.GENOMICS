@@ -8,6 +8,8 @@ Function.mut.bfs<-function(kegg.path.enzyme, kegg.path, kegg.edges, path.common,
   #NOTE: Keep in mind that there should only be one mutation class (SILENT, LOF, GOF) per gene
   
   require(igraph)
+  require(data.table)
+  require(reshape2)
   
   #Obtain mets and genes present in paths
   path.genes<-c()
@@ -202,7 +204,7 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   cl<-makeCluster(nodes)
   setDefaultCluster(cl)
   clusterExport(cl, varlist=c("as.data.table","data.table","tcga.mut", "kegg.path.enzyme","kegg.path", "kegg.edges","path.cancer.breast",
-                              "paths", "layers",  "Function.mut.bfs", "Function.boolnet.2", "tcga.samples", "setkey") ,envir=environment())
+                              "paths", "layers",  "Function.mut.bfs", "Function.boolnet.2", "tcga.samples", "setkey", "setnames") ,envir=environment())
   print ("done exporting variables for parallelization")
   
   #Apply CANCER bfs and boolnet for each individual (parallelize if necessary)
