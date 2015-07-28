@@ -200,15 +200,15 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   tcga.samples<-unique(tcga.mut$SAMPLE)
   
   #Prep parallelization
-  nodes<-detectCores()
-  cl<-makeCluster(nodes)
-  setDefaultCluster(cl)
-  clusterExport(cl, varlist=c("as.data.table","data.table","tcga.mut", "kegg.path.enzyme","kegg.path", "kegg.edges","path.cancer.breast",
-                              "paths", "layers",  "Function.mut.bfs", "Function.boolnet.2", "tcga.samples", "setkey", "setnames") ,envir=environment())
-  print ("done exporting variables for parallelization")
+#   nodes<-detectCores()
+#   cl<-makeCluster(nodes)
+#   setDefaultCluster(cl)
+#   clusterExport(cl, varlist=c("as.data.table","data.table","tcga.mut", "kegg.path.enzyme","kegg.path", "kegg.edges","path.cancer.breast",
+#                               "paths", "layers",  "Function.mut.bfs", "Function.boolnet.2", "tcga.samples", "setkey", "setnames") ,envir=environment())
+#   print ("done exporting variables for parallelization")
   
   #Apply CANCER bfs and boolnet for each individual (parallelize if necessary)
-  master.list<-parLapply(cl, tcga.samples, function(x) { 
+  master.list<-lapply(tcga.samples, function(x) { 
     print (x)
     
     #Apply CANCER-BFS (path.cancer.breast)
@@ -224,8 +224,8 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   names(master.list)<-tcga.samples
   
   #Stop parallelization
-  stopCluster(cl)
-  print ("Done parallelization")
+#   stopCluster(cl)
+#   print ("Done parallelization")
   
   #Return
   return(master.list)
