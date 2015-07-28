@@ -245,7 +245,7 @@ path.cancer.breast<-readRDS(args[6])
 output.file<-args[7]
 print ("done loading files")
 
-MAIN.OBJ<-Function.master.boolnet.cancer(tang.matrix, tcga.mut,  c("Glycolysis", "TCA"), 2)
+MAIN.OBJ<-Function.master.boolnet.cancer(tang.matrix[,1:20], tcga.mut,  c("Glycolysis", "TCA"), 2)
 
 #Save to output
 saveRDS(object = MAIN.OBJ, file = output.file)
