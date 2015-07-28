@@ -221,7 +221,7 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   })
   names(master.list)<-tcga.samples
   
-  Stop parallelization
+  #Stop parallelization
   stopCluster(cl)
   print ("Done parallelization")
   
