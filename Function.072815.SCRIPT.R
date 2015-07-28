@@ -130,6 +130,9 @@ Function.boolnet.2<-function(bfs.list, net.edges, net.graph){
   
   #Mix bfs lists into single ordered gene list
   mut.genes<-names(bfs.list)
+  print (mut.genes)
+  print (sapply(bfs.list, function(x) length(x)))
+  
   maximum.layers<-max(sapply(bfs.list, function(x) length(x)))
   ordered.bfs.genes<-c()
   for (m in 1:maximum.layers){
@@ -155,35 +158,35 @@ Function.boolnet.2<-function(bfs.list, net.edges, net.graph){
   all.nodes<-union(net.edges$FROM, net.edges$TO)
   bool.matrix<-matrix(0, ncol=1, nrow=length(all.nodes), dimnames = list(all.nodes, "0" ))
   bool.matrix[,"0"]<-0.1
-  
-  #Iterate through layers for n.iteratinons until stable
-  delta<-Inf
-  iter<-1
-  
-  print ("optimizing...")
-  while (delta>0.01){
-    
-    #Add entry in boolean matrix as previous iteration, non-updated genes will stay the same
-    cnames<-c(colnames(bool.matrix), as.character(iter))
-    bool.matrix<-cbind(bool.matrix, bool.matrix[,as.character(iter -1)])
-    colnames(bool.matrix)<-cnames
-    
-    #Update entry 
-    for (g in ordered.bfs.genes){
-      parent.act<-act.table[TO==g,]$FROM
-      parent.rep<-rep.table[TO==g,]$FROM
-      act.score<- 1- prod(1 - (as.numeric(bool.matrix[parent.act ,as.character(iter-1)]) * as.numeric(act.trans[g, parent.act])))
-      rep.score<-    prod(1 - (as.numeric(bool.matrix[parent.rep ,as.character(iter-1)]) * as.numeric(rep.trans[g, parent.rep])))
-      bool.matrix[g, as.character(iter)]<-act.score * rep.score
-    }
-    
-    #Update delta and iteration count (only for those that are actually changing)
-    delta<-mean(abs(as.numeric(bool.matrix[ordered.bfs.genes, as.character(iter)]) - 
-                      as.numeric(bool.matrix[ordered.bfs.genes, as.character(iter-1)])))
-    print (c(iter, delta, colMeans(bool.matrix)))
-    iter<-iter+1
-  }
-  
+#   
+#   #Iterate through layers for n.iteratinons until stable
+#   delta<-Inf
+#   iter<-1
+#   
+#   print ("optimizing...")
+#   while (delta>0.01){
+#     
+#     #Add entry in boolean matrix as previous iteration, non-updated genes will stay the same
+#     cnames<-c(colnames(bool.matrix), as.character(iter))
+#     bool.matrix<-cbind(bool.matrix, bool.matrix[,as.character(iter -1)])
+#     colnames(bool.matrix)<-cnames
+#     
+#     #Update entry 
+#     for (g in ordered.bfs.genes){
+#       parent.act<-act.table[TO==g,]$FROM
+#       parent.rep<-rep.table[TO==g,]$FROM
+#       act.score<- 1- prod(1 - (as.numeric(bool.matrix[parent.act ,as.character(iter-1)]) * as.numeric(act.trans[g, parent.act])))
+#       rep.score<-    prod(1 - (as.numeric(bool.matrix[parent.rep ,as.character(iter-1)]) * as.numeric(rep.trans[g, parent.rep])))
+#       bool.matrix[g, as.character(iter)]<-act.score * rep.score
+#     }
+#     
+#     #Update delta and iteration count (only for those that are actually changing)
+#     delta<-mean(abs(as.numeric(bool.matrix[ordered.bfs.genes, as.character(iter)]) - 
+#                       as.numeric(bool.matrix[ordered.bfs.genes, as.character(iter-1)])))
+#     print (c(iter, delta, colMeans(bool.matrix)))
+#     iter<-iter+1
+#   }
+#   
   #Return 
   return(list(BOOL.MATRIX=bool.matrix, GRAPH=net.graph))
 }
@@ -200,15 +203,15 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   tcga.samples<-unique(tcga.mut$SAMPLE)
   
   #Prep parallelization
-  nodes<-detectCores()
-  cl<-makeCluster(nodes)
-  setDefaultCluster(cl)
-  clusterExport(cl, varlist=c("as.data.table","data.table","tcga.mut", "kegg.path.enzyme","kegg.path", "kegg.edges","path.cancer.breast",
-                              "paths", "layers",  "Function.mut.bfs", "Function.boolnet.2", "tcga.samples", "setkey", "setnames") ,envir=environment())
-  print ("done exporting variables for parallelization")
+#   nodes<-detectCores()
+#   cl<-makeCluster(nodes)
+#   setDefaultCluster(cl)
+#   clusterExport(cl, varlist=c("as.data.table","data.table","tcga.mut", "kegg.path.enzyme","kegg.path", "kegg.edges","path.cancer.breast",
+#                               "paths", "layers",  "Function.mut.bfs", "Function.boolnet.2", "tcga.samples", "setkey", "setnames") ,envir=environment())
+#   print ("done exporting variables for parallelization")
   
   #Apply CANCER bfs and boolnet for each individual (parallelize if necessary)
-  master.list<-parLapply(cl, tcga.samples, function(x) { 
+  master.list<-lapply(tcga.samples, function(x) { 
     print (x)
     
     #Apply CANCER-BFS (path.cancer.breast)
@@ -224,8 +227,8 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   names(master.list)<-tcga.samples
   
   #Stop parallelization
-  stopCluster(cl)
-  print ("Done parallelization")
+#   stopCluster(cl)
+#   print ("Done parallelization")
   
   #Return
   return(master.list)
@@ -245,7 +248,7 @@ path.cancer.breast<-readRDS(args[6])
 output.file<-args[7]
 print ("done loading files")
 
-MAIN.OBJ<-Function.master.boolnet.cancer(tang.matrix[,1:20], tcga.mut,  c("Glycolysis", "TCA"), 2)
+MAIN.OBJ<-Function.master.boolnet.cancer(tang.matrix, tcga.mut,  c("Glycolysis", "TCA"), 2)
 
 #Save to output
 saveRDS(object = MAIN.OBJ, file = output.file)
