@@ -202,7 +202,7 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   cl<-makeCluster(nodes)
   setDefaultCluster(cl)
   clusterExport(cl, varlist=c("as.data.table","data.table","tcga.mut", "kegg.path.enzyme","kegg.path", "kegg.edges","path.cancer.breast",
-                              "paths", "layers", "mut.table", "Function.mut.bfs", "Function.boolnet.2") ,envir=environment())
+                              "paths", "layers", "mut.table", "Function.mut.bfs", "Function.boolnet.2", "tcga.samples") ,envir=environment())
   print ("done exporting variables for parallelization")
   
   #Apply CANCER bfs and boolnet for each individual (parallelize if necessary)
