@@ -126,6 +126,8 @@ Function.boolnet.2<-function(bfs.list, net.edges, net.graph){
   #   that is to say, that the mutated node is the first parent layer
   #NOTE: net.edges should have been filtered out from sink nodes (EXCEPT MUTATED NODE)
   
+  require(reshape2)
+  
   #Mix bfs lists into single ordered gene list
   mut.genes<-names(bfs.list)
   maximum.layers<-max(sapply(bfs.list, function(x) length(x)))
