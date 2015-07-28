@@ -199,7 +199,7 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   tcga.mut<-tcga.mut[SAMPLE %in% colnames(tang.matrix),]
   
   #Filter for GOF and LOF mutations only
-  tcga.mut<-tcga.mut[MUTATION=="SILENT",]
+  tcga.mut<-tcga.mut[MUTATION!="SILENT",]
   tcga.samples<-unique(tcga.mut$SAMPLE)
   
   #Prep parallelization
@@ -248,7 +248,7 @@ path.cancer.breast<-readRDS(args[6])
 output.file<-args[7]
 print ("done loading files")
 
-MAIN.OBJ<-Function.master.boolnet.cancer(tang.matrix, tcga.mut,  c("Glycolysis", "TCA"), 3)
+MAIN.OBJ<-Function.master.boolnet.cancer(tang.matrix, tcga.mut,  c("Glycolysis", "TCA"), 2)
 
 #Save to output
 saveRDS(object = MAIN.OBJ, file = output.file)
