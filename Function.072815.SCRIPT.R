@@ -8,8 +8,6 @@ Function.mut.bfs<-function(kegg.path.enzyme, kegg.path, kegg.edges, path.common,
   #NOTE: Keep in mind that there should only be one mutation class (SILENT, LOF, GOF) per gene
   
   require(igraph)
-  require(data.table)
-  require(reshape2)
   
   #Obtain mets and genes present in paths
   path.genes<-c()
@@ -82,9 +80,11 @@ Function.mut.bfs<-function(kegg.path.enzyme, kegg.path, kegg.edges, path.common,
   #   bip.edges$N.ACT<-NULL
   #   bip.edges$N.REP<-NULL
   
-  #Apply mutation status - Trimming of regulatory edges if CANCER
+  #Apply mutation status - Trimming of regulatory edges in cancer if we cannot diffuse through them
   mut.genes<-unique(mut.table$Hugo_Symbol)
-  mut.genes<-mut.genes[mut.genes %in% union(bip.edges$FROM, bip.edges$TO)]
+  print (mut.genes)
+  mut.genes<-mut.genes[mut.genes %in% unique(bip.edges$FROM)]
+  print (mut.genes)
   
   if (cancer==T){
     
@@ -94,12 +94,10 @@ Function.mut.bfs<-function(kegg.path.enzyme, kegg.path, kegg.edges, path.common,
       if (mut.stat=="GOF"){
         #Remove negative regulation onto gene - Add self zero for next function
         bip.edges<-bip.edges[!(TO==mut & WEIGHT<0),]
-        bip.edges<-rbind(bip.edges, data.table(FROM=mut, TO=mut, WEIGHT=0))
         
       } else if (mut.stat=="LOF"){
         #Remove positive regulation onto gene - Add self zero for next function
         bip.edges<-bip.edges[!(TO==mut & WEIGHT>0),]
-        bip.edges<-rbind(bip.edges, data.table(FROM=mut, TO=mut, WEIGHT=0))
       }
     }
   }
@@ -200,15 +198,15 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   tcga.samples<-unique(tcga.mut$SAMPLE)
   
   #Prep parallelization
-#   nodes<-detectCores()
-#   cl<-makeCluster(nodes)
-#   setDefaultCluster(cl)
-#   clusterExport(cl, varlist=c("as.data.table","data.table","tcga.mut", "kegg.path.enzyme","kegg.path", "kegg.edges","path.cancer.breast",
-#                               "paths", "layers",  "Function.mut.bfs", "Function.boolnet.2", "tcga.samples", "setkey", "setnames") ,envir=environment())
-#   print ("done exporting variables for parallelization")
+  nodes<-detectCores()
+  cl<-makeCluster(nodes)
+  setDefaultCluster(cl)
+  clusterExport(cl, varlist=c("as.data.table","data.table","tcga.mut", "kegg.path.enzyme","kegg.path", "kegg.edges","path.cancer.breast",
+                              "paths", "layers",  "Function.mut.bfs", "Function.boolnet.2", "tcga.samples", "setkey", "setnames") ,envir=environment())
+  print ("done exporting variables for parallelization")
   
   #Apply CANCER bfs and boolnet for each individual (parallelize if necessary)
-  master.list<-lapply(tcga.samples, function(x) { 
+  master.list<-parLapply(cl, tcga.samples, function(x) { 
     print (x)
     
     #Apply CANCER-BFS (path.cancer.breast)
@@ -223,9 +221,9 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   })
   names(master.list)<-tcga.samples
   
-  #Stop parallelization
-#   stopCluster(cl)
-#   print ("Done parallelization")
+  Stop parallelization
+  stopCluster(cl)
+  print ("Done parallelization")
   
   #Return
   return(master.list)
