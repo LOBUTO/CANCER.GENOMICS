@@ -82,9 +82,7 @@ Function.mut.bfs<-function(kegg.path.enzyme, kegg.path, kegg.edges, path.common,
   
   #Apply mutation status - Trimming of regulatory edges in cancer if we cannot diffuse through them
   mut.genes<-unique(mut.table$Hugo_Symbol)
-  print (mut.genes)
   mut.genes<-mut.genes[mut.genes %in% unique(bip.edges$FROM)]
-  print (mut.genes)
   
   if (cancer==T){
     
@@ -126,69 +124,72 @@ Function.boolnet.2<-function(bfs.list, net.edges, net.graph){
   #   that is to say, that the mutated node is the first parent layer
   #NOTE: net.edges should have been filtered out from sink nodes (EXCEPT MUTATED NODE)
   
-  require(reshape2)
-  
   #Mix bfs lists into single ordered gene list
-  mut.genes<-names(bfs.list)
-  print (mut.genes)
-  print (sapply(bfs.list, function(x) length(x)))
+  #NOTE: MAKE SURE we actually have a bfs.list to go through
   
-  maximum.layers<-max(sapply(bfs.list, function(x) length(x)))
-  ordered.bfs.genes<-c()
-  for (m in 1:maximum.layers){
-    for (g in mut.genes){
-      if(length(bfs.list[[g]])>=m){
-        ordered.bfs.genes<-c(ordered.bfs.genes, bfs.list[[g]][[m]])
+  if (length(bfs.list) > 0){
+    
+    mut.genes<-names(bfs.list)
+    maximum.layers<-max(sapply(bfs.list, function(x) length(x)))
+    ordered.bfs.genes<-c()
+    for (m in 1:maximum.layers){
+      for (g in mut.genes){
+        if(length(bfs.list[[g]])>=m){
+          ordered.bfs.genes<-c(ordered.bfs.genes, bfs.list[[g]][[m]])
+        }
       }
     }
+    ordered.bfs.genes<-unique(ordered.bfs.genes)
+    
+    #Complete edges tables with "0" weights to be able to construct transition matrix
+    net.edges<-rbind(net.edges, data.table(FROM=ordered.bfs.genes, TO=ordered.bfs.genes, WEIGHT=0))
+    net.edges<-net.edges[,list(WEIGHT=sum(WEIGHT)), by=c("FROM", "TO")]
+    
+    #Construct activator and repressor transition matrices
+    act.table<-net.edges[WEIGHT>=0,]
+    rep.table<-net.edges[WEIGHT<=0,]
+    act.trans<-acast(act.table, TO~FROM, fill = 0, value.var = "WEIGHT")
+    rep.trans<-abs(acast(rep.table, TO~FROM, fill = 0, value.var = "WEIGHT"))
+    
+    #Initialize boolnet.matrix (with 0.1)
+    all.nodes<-union(net.edges$FROM, net.edges$TO)
+    bool.matrix<-matrix(0, ncol=1, nrow=length(all.nodes), dimnames = list(all.nodes, "0" ))
+    bool.matrix[,"0"]<-0.1
+    
+    #Iterate through layers for n.iteratinons until stable
+    delta<-Inf
+    iter<-1
+    
+    print ("optimizing...")
+    while (delta>0.01){
+      
+      #Add entry in boolean matrix as previous iteration, non-updated genes will stay the same
+      cnames<-c(colnames(bool.matrix), as.character(iter))
+      bool.matrix<-cbind(bool.matrix, bool.matrix[,as.character(iter -1)])
+      colnames(bool.matrix)<-cnames
+      
+      #Update entry 
+      for (g in ordered.bfs.genes){
+        parent.act<-act.table[TO==g,]$FROM
+        parent.rep<-rep.table[TO==g,]$FROM
+        act.score<- 1- prod(1 - (as.numeric(bool.matrix[parent.act ,as.character(iter-1)]) * as.numeric(act.trans[g, parent.act])))
+        rep.score<-    prod(1 - (as.numeric(bool.matrix[parent.rep ,as.character(iter-1)]) * as.numeric(rep.trans[g, parent.rep])))
+        bool.matrix[g, as.character(iter)]<-act.score * rep.score
+      }
+      
+      #Update delta and iteration count (only for those that are actually changing)
+      delta<-mean(abs(as.numeric(bool.matrix[ordered.bfs.genes, as.character(iter)]) - 
+                        as.numeric(bool.matrix[ordered.bfs.genes, as.character(iter-1)])))
+      print (c(iter, delta, colMeans(bool.matrix)))
+      iter<-iter+1
+    }
+    
+    #Return 
+    return(list(BOOL.MATRIX=bool.matrix, GRAPH=net.graph))
+    
+  } else {
+    return(list(BOOL.MATRIX=c(), GRAPH=net.graph))
   }
-  ordered.bfs.genes<-unique(ordered.bfs.genes)
-  
-  #Complete edges tables with "0" weights to be able to construct transition matrix
-  net.edges<-rbind(net.edges, data.table(FROM=ordered.bfs.genes, TO=ordered.bfs.genes, WEIGHT=0))
-  net.edges<-net.edges[,list(WEIGHT=sum(WEIGHT)), by=c("FROM", "TO")]
-  
-  #Construct activator and repressor transition matrices
-  act.table<-net.edges[WEIGHT>=0,]
-  rep.table<-net.edges[WEIGHT<=0,]
-  act.trans<-acast(act.table, TO~FROM, fill = 0, value.var = "WEIGHT")
-  rep.trans<-abs(acast(rep.table, TO~FROM, fill = 0, value.var = "WEIGHT"))
-  
-  #Initialize boolnet.matrix (with 0.1)
-  all.nodes<-union(net.edges$FROM, net.edges$TO)
-  bool.matrix<-matrix(0, ncol=1, nrow=length(all.nodes), dimnames = list(all.nodes, "0" ))
-  bool.matrix[,"0"]<-0.1
-#   
-#   #Iterate through layers for n.iteratinons until stable
-#   delta<-Inf
-#   iter<-1
-#   
-#   print ("optimizing...")
-#   while (delta>0.01){
-#     
-#     #Add entry in boolean matrix as previous iteration, non-updated genes will stay the same
-#     cnames<-c(colnames(bool.matrix), as.character(iter))
-#     bool.matrix<-cbind(bool.matrix, bool.matrix[,as.character(iter -1)])
-#     colnames(bool.matrix)<-cnames
-#     
-#     #Update entry 
-#     for (g in ordered.bfs.genes){
-#       parent.act<-act.table[TO==g,]$FROM
-#       parent.rep<-rep.table[TO==g,]$FROM
-#       act.score<- 1- prod(1 - (as.numeric(bool.matrix[parent.act ,as.character(iter-1)]) * as.numeric(act.trans[g, parent.act])))
-#       rep.score<-    prod(1 - (as.numeric(bool.matrix[parent.rep ,as.character(iter-1)]) * as.numeric(rep.trans[g, parent.rep])))
-#       bool.matrix[g, as.character(iter)]<-act.score * rep.score
-#     }
-#     
-#     #Update delta and iteration count (only for those that are actually changing)
-#     delta<-mean(abs(as.numeric(bool.matrix[ordered.bfs.genes, as.character(iter)]) - 
-#                       as.numeric(bool.matrix[ordered.bfs.genes, as.character(iter-1)])))
-#     print (c(iter, delta, colMeans(bool.matrix)))
-#     iter<-iter+1
-#   }
-#   
-  #Return 
-  return(list(BOOL.MATRIX=bool.matrix, GRAPH=net.graph))
 }
 
 Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layers=1){
@@ -203,15 +204,15 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   tcga.samples<-unique(tcga.mut$SAMPLE)
   
   #Prep parallelization
-#   nodes<-detectCores()
-#   cl<-makeCluster(nodes)
-#   setDefaultCluster(cl)
-#   clusterExport(cl, varlist=c("as.data.table","data.table","tcga.mut", "kegg.path.enzyme","kegg.path", "kegg.edges","path.cancer.breast",
-#                               "paths", "layers",  "Function.mut.bfs", "Function.boolnet.2", "tcga.samples", "setkey", "setnames") ,envir=environment())
-#   print ("done exporting variables for parallelization")
+  nodes<-detectCores()
+  cl<-makeCluster(nodes)
+  setDefaultCluster(cl)
+  clusterExport(cl, varlist=c("as.data.table","data.table","tcga.mut", "kegg.path.enzyme","kegg.path", "kegg.edges","path.cancer.breast",
+                              "paths", "layers",  "Function.mut.bfs", "Function.boolnet.2", "tcga.samples", "setkey", "setnames") ,envir=environment())
+  print ("done exporting variables for parallelization")
   
   #Apply CANCER bfs and boolnet for each individual (parallelize if necessary)
-  master.list<-lapply(tcga.samples, function(x) { 
+  master.list<-parLapply(cl, tcga.samples, function(x) { 
     print (x)
     
     #Apply CANCER-BFS (path.cancer.breast)
@@ -227,8 +228,8 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   names(master.list)<-tcga.samples
   
   #Stop parallelization
-#   stopCluster(cl)
-#   print ("Done parallelization")
+  stopCluster(cl)
+  print ("Done parallelization")
   
   #Return
   return(master.list)
