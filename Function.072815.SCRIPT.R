@@ -3,9 +3,11 @@ library(reshape2)
 library(parallel)
 library(igraph)
 
-Function.mut.bfs<-function(kegg.path.enzyme, kegg.path, kegg.edges, path.common, path=c(), n.layers=2, mut.table, cancer=T){
+Function.mut.bfs<-function(kegg.path.enzyme, kegg.path, kegg.edges, path.common, path=c(), n.layers=2, mut.table, cancer=T, met.edges="constant"){
   #Breadth-first search
   #NOTE: Keep in mind that there should only be one mutation class (SILENT, LOF, GOF) per gene
+  #NOTE: met.edges can be "constant" or "degree", a degree weight will be based on all outward degrees of substrate/product/enzyme to each other, a
+  #   constant weight will be based on a value of 0.8
   
   require(igraph)
   
@@ -17,11 +19,18 @@ Function.mut.bfs<-function(kegg.path.enzyme, kegg.path, kegg.edges, path.common,
     path.mets<-union(path.mets, unique(kegg.path[grepl(p, DESCRIPTION, ignore.case = T),]$COMPOUND))
   }
   
-  #Filter edge table for mets and genes
-  #NOTE: Add contribution weight of enzyme to substrate by its out degree (analogously of substrate/product)
-  kegg.edges[,H.WEIGHT:=1/length(SUBSTRATE), by="Hugo_Symbol"]
-  kegg.edges[,S.WEIGHT:=1/length(PRODUCT), by="SUBSTRATE"]
-  kegg.edges[,P.WEIGHT:=1/length(Hugo_Symbol), by="PRODUCT"]
+  #Add edge weight depending on a constant value or degree
+  if (met.edges=="degree"){
+    kegg.edges[,H.WEIGHT:=1/length(SUBSTRATE), by="Hugo_Symbol"]
+    kegg.edges[,S.WEIGHT:=1/length(PRODUCT), by="SUBSTRATE"]
+    kegg.edges[,P.WEIGHT:=1/length(Hugo_Symbol), by="PRODUCT"]  
+  } else if(met.edges=="constant"){
+    kegg.edges[,H.WEIGHT:=0.8, by="Hugo_Symbol"]
+    kegg.edges[,S.WEIGHT:=0.8, by="SUBSTRATE"]
+    kegg.edges[,P.WEIGHT:=0.8, by="PRODUCT"]  
+  }
+  
+  #Filter edge table for mets and genes 
   net.edges<-kegg.edges[Hugo_Symbol %in% path.genes,]
   net.edges<-net.edges[SUBSTRATE %in% path.mets | PRODUCT %in% path.mets, ]
   
@@ -82,7 +91,9 @@ Function.mut.bfs<-function(kegg.path.enzyme, kegg.path, kegg.edges, path.common,
   
   #Apply mutation status - Trimming of regulatory edges in cancer if we cannot diffuse through them
   mut.genes<-unique(mut.table$Hugo_Symbol)
+  print (mut.genes)
   mut.genes<-mut.genes[mut.genes %in% unique(bip.edges$FROM)]
+  print (mut.genes)
   
   if (cancer==T){
     
@@ -217,9 +228,9 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   master.list<-parLapply(cl, tcga.samples, function(x) { 
     print (x)
     
-    #Apply CANCER-BFS (path.cancer.breast)
+    #Apply CANCER-BFS (path.cancer.breast) - Last used with constant edges
     mut.table<-tcga.mut[SAMPLE==x,]
-    sample.bfs<-Function.mut.bfs(kegg.path.enzyme, kegg.path, kegg.edges, path.cancer.breast, path = paths , n.layers = layers, mut.table ,cancer = T)
+    sample.bfs<-Function.mut.bfs(kegg.path.enzyme, kegg.path, kegg.edges, path.cancer.breast, path = paths , n.layers = layers, mut.table ,cancer = T, met.edges = "constant")
     
     #Apply boolnet.2
     sample.boolnet<-Function.boolnet.2(sample.bfs$BFS, sample.bfs$EDGES, sample.bfs$GRAPH)
