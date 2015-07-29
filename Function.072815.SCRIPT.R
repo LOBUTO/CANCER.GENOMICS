@@ -1,3 +1,5 @@
+#BOOLNET CANCER MASTER
+
 library(data.table)
 library(reshape2)
 library(parallel)
@@ -248,8 +250,6 @@ Function.master.boolnet.cancer<-function(tang.matrix, tcga.mut, paths=c(), layer
   return(master.list)
 }
 
-
-
 #Arguments
 args<-commandArgs(trailingOnly=T)
 tang.matrix<-readRDS(args[1])
@@ -262,7 +262,7 @@ path.cancer.breast<-readRDS(args[6])
 output.file<-args[7]
 print ("done loading files")
 
-MAIN.OBJ<-Function.master.boolnet.cancer(tang.matrix, tcga.mut,  c("Glycolysis", "TCA"), 2)
+MAIN.OBJ<-Function.master.boolnet.cancer(tang.matrix, tcga.mut,  c("Glycolysis", "TCA"), 3)
 
 #Save to output
 saveRDS(object = MAIN.OBJ, file = output.file)
