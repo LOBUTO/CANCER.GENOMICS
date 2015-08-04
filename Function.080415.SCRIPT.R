@@ -53,7 +53,7 @@ tang.clean<-args[2]
 output.file<-args[3]
 print ("done loading files")
 
-MAIN.OBJ<-Function.tang.cor.matrix(exp.matrix$tumor, tang.clean)
+MAIN.OBJ<-Function.tang.cor.matrix(exp.obj$tumor, tang.clean)
 
 #Save to output
 saveRDS(object = MAIN.OBJ, file = output.file)
