@@ -94,7 +94,7 @@ kegg.edges<-readRDS(args[4])
 output.file<-args[5]
 print ("done loading files")
 
-MAIN.OBJ<-Function.met.score.3(tcga.mut, exp.obj, tcga.clinical, kegg.edges, pval.th = 0.1, fold.th = 1, met.sample.th = 10)
+MAIN.OBJ<-Function.met.score.3(tcga.mut, exp.obj, tcga.clinical, kegg.edges, pval.th = 0.1, fold.th = 1, met.sample.th = 5)
 
 #Save to output
 saveRDS(object = MAIN.OBJ, file = output.file)
