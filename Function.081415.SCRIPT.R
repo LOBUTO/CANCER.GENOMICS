@@ -1,6 +1,6 @@
 #Met.scoring.3
 
-Function.met.score.3<-function(tcga.mut, exp.obj, tcga.clinical, pval.th=0.1, fold.th=1, met.sample.th=5){
+Function.met.score.3<-function(tcga.mut, exp.obj, tcga.clinical, kegg.edges, pval.th=0.1, fold.th=1, met.sample.th=5){
   #Calculate metabolite score based on BOTH mutation and expression data. CONTRIBUTION of mutation to phenotype.
   #   NOTE: Contribution is determined based on number of differentially expression genes for samples that have metabolite mutations vs rest of samples in cancer
   #Initial score will not discriminate between GOF/LOF  mutations
@@ -16,7 +16,7 @@ Function.met.score.3<-function(tcga.mut, exp.obj, tcga.clinical, pval.th=0.1, fo
   nodes<-detectCores()
   cl<-makeCluster(nodes)
   setDefaultCluster(cl)
-  clusterExport(cl, varlist=c("tcga.mut", "exp.obj", "tcga.clinical", "pval.th", "fold.th", "met.sample.th", 
+  clusterExport(cl, varlist=c("tcga.mut", "exp.obj", "tcga.clinical", "pval.th", "fold.th", "met.sample.th", "kegg.edges",
                               "as.data.table", "data.table"),envir=environment())
   
   internal.scores<-function(exp.samples){
@@ -84,15 +84,17 @@ Function.met.score.3<-function(tcga.mut, exp.obj, tcga.clinical, pval.th=0.1, fo
   return(list(EXP.POS=exp.pos, EXP.NEG=exp.neg)) 
 }
 
+
 #Arguments
 args<-commandArgs(trailingOnly=T)
 tcga.mut<-readRDS(args[1])
 exp.obj<-readRDS(args[2])
 tcga.clinical<-readRDS(args[3])
-output.file<-args[4]
+kegg.edges<-readRDS(args[4])
+output.file<-args[5]
 print ("done loading files")
 
-MAIN.OBJ<-Function.met.score.3(tcga.mut, exp.obj, tcga.clinical, pval.th = 0.1, fold.th = 1, met.sample.th = 10)
+MAIN.OBJ<-Function.met.score.3(tcga.mut, exp.obj, tcga.clinical, kegg.edges, pval.th = 0.1, fold.th = 1, met.sample.th = 10)
 
 #Save to output
 saveRDS(object = MAIN.OBJ, file = output.file)
