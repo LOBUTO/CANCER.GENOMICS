@@ -415,3 +415,33 @@ teru.minus.mcd<-Function.met.gene.cor.diff(teru.minus.pval.met, teru.gene.exp, t
 teru.plus.class.table<-Function.prep.kegg.pred.table(kegg.edges, teru.diff.limma.erplus, teru.plus.pval.met, kegg.path, teru.plus.mcd, pval.th = 0.05, lfc.th = 1)
 teru.minus.class.table<-Function.prep.kegg.pred.table(kegg.edges, teru.diff.limma.erminus, teru.minus.pval.met, kegg.path, teru.minus.mcd, pval.th = 0.05, lfc.th = 1)
 hist(teru.minus.class.table$ABS.MEAN.COR.DIFF)
+
+library(h2o)
+library(caret)
+
+localH2O = h2o.init(ip = "localhost", port = 54321, startH2O = TRUE, max_mem_size= '30g', nthreads=-1) 
+teru.minus.class.table
+
+key.z<-sample(letters,1)
+MAIN.MET<-do.call(rbind, list(teru.minus.class.table))
+MAIN.MET<-MAIN.MET[,2:ncol(MAIN.MET), with=F][sample(nrow(MAIN.MET)),]
+h2o_MET<-as.h2o(localH2O, data.frame(MAIN.MET), destination_frame = key.z) 
+FEATURES<-setdiff(colnames(h2o_MET), c("MET", "DIFF"))
+
+h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, key.z))
+
+n_folds<-5
+rand_folds<-createFolds(as.factor(as.matrix(h2o_MET$DIFF)), k=n_folds)
+train_rows<-as.numeric(unlist(rand_folds[1:4]))
+test_rows<-as.numeric(unlist(rand_folds[5]))
+
+AUC<-0.5
+while(AUC<0.75){
+  MODEL.MET<-h2o.deeplearning(x=FEATURES, y="DIFF",  h2o_MET[train_rows[1:length(train_rows)],], use_all_factor_levels = T,
+                              input_dropout_ratio = 0.1, hidden_dropout_ratios =c(0.2,0.2,0.2) ,
+                              activation = "RectifierWithDropout", balance_classes = F, hidden=c(200,200,200), epochs=500)
+  
+  x<-h2o.performance(MODEL.MET, h2o_MET[test_rows[1:length(test_rows)],])
+  AUC<-x@metrics$AUC
+  print (AUC)
+}
