@@ -420,7 +420,72 @@ library(h2o)
 library(caret)
 
 localH2O = h2o.init(ip = "localhost", port = 54321, startH2O = TRUE, max_mem_size= '30g', nthreads=-1) 
-teru.minus.class.table
+saveRDS(teru.minus.class.table, "PIPELINES/METABOLIC.DRIVERS/OBJECTS/082515.TERU.MINUS.CLASS.TABLE.rds")
+saveRDS(teru.plus.class.table, "PIPELINES/METABOLIC.DRIVERS/OBJECTS/082515.TERU.PLUS.CLASS.TABLE.rds")
+
+
+minus.samples<-teru.cancer.matrix$ER.STATUS[ER.STATUS=="NEG",]$SAMPLE
+minus.split<-split(minus.samples, 1:5)
+
+for (i in 1:length(minus.split)){
+  
+  #Prep master sampler table for train.samples
+  test.samples<-minus.split[i]
+  train.samples<-setdiff(minus.samples, test.samples)
+  
+  #Create master table per bootsrapped set
+  bootstrap.train<-replicate(5, sample(train.samples, 5), simplify = F)
+  master.table<-data.table()
+  
+  for (j in bootstrap.train){
+    
+    train.limma<-Function.teru.diff.limma(teru.gene.exp, j, norm = F)
+    train.pval<-Function.met.diff.exp(teru.cancer.matrix$MATRIX,  j , "teru", teru.normal.matrix$MATRIX)
+    train.mcd<-Function.met.gene.cor.diff(train.pval, teru.gene.exp, j, kegg.edges, type = "teru")
+    train.table<-Function.prep.kegg.pred.table(kegg.edges, train.limma, train.pval, kegg.path, train.mcd, pval.th = 0.05, lfc.th = 1)
+    
+    #Store
+    master.table<-rbind(master.table, train.table)
+  }
+  
+  #Create testing table
+  test.limma<-Function.teru.diff.limma(teru.gene.exp, test.samples, norm = F)
+  test.pval<-Function.met.diff.exp(teru.cancer.matrix$MATRIX,  test.samples , "teru", teru.normal.matrix$MATRIX)
+  test.mcd<-Function.met.gene.cor.diff(test.pval, teru.gene.exp, test.samples, kegg.edges, type = "teru")
+  test.table<-Function.prep.kegg.pred.table(kegg.edges, test.limma, test.pval, kegg.path, test.mcd, pval.th = 0.05, lfc.th = 1)
+  
+  #Build model out of 10 iterations
+  master.table<-master.table[sample(1:nrow(master.table)),]
+  key.z<-sample(letters,1)
+  train.h2o<-as.h2o(localH2O, data.frame(master.table), destination_frame = key.z)
+  test.h2o<-as.h2o(localH2O, data.frame(test.table), destination_frame = "test")
+  FEATURES<-setdiff(colnames(h2o_MET), c("MET", "DIFF"))
+  
+  for (n in 1:10){
+    
+    #Model
+    MODEL.MET<-h2o.deeplearning(x=FEATURES, y="DIFF",  train.h2o, use_all_factor_levels = T,
+                                input_dropout_ratio = 0.1, hidden_dropout_ratios =c(0.2,0.2,0.2) ,
+                                activation = "RectifierWithDropout", balance_classes = F, hidden=c(200,200,200), epochs=500)
+    
+    #Obtain accuracy
+    train.auc<-h2o.performance(MODEL.MET, train.h2o)@metrics$AUC
+    test.auc<-h2o.performance(MODEL.MET, test.h2o)@metrics$AUC
+    print (c(train.auc, test.auc))
+    
+    #Save models
+    i.split<-i
+    iteration<-n
+    model.id<-paste0("TERUNUMA.MINUS","_",i.split, "_", iteration, "_", train.auc, "_", test.auc)
+    h2o.saveModel()
+    model.id<-paste0(dataset,"_",i,"_",id,"_",paste0(hdp, collapse ="."), "_", round(test.perf,3))
+    h2o.saveModel(MODEL.MET, 
+                  "file:///Users/jzamalloa/Desktop/FOLDER/ECLIPSE/workspace/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/MET.PREDICTION/H2O/", 
+                  model.id)
+    
+    h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, c(key.z, "test")))
+  }
+}
 
 key.z<-sample(letters,1)
 MAIN.MET<-do.call(rbind, list(teru.minus.class.table))
@@ -430,10 +495,10 @@ FEATURES<-setdiff(colnames(h2o_MET), c("MET", "DIFF"))
 
 h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, key.z))
 
-n_folds<-5
+n_folds<-10
 rand_folds<-createFolds(as.factor(as.matrix(h2o_MET$DIFF)), k=n_folds)
-train_rows<-as.numeric(unlist(rand_folds[1:4]))
-test_rows<-as.numeric(unlist(rand_folds[5]))
+train_rows<-as.numeric(unlist(rand_folds[1:9]))
+test_rows<-as.numeric(unlist(rand_folds[10]))
 
 AUC<-0.5
 while(AUC<0.75){
@@ -445,3 +510,8 @@ while(AUC<0.75){
   AUC<-x@metrics$AUC
   print (AUC)
 }
+
+
+
+######
+
