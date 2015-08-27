@@ -121,8 +121,8 @@ teru.minus.pval.met<-Function.met.diff.exp(teru.cancer.matrix$MATRIX, teru.cance
 
 kegg.path<-fread("DATABASES/KEGG/060415_PATHWAY_TO_COMPOUND", header=T, sep="\t")
 
-tang.plus.mcd<-Function.met.gene.cor.diff(tang.plus.pval.met, brca.exp, TCGA.BRCA.CLINICAL[ER.STATUS=="Positive",]$SAMPLE, kegg.edges, type = "tcga")
-tang.minus.mcd<-Function.met.gene.cor.diff(tang.minus.pval.met, brca.exp, TCGA.BRCA.CLINICAL[ER.STATUS=="Negative",]$SAMPLE, kegg.edges, type = "tcga")
+tang.plus.mcd<-Function.met.gene.cor.diff(tang.plus.pval.met, brca.exp, TCGA.BRCA.CLINICAL[ER.STATUS=="Positive",]$SAMPLE, kegg.edges, type = "tcga") #FIX SAMPLES
+tang.minus.mcd<-Function.met.gene.cor.diff(tang.minus.pval.met, brca.exp, TCGA.BRCA.CLINICAL[ER.STATUS=="Negative",]$SAMPLE, kegg.edges, type = "tcga") #FIX SAMPLES
 teru.plus.mcd<-Function.met.gene.cor.diff(teru.plus.pval.met, teru.gene.exp, teru.cancer.matrix$ER.STATUS[ER.STATUS=="POS",]$SAMPLE, kegg.edges, type = "teru")
 teru.minus.mcd<-Function.met.gene.cor.diff(teru.minus.pval.met, teru.gene.exp, teru.cancer.matrix$ER.STATUS[ER.STATUS=="NEG",]$SAMPLE, kegg.edges, type = "teru")
 
@@ -427,16 +427,18 @@ saveRDS(teru.plus.class.table, "PIPELINES/METABOLIC.DRIVERS/OBJECTS/082515.TERU.
 minus.samples<-teru.cancer.matrix$ER.STATUS[ER.STATUS=="NEG",]$SAMPLE
 minus.split<-split(minus.samples, 1:5)
 
+teru.minus.metrics<-data.table()
+
 for (i in 1:length(minus.split)){
   
   #Prep master sampler table for train.samples
-  test.samples<-minus.split[i]
+  test.samples<-minus.split[[i]]
   train.samples<-setdiff(minus.samples, test.samples)
   
   #Create master table per bootsrapped set
-  bootstrap.train<-replicate(5, sample(train.samples, 5), simplify = F)
+  bootstrap.train<-replicate(10, sample(train.samples, 10), simplify = F)
   master.table<-data.table()
-  
+  master.table
   for (j in bootstrap.train){
     
     train.limma<-Function.teru.diff.limma(teru.gene.exp, j, norm = F)
@@ -459,59 +461,76 @@ for (i in 1:length(minus.split)){
   key.z<-sample(letters,1)
   train.h2o<-as.h2o(localH2O, data.frame(master.table), destination_frame = key.z)
   test.h2o<-as.h2o(localH2O, data.frame(test.table), destination_frame = "test")
-  FEATURES<-setdiff(colnames(h2o_MET), c("MET", "DIFF"))
+  FEATURES<-setdiff(colnames(train.h2o), c("MET", "DIFF"))
   
   for (n in 1:10){
     
     #Model
     MODEL.MET<-h2o.deeplearning(x=FEATURES, y="DIFF",  train.h2o, use_all_factor_levels = T,
-                                input_dropout_ratio = 0.1, hidden_dropout_ratios =c(0.2,0.2,0.2) ,
-                                activation = "RectifierWithDropout", balance_classes = F, hidden=c(200,200,200), epochs=500)
+                                activation = "Tanh", balance_classes = F, hidden=c(200,200,200), epochs=600)
+                                #input_dropout_ratio = 0.1, hidden_dropout_ratios =c(0.2,0.2,0.2) ,
+                                #activation = "RectifierWithDropout", balance_classes = F, hidden=c(200,200,200), epochs=600)
+                                
     
     #Obtain accuracy
     train.auc<-h2o.performance(MODEL.MET, train.h2o)@metrics$AUC
     test.auc<-h2o.performance(MODEL.MET, test.h2o)@metrics$AUC
     print (c(train.auc, test.auc))
+    print (h2o.confusionMatrix(MODEL.MET, test.h2o))
     
     #Save models
     i.split<-i
     iteration<-n
-    model.id<-paste0("TERUNUMA.MINUS","_",i.split, "_", iteration, "_", train.auc, "_", test.auc)
-    h2o.saveModel()
-    model.id<-paste0(dataset,"_",i,"_",id,"_",paste0(hdp, collapse ="."), "_", round(test.perf,3))
+    model.id<-paste0("082515.TERUNUMA.MINUS.X","_",i.split, "_", iteration, "_", round(train.auc,3), "_", round(test.auc,3))
     h2o.saveModel(MODEL.MET, 
-                  "file:///Users/jzamalloa/Desktop/FOLDER/ECLIPSE/workspace/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/MET.PREDICTION/H2O/", 
+                  "//home/lobuto/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/MET.PREDICTION/H2O/NEW.MODELS/RECTIFIER/BOOTSTRAP.10/NO.REG/", 
                   model.id)
     
     h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, c(key.z, "test")))
+    
+    #Store for reference
+    teru.minus.metrics<-rbind(teru.minus.metrics, data.table(SPLIT=i.split, ITER=iteration, TRAIN.AUC=train.auc, TEST.AUC=test.auc,
+                                                             INPUT.DROPOUT=0, REGULARIZED=FALSE, METHOD="RECTIFIER", BOOTSTRAP.SIZE=10))
   }
 }
 
-key.z<-sample(letters,1)
-MAIN.MET<-do.call(rbind, list(teru.minus.class.table))
-MAIN.MET<-MAIN.MET[,2:ncol(MAIN.MET), with=F][sample(nrow(MAIN.MET)),]
-h2o_MET<-as.h2o(localH2O, data.frame(MAIN.MET), destination_frame = key.z) 
-FEATURES<-setdiff(colnames(h2o_MET), c("MET", "DIFF"))
+ggplot(melt(teru.minus.metrics[,3:8, with=F], measure.vars = c("TRAIN.AUC", "TEST.AUC")), aes(factor(INPUT.DROPOUT), value, colour=variable)) +
+  geom_boxplot() + facet_grid(BOOTSTRAP.SIZE~REGULARIZED)
 
-h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, key.z))
+#Test best model
+tang.diff.exp.minus<-Function.process.icgc.exp.raw("PIPELINES/METABOLIC.DRIVERS/OBJECTS/BRCA/082315.ICGC.RAW.COUNTS.MATRIX.rds", 
+                                                   "DATABASES/CANCER_DATA/ICGC/BRCA/specimen.BRCA-US.tsv",
+                                                   intersect(TCGA.BRCA.CLINICAL[ER.STATUS=="Negative",]$SAMPLE, colnames(tang.matrix)))
+tang.minus.pval.met<-Function.met.diff.exp(tang.matrix, intersect(colnames(tang.matrix),TCGA.BRCA.CLINICAL[ER.STATUS=="Negative",]$SAMPLE), "tang")
+tang.minus.mcd<-Function.met.gene.cor.diff(tang.minus.pval.met, , intersect(colnames(tang.matrix),TCGA.BRCA.CLINICAL[ER.STATUS=="Negative",]$SAMPLE), 
+                                           kegg.edges, type = "tcga") 
 
-n_folds<-10
-rand_folds<-createFolds(as.factor(as.matrix(h2o_MET$DIFF)), k=n_folds)
-train_rows<-as.numeric(unlist(rand_folds[1:9]))
-test_rows<-as.numeric(unlist(rand_folds[10]))
-
-AUC<-0.5
-while(AUC<0.75){
-  MODEL.MET<-h2o.deeplearning(x=FEATURES, y="DIFF",  h2o_MET[train_rows[1:length(train_rows)],], use_all_factor_levels = T,
-                              input_dropout_ratio = 0.1, hidden_dropout_ratios =c(0.2,0.2,0.2) ,
-                              activation = "RectifierWithDropout", balance_classes = F, hidden=c(200,200,200), epochs=500)
+Function.process.icgc.matrix.to.obj<-function(icgc.matrix, icgc_info){
   
-  x<-h2o.performance(MODEL.MET, h2o_MET[test_rows[1:length(test_rows)],])
-  AUC<-x@metrics$AUC
-  print (AUC)
+  require(edgeR)
+  
+  #Read and clean info file
+  icgc_info<-fread(icgc_info, header=T)
+  icgc_info<-icgc_info[specimen_type %in% c("Normal - tissue adjacent to primary", "Primary tumour - solid tissue"),]
+  icgc_info$SAMPLE<-sapply(icgc_info$submitted_specimen_id, function(x) paste0(strsplit(x, "-")[[1]], collapse = "." ) )
+  icgc_info<-icgc_info[,c("SAMPLE", "specimen_type"), with=F]
+  
+  #Read and clean expression file
+  cast.matrix<-readRDS(icgc.matrix)
+  common.samples<-intersect(colnames(cast.matrix), unique(icgc_info$SAMPLE))
+  cast.matrix<-cast.matrix[,common.samples]
+  icgc_info<-icgc_info[SAMPLE %in% common.samples,]
+  
+  #Prep cpm, filter out genes that don't have at least 1 cpm in 1/4 of all samples 
+  matrix_cpm<-cpm(cast.matrix) #For sample ordering in DGEList later
+  min_count<-ncol(matrix_cpm)/4
+  keep<-rowSums(matrix_cpm>1)>=min_count
+  matrix_filt<-matrix_cpm[keep, icgc_info$SAMPLE]
+  
+  #Return list
+  cancer.matrix<-matrix_filt[,unique(icgc_info[specimen_type=="Normal - tissue adjacent to primary",]$SAMPLE)]
+  normal.matrix<-matrix_filt[,unique(icgc_info[specimen_type=="Primary tumour - solid tissue",]$SAMPLE)]
+  return(list(tumor=cancer.matrix, normal=normal.matrix))
 }
 
-
-
-######
-
+icgc.obj<-Function.process.icgc.matrix.to.obj("PIPELINES/METABOLIC.DRIVERS/OBJECTS/BRCA/082315.ICGC.RAW.COUNTS.MATRIX.rds", )

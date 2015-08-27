@@ -589,8 +589,8 @@ Function.met.gene.cor.diff<-function(met.pval.table, exp.obj, target.samples, ke
   } else if (type=="teru"){
     normal.samples<-exp.obj$CLASS[CLASS=="Normal",]$SAMPLE
     cancer.samples<-intersect(exp.obj$CLASS[CLASS=="Tumor",]$SAMPLE, target.samples)
-    main.matrix<-normalizeBetweenArrays(exp.obj$MATRIX, method = "quantile")
-    main.matrix<-main.matrix
+    main.matrix<-exp.obj$MATRIX
+    #main.matrix<-normalizeBetweenArrays(exp.obj$MATRIX, method = "quantile")
   }
   
   #Filter kegg table for mets of interest and filter out those mets that have less than 2 associated genes
@@ -849,7 +849,7 @@ Function.process.icgc.exp.raw<-function(icgc.matrix, icgc_info, target.cancer.sa
   
   #Correct for multiple hypothesis testing
   main.table<-data.table(icgc_ET$table, keep.rownames = T)
-  setnames(main.table, c("Hugo_Symbol", "LOG.FC", "LOG.CPM", "PVAL"))
+  setnames(main.table, c("Hugo_Symbol", "LFC", "LOG.CPM", "PVAL"))
   main.table$PVAL.ADJ<-qvalue(main.table$PVAL)$qvalues
   
   #Clean up and return
