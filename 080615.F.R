@@ -599,7 +599,7 @@ Function.met.gene.cor.diff<-function(met.pval.table, exp.obj, target.samples, ke
   kegg<-kegg[Hugo_Symbol %in% common.hugos,]
   kegg[,H.COUNT:=length(unique(Hugo_Symbol)), by="MET"]
   kegg<-kegg[H.COUNT>1,]
-  kegg$H.COUND<-NULL
+  kegg$H.COUNT<-NULL
   
   #Filter expression matrix for genes of interest
   kegg.hugos<-unique(kegg$Hugo_Symbol)
@@ -613,21 +613,38 @@ Function.met.gene.cor.diff<-function(met.pval.table, exp.obj, target.samples, ke
   diag(cancer.cor)<-0
   diag(normal.cor)<-0
   target.mets<-unique(kegg$MET)
-  met.gene.cor<-kegg[,list(MEAN.COR.DIFF=  mean(cancer.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(cancer.cor[Hugo_Symbol, Hugo_Symbol])]) - 
-                             mean(normal.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(normal.cor[Hugo_Symbol, Hugo_Symbol])])),
+#   met.gene.cor<-kegg[,list(MEAN.COR.DIFF=  mean(cancer.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(cancer.cor[Hugo_Symbol, Hugo_Symbol])]) - 
+#                              mean(normal.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(normal.cor[Hugo_Symbol, Hugo_Symbol])])),
+#                      by="MET"]
+  met.gene.cor<-kegg[,list(MEAN.CANCER.COR=mean(cancer.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(cancer.cor[Hugo_Symbol, Hugo_Symbol])]),
+                           MEAN.NORMAL.COR=mean(normal.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(normal.cor[Hugo_Symbol, Hugo_Symbol])]),
+                           RATIO.CANCER.COR.POS=mean(cancer.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(cancer.cor[Hugo_Symbol, Hugo_Symbol])]>0),
+                           RATIO.CANCER.COR.NEG=mean(cancer.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(cancer.cor[Hugo_Symbol, Hugo_Symbol])]<0),
+                           RATIO.NORMAL.COR.POS=mean(normal.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(normal.cor[Hugo_Symbol, Hugo_Symbol])]>0),
+                           RATIO.NORMAL.COR.NEG=mean(normal.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(normal.cor[Hugo_Symbol, Hugo_Symbol])]<0)),
                      by="MET"]
   
   #Add zero difference for mets that had only one gene associated, since we could not calculate correlations for it
-  met.gene.cor<-met.gene.cor[!is.na(MEAN.COR.DIFF),]
-  main.table<-rbind(met.gene.cor, data.table(MET=setdiff(met.pval.table$MET, met.gene.cor$MET), MEAN.COR.DIFF=0))
+#   met.gene.cor<-met.gene.cor[!is.na(MEAN.COR.DIFF),]
+#   main.table<-rbind(met.gene.cor, data.table(MET=setdiff(met.pval.table$MET, met.gene.cor$MET), MEAN.COR.DIFF=0))  
+  met.added<-met.gene.cor[is.na(MEAN.CANCER.COR),]
+  if (nrow(met.added)>0){
+    met.added<-data.table(MET=met.added$MET, MEAN.CANCER.COR=0, MEAN.NORMAL.COR=0, 
+                          RATIO.CANCER.COR.POS=0, RATIO.CANCER.COR.NEG=0, 
+                          RATIO.NORMAL.COR.POS=0, RATIO.NORMAL.COR.NEG=0)
+    met.gene.cor<-met.gene.cor[!is.na(MEAN.CANCER.COR),]
+    met.gene.cor<-rbind(met.gene.cor, met.added)  
+  }
   
+  #main.table<-rbind(met.gene.cor, data.table(MET=setdiff(met.pval.table$MET, met.gene.cor$MET), 
+                                             
   #ABSOLUTE MEAN.COR.DIFF
-  main.table$ABS.MEAN.COR.DIFF<-abs(main.table$MEAN.COR.DIFF)
-  main.table$MEAN.COR.DIFF<-NULL
+#   main.table$ABS.MEAN.COR.DIFF<-abs(main.table$MEAN.COR.DIFF)
+#   main.table$MEAN.COR.DIFF<-NULL
   
   #Clean up and return
-  main.table<-main.table[order(abs(ABS.MEAN.COR.DIFF), decreasing = T),]
-  return(main.table)
+#   main.table<-main.table[order(abs(ABS.MEAN.COR.DIFF), decreasing = T),]
+  return(met.gene.cor)
 }
 
 Function.prep.kegg.pred.table<-function(kegg.edges, gene.diff.exp, met.diff.exp, kegg.path, met.gene.mcd, pval.th=0.05, lfc.th=1){
@@ -661,7 +678,7 @@ Function.prep.kegg.pred.table<-function(kegg.edges, gene.diff.exp, met.diff.exp,
   main.table<-merge(met.diff.exp[,c("MET", "DIFF"), with=F], kegg.degree, by="MET") #Add degree info
   main.table<-merge(main.table, kegg.hugos, by="MET") # Add Hugo LFC
   main.table<-merge(main.table, kegg.between, by="MET") # Add BC
-  main.table<-merge(main.table, met.gene.mcd, by="MET") #Add met gene mean correlation difference 
+  main.table<-merge(main.table, met.gene.mcd, by="MET") #Add met gene mean correlation information
   
   #Add path info - NOTE: For the time being it will be [# of paths, presence in Fats, Glyco, TCA and CANCER]
   kegg.path.count<-kegg.path[,list(PATH.COUNT=length(unique(DESCRIPTION))), by="COMPOUND"]
@@ -694,7 +711,7 @@ Function.prep.kegg.pred.table<-function(kegg.edges, gene.diff.exp, met.diff.exp,
   
   #Normalize needed variables between 0 and 1
   main.table$HUGO.MED.LFC<-normalize.vector(main.table$HUGO.MED.LFC)
-  main.table$ABS.MEAN.COR.DIFF<-normalize.vector(main.table$ABS.MEAN.COR.DIFF)
+  #main.table$ABS.MEAN.COR.DIFF<-normalize.vector(main.table$ABS.MEAN.COR.DIFF)
   main.table$PATH.COUNT<-normalize.vector(main.table$PATH.COUNT)
   
   #Return
@@ -886,4 +903,32 @@ Function.teru.diff.limma<-function(teru.obj, target.samples, norm=T){
   setnames(top.fit, c("Hugo_Symbol", "LFC", "PVAL.ADJ"))
   top.fit<-top.fit[order(abs(LFC), decreasing = T),]
   return(top.fit)
+}
+
+Function.process.icgc.matrix.to.obj<-function(icgc.matrix, icgc_info){
+  
+  require(edgeR)
+  
+  #Read and clean info file
+  icgc_info<-fread(icgc_info, header=T)
+  icgc_info<-icgc_info[specimen_type %in% c("Normal - tissue adjacent to primary", "Primary tumour - solid tissue"),]
+  icgc_info$SAMPLE<-sapply(icgc_info$submitted_specimen_id, function(x) paste0(strsplit(x, "-")[[1]], collapse = "." ) )
+  icgc_info<-icgc_info[,c("SAMPLE", "specimen_type"), with=F]
+  
+  #Read and clean expression file
+  cast.matrix<-readRDS(icgc.matrix)
+  common.samples<-intersect(colnames(cast.matrix), unique(icgc_info$SAMPLE))
+  cast.matrix<-cast.matrix[,common.samples]
+  icgc_info<-icgc_info[SAMPLE %in% common.samples,]
+  
+  #Prep cpm, filter out genes that don't have at least 1 cpm in 1/4 of all samples 
+  matrix_cpm<-cpm(cast.matrix) #For sample ordering in DGEList later
+  min_count<-ncol(matrix_cpm)/4
+  keep<-rowSums(matrix_cpm>1)>=min_count
+  matrix_filt<-matrix_cpm[keep, icgc_info$SAMPLE]
+  
+  #Return list
+  normal.matrix<-matrix_filt[,unique(icgc_info[specimen_type=="Normal - tissue adjacent to primary",]$SAMPLE)]
+  cancer.matrix<-matrix_filt[,unique(icgc_info[specimen_type=="Primary tumour - solid tissue",]$SAMPLE)]
+  return(list(tumor=cancer.matrix, normal=normal.matrix))
 }
