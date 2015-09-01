@@ -22,10 +22,9 @@ Function.met.split<-function(limit.met, seed, pval.met, pval.th = 0.05, lfc.th =
 }
 
 minus.met.splits<-Function.met.split(teru.minus.mcd$MET, 23, teru.minus.pval.met, folds = 10)
+localH2O = h2o.init(ip = "localhost", port = 54321, startH2O = TRUE, max_mem_size= '8g', nthreads=-1) 
 
 metrics.bootstrap.2<-data.table()
-
-
 for (i in 1:length(minus.met.splits)){
   
   #Split mets
@@ -57,48 +56,59 @@ for (i in 1:length(minus.met.splits)){
   test.table<-Function.prep.kegg.pred.table(kegg.edges, test.limma, test.pval, kegg.path, test.mcd[MET %in% testing.mets,], pval.th = 0.05, lfc.th = 1)
   
   #Build model
-  master.table<-master.table[sample(1:nrow(master)),]
+  master.table<-master.table[sample(1:nrow(master.table)),]
   key.z<-sample(letters,1)
   train.h2o<-as.h2o(localH2O, data.frame(master.table), destination_frame = key.z)
   test.h2o<-as.h2o(localH2O, data.frame(test.table), destination_frame = "test")
   FEATURES<-setdiff(colnames(train.h2o), c("MET", "DIFF"))
   
   #Model
-  deep.model<-h2o.deeplearning(x=FEATURES, y="DIFF", training_frame =  train.h2o, use_all_factor_levels = T,
-                               input_dropout_ratio = 0.0, hidden_dropout_ratios =c(0.2,0.2,0.2) ,
-                              activation = "RectifierWithDropout", balance_classes = F, hidden=c(100,100,100), epochs=500)
+#   deep.model<-h2o.deeplearning(x=FEATURES, y="DIFF", training_frame =  train.h2o, use_all_factor_levels = T,
+#                                input_dropout_ratio = 0.0, hidden_dropout_ratios =c(0.2,0.2,0.2) ,
+#                               activation = "RectifierWithDropout", balance_classes = F, hidden=c(100,100,100), epochs=500)
   
-  gbm.model<-h2o.gbm(x=FEATURES, y="DIFF", training_frame =  train.h2o, learn_rate = 0.05, ntrees = 1000)
-  
-  
-  #DEEP model predictions
-  #deep.f1<-deep.model@model$training_metrics@metrics$max_criteria_and_metric_scores$threshold[1] 
-  deep.conf.matrix<-h2o.confusionMatrix(deep.model, train.h2o )
-  deep.train.acc<-deep.conf.matrix$Error[3]
-  deep.train.adj.acc<-var(c(deep.conf.matrix$Error[1],deep.conf.matrix$Error[2])) + deep.train.acc
-  
-  #Predict
-  deep.pred.conf.matrix<-h2o.confusionMatrix(deep.model, test.h2o)
-  deep.test.acc<-deep.pred.conf.matrix$Error[3]
-  deep.test.adj.acc<-var(c(deep.pred.conf.matrix$Error[1], deep.pred.conf.matrix$Error[2])) + deep.test.acc
-  
-  #GBM model predictions 
-  gbm.conf.matrix<-h2o.confusionMatrix(gbm.model, train.h2o )
-  gbm.train.acc<-gbm.conf.matrix$Error[3]
-  gbm.train.adj.acc<-var(c(gbm.conf.matrix$Error[1], gbm.conf.matrix$Error[2])) + gbm.train.acc
-  
-  #Predict
-  gbm.pred.conf.matrix<-h2o.confusionMatrix(gbm.model, test.h2o)
-  gbm.test.acc<-gbm.pred.conf.matrix$Error[3]
-  gbm.test.adj.acc<-var(c(gbm.pred.conf.matrix$Error[1], gbm.pred.conf.matrix$Error[2])) + gbm.test.acc
-  
-  #Store
-  metrics.bootstrap.2<-rbind(metrics.bootstrap.2, data.table(FOLD=i,
-                                                             TRAIN.ACC=deep.train.acc, TRAIN.ADJ.ACC=deep.train.adj.acc,
-                                                             TEST.ACC=deep.test.acc, TEST.ADJ.ACC=deep.test.adj.acc,
-                                                             GBM.TRAIN.ACC=gbm.train.acc, GBM.TRAIN.ADJ.ACC=gbm.train.adj.acc,
-                                                             GBM.TEST.ACC=gbm.test.acc, GBM.TEST.ADJ.ACC=gbm.test.adj.acc))
-  print (metrics.bootstrap.2)
-  h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, c(key.z))) 
-  
+  learn.rate<-c(0.005,0.01,0.05,0.1,0.2)
+  max.depth<-c(2,4,6,8,10,20)
+  n.trees<-c(5,10,15,20,50,100,200)
+  for (l in learn.rate){
+    for (m in max.depth){
+      for (n in n.trees){
+        
+        gbm.model<-h2o.gbm(x=FEATURES, y="DIFF", training_frame =  train.h2o, learn_rate = l, ntrees = n, max_depth = m)
+        
+        #GBM model predictions 
+        gbm.conf.matrix<-h2o.confusionMatrix(gbm.model, train.h2o)
+        gbm.train.acc<-gbm.conf.matrix$Error[3]
+        gbm.train.adj.acc<-var(gbm.conf.matrix$Error[1:2]) + gbm.train.acc
+        
+        #Predict
+        gbm.pred.conf.matrix<-h2o.confusionMatrix(gbm.model, test.h2o)
+        gbm.test.acc<-gbm.pred.conf.matrix$Error[3]
+        gbm.test.adj.acc<-var(gbm.pred.conf.matrix$Error[1:2]) + gbm.test.acc
+        
+        #Store
+        metrics.bootstrap.2<-rbind(metrics.bootstrap.2, data.table(FOLD=i, LEARN.RATE=l, MAX.DEPTH=m, N.TREES=n,
+                                                                   GBM.TRAIN.ACC=gbm.train.acc, GBM.TRAIN.ADJ.ACC=gbm.train.adj.acc,
+                                                                   GBM.TEST.ACC=gbm.test.acc, GBM.TEST.ADJ.ACC=gbm.test.adj.acc))
+        #Save models
+        model.id<-paste0("083015.TERUNUMA.MINUS","_",i,"_",l, "_", m, "_",n,"_", round(gbm.train.acc,3), "_", round(gbm.test.acc,3))
+        h2o.saveModel(gbm.model, 
+                      paste0("//home/lobuto/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/MET.PREDICTION/H2O/CORRECTED.MODELS.2/GBM/BOOTSTRAP/"), 
+                      model.id)
+        
+        print (metrics.bootstrap.2)
+        h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, c(key.z, "test"))) 
+      }
+    }
+  }
 }
+
+metrics.bootstrap.2
+ggplot(melt(metrics.bootstrap.2[,c(2:4,5,7),with=F], measure.vars = c("GBM.TRAIN.ACC", "GBM.TEST.ACC")), aes(factor(LEARN.RATE), 1-value, colour=variable)) +
+  geom_boxplot() + facet_grid(MAX.DEPTH~N.TREES)
+
+metrics.bootstrap.2[order(GBM.TEST.ACC),]
+
+best.minus.model<-h2o.loadModel("//home/lobuto/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/MET.PREDICTION/H2O/CORRECTED.MODELS.2/GBM/BOOTSTRAP/083015.TERUNUMA.MINUS_8_0.1_4_200_0.034_0.062",localH2O)
+best.minus.model@parameters$training_frame<-"holder.4"
+h2o.confusionMatrix(best.minus.model, tang.minus.h2o, thresholds=0.549989)

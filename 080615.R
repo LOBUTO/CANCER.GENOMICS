@@ -414,7 +414,7 @@ teru.minus.mcd<-Function.met.gene.cor.diff(teru.minus.pval.met, teru.gene.exp, t
 
 teru.plus.class.table<-Function.prep.kegg.pred.table(kegg.edges, teru.diff.limma.erplus, teru.plus.pval.met, kegg.path, teru.plus.mcd, pval.th = 0.05, lfc.th = 1)
 teru.minus.class.table<-Function.prep.kegg.pred.table(kegg.edges, teru.diff.limma.erminus, teru.minus.pval.met, kegg.path, teru.minus.mcd, pval.th = 0.05, lfc.th = 1)
-table(teru.plus.class.table$DIFF)
+table(teru.minus.class.table$DIFF)
 
 library(h2o)
 library(caret)
@@ -424,7 +424,6 @@ saveRDS(teru.minus.class.table, "PIPELINES/METABOLIC.DRIVERS/OBJECTS/082815.TERU
 saveRDS(teru.plus.class.table, "PIPELINES/METABOLIC.DRIVERS/OBJECTS/082815.TERU.PLUS.CLASS.TABLE.rds")
 
 #Do Non-bootstrap first
-
 #Prep dataset
 key.z<-sample(letters,1)
 MAIN.MET<-teru.minus.class.table[sample(nrow(teru.minus.class.table)),]
@@ -447,63 +446,83 @@ h2o.performance(train.model, h2o_MET[test_rows[1:length(test_rows)],])
 h2o.performance(train.gbm, h2o_MET[test_rows[1:length(test_rows)],])
 
 metrics.non.bootstrap<-data.table()
-for (i in 1:length(rand_folds)){
+set.seed(43)
+n_folds<-5
+rand_folds<-createFolds(as.factor(as.matrix(h2o_MET$DIFF)), k=n_folds)
+input.dropout<-c("0.0","0.1","0.2")
+
+
+for (ip in input.dropout){
   
-  for (iter in 1:10){
+  for (i in 1:length(rand_folds)){
     
-    test_rows<-as.numeric(unlist(rand_folds[i]))
-    train_rows<-setdiff(as.numeric(unlist(rand_folds)), test_rows)
-    
-    #Obtain deep learning model and parameters
-    deep.model<-h2o.deeplearning(x=FEATURES, y="DIFF", 
-                                 input_dropout_ratio = 0, hidden_dropout_ratios =c(0.5,0.5,0.5) ,
-                                 h2o_MET[train_rows[1:length(train_rows)],], use_all_factor_levels = T,
-                                 activation = "TanhWithDropout", balance_classes = F, hidden=c(100,100,100), epochs=500)   
-    
-    deep.f1<-deep.model@model$training_metrics@metrics$max_criteria_and_metric_scores$threshold[1] 
-    
-    deep.conf.matrix<-h2o.confusionMatrix(deep.model, h2o_MET[train_rows[1:length(train_rows)],] , thresholds=deep.f1)
-    deep.test.acc<-deep.conf.matrix$Error[3]
-    deep.test.adj.acc<-var(c(deep.conf.matrix$Error[1],deep.conf.matrix$Error[2])) + deep.test.acc
-    
-    #Predict
-    deep.pred.conf.matrix<-h2o.confusionMatrix(deep.model, h2o_MET[test_rows[1:length(test_rows)],], thresholds=deep.f1)
-    deep.train.acc<-deep.pred.conf.matrix$Error[3]
-    deep.train.adj.acc<-var(c(deep.pred.conf.matrix$Error[1], deep.pred.conf.matrix$Error[2])) + deep.train.acc
-    
-    #Store
-    metrics.non.bootstrap<-rbind(metrics.non.bootstrap, data.table(FOLD=i, ITERATION=iter, 
-                                                                   TEST.ACC=deep.test.acc, TEST.ADJ.ACC=deep.test.adj.acc,
-                                                                   TRAIN.ACC=deep.train.acc, TRAIN.ADJ.ACC=deep.train.adj.acc))
-    h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, c(key.z)))  
+    for (iter in 1:10){
+      
+      test_rows<-as.numeric(unlist(rand_folds[i]))
+      train_rows<-setdiff(as.numeric(unlist(rand_folds)), test_rows)
+      
+      #Obtain deep learning model and parameters
+      deep.model<-h2o.deeplearning(x=FEATURES, y="DIFF", 
+                                   h2o_MET[train_rows[1:length(train_rows)],], use_all_factor_levels = T,
+                                   activation = "Rectifier", balance_classes = F, hidden=c(100,100,100), epochs=500)   
+                                    #input_dropout_ratio = as.numeric(ip), hidden_dropout_ratios =c(0.5,0.5,0.5) ,
+      
+      deep.f1<-deep.model@model$training_metrics@metrics$max_criteria_and_metric_scores$threshold[1] 
+      
+      deep.conf.matrix<-h2o.confusionMatrix(deep.model, h2o_MET[train_rows[1:length(train_rows)],] , thresholds=deep.f1)
+      deep.test.acc<-deep.conf.matrix$Error[3]
+      deep.test.adj.acc<-var(c(deep.conf.matrix$Error[1],deep.conf.matrix$Error[2])) + deep.test.acc
+      
+      #Predict
+      deep.pred.conf.matrix<-h2o.confusionMatrix(deep.model, h2o_MET[test_rows[1:length(test_rows)],], thresholds=deep.f1)
+      deep.train.acc<-deep.pred.conf.matrix$Error[3]
+      deep.train.adj.acc<-var(c(deep.pred.conf.matrix$Error[1], deep.pred.conf.matrix$Error[2])) + deep.train.acc
+      
+      #Store
+      metrics.non.bootstrap<-rbind(metrics.non.bootstrap, data.table(FOLD=i, ITERATION=iter, 
+                                                                     TEST.ACC=deep.test.acc, TEST.ADJ.ACC=deep.test.adj.acc,
+                                                                     TRAIN.ACC=deep.train.acc, TRAIN.ADJ.ACC=deep.train.adj.acc,
+                                                                     INPUT.DROPOUT=0, METHOD="RECTIFIER", REGULARIZED=FALSE,
+                                                                     SEED=43))
+      #Save model
+      model.id<-paste0("082915.TERUNUMA.MINUS","_",43,"_", i, "_", iter, "_", round(deep.test.adj.acc,3), "_", round(deep.train.adj.acc,3))
+      h2o.saveModel(deep.model, 
+                    paste0("//home/lobuto/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/MET.PREDICTION/H2O/CORRECTED.MODELS/RECTIFIER/NO.BOOTSTRAP/NO.REG/"), 
+                    model.id)
+      
+      h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, c(key.z)))  
+    }
   }
 }
-metrics.non.bootstrap
 
+ggplot(melt(metrics.non.bootstrap[,c(3,5,7:10),with=F], measure.vars =  c("TEST.ACC", "TRAIN.ACC")), aes(factor(INPUT.DROPOUT), 1-value, colour=variable)) +
+  geom_boxplot() + facet_grid(METHOD~REGULARIZED)
+ggplot(melt(metrics.non.bootstrap[,c(4,6,7:10),with=F], measure.vars =  c("TEST.ADJ.ACC", "TRAIN.ADJ.ACC")), aes(factor(INPUT.DROPOUT), 1-value, colour=variable)) +
+  geom_boxplot() + facet_grid(METHOD~REGULARIZED)
 
-plot(h2o.performance(train.model, h2o_MET[test_rows[1:length(test_rows)],]), type="roc")
+best.minus.model<-h2o.loadModel("//home/lobuto/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/MET.PREDICTION/H2O/CORRECTED.MODELS/TANH/NO.BOOTSTRAP/INPUT.DROPOUT.0.1/082915.TERUNUMA.MINUS_43_3_9_0.16_0.145/", localH2O)
+best.minus.model@parameters$training_frame<-"holder.1"
+plot(h2o.performance(best.minus.model, tang.minus.h2o), type="roc")
+h2o.confusionMatrix(best.minus.model, tang.minus.h2o, thresholds=0.191111)
 
-
-
-
-
-
+#Do BOOTSTRAP.1 now
 
 minus.samples<-teru.cancer.matrix$ER.STATUS[ER.STATUS=="NEG",]$SAMPLE
 minus.split<-split(minus.samples, 1:5)
 
-teru.minus.metrics<-data.table()
+metrics.bootstrap<-data.table()
+metrics.bootstrap.gbm<-data.table()
 
 for (i in 1:length(minus.split)){
   
   #Prep master sampler table for train.samples
   test.samples<-minus.split[[i]]
-  train.samples<-setdiff(minus.samples, test.samples)
+  train.samples<-setdiff(unlist(minus.samples), test.samples)
   
   #Create master table per bootsrapped set
   bootstrap.train<-replicate(10, sample(train.samples, 10), simplify = F)
   master.table<-data.table()
-  master.table
+  
   for (j in bootstrap.train){
     
     train.limma<-Function.teru.diff.limma(teru.gene.exp, j, norm = F)
@@ -528,39 +547,68 @@ for (i in 1:length(minus.split)){
   test.h2o<-as.h2o(localH2O, data.frame(test.table), destination_frame = "test")
   FEATURES<-setdiff(colnames(train.h2o), c("MET", "DIFF"))
   
-  for (n in 1:10){
-    
-    #Model
-    MODEL.MET<-h2o.deeplearning(x=FEATURES, y="DIFF",  train.h2o, use_all_factor_levels = T,
-                                activation = "Tanh", balance_classes = F, hidden=c(200,200,200), epochs=600)
-                                #input_dropout_ratio = 0.1, hidden_dropout_ratios =c(0.2,0.2,0.2) ,
-                                #activation = "RectifierWithDropout", balance_classes = F, hidden=c(200,200,200), epochs=600)
-                                
-    
-    #Obtain accuracy
-    train.auc<-h2o.performance(MODEL.MET, train.h2o)@metrics$AUC
-    test.auc<-h2o.performance(MODEL.MET, test.h2o)@metrics$AUC
-    print (c(train.auc, test.auc))
-    print (h2o.confusionMatrix(MODEL.MET, test.h2o))
-    
-    #Save models
-    i.split<-i
-    iteration<-n
-    model.id<-paste0("082515.TERUNUMA.MINUS.X","_",i.split, "_", iteration, "_", round(train.auc,3), "_", round(test.auc,3))
-    h2o.saveModel(MODEL.MET, 
-                  "//home/lobuto/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/MET.PREDICTION/H2O/NEW.MODELS/RECTIFIER/BOOTSTRAP.10/NO.REG/", 
-                  model.id)
-    
-    h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, c(key.z, "test")))
-    
-    #Store for reference
-    teru.minus.metrics<-rbind(teru.minus.metrics, data.table(SPLIT=i.split, ITER=iteration, TRAIN.AUC=train.auc, TEST.AUC=test.auc,
-                                                             INPUT.DROPOUT=0, REGULARIZED=FALSE, METHOD="RECTIFIER", BOOTSTRAP.SIZE=10))
+  learn.rate<-c(0.01,0.05,0.1,0.2)
+  max.depth<-c(2,4,6,8,10,20)
+  n.trees<-c(5,10,15,20,50,100)
+  for (l in learn.rate){
+    for (m in max.depth){
+      for (n in n.trees){
+        #Model
+        #       deep.model<-h2o.deeplearning(x=FEATURES, y="DIFF",  train.h2o, use_all_factor_levels = T,
+        #                                    input_dropout_ratio = as.numeric(ip), hidden_dropout_ratios =c(0.5,0.5,0.5) ,
+        #                                    activation = "TanhWithDropout", balance_classes = F, hidden=c(100,100,100), epochs=500)
+        
+        gbm.model<-h2o.gbm(x=FEATURES, y="DIFF",  train.h2o, learn_rate = l, max_depth =m , ntrees = n)
+        gbm.train.acc<-h2o.confusionMatrix(gbm.model, train.h2o)$Error[3]
+        gbm.train.adj.acc<-gbm.train.acc + var(h2o.confusionMatrix(gbm.model, train.h2o)$Error[1:2])
+        
+        gbm.test.acc<-h2o.confusionMatrix(gbm.model, test.h2o)$Error[3]
+        gbm.test.adj.acc<-gbm.test.acc + var(h2o.confusionMatrix(gbm.model, test.h2o)$Error[1:2])
+        
+        #       #Obtain accuracy
+        #       deep.f1<-deep.model@model$training_metrics@metrics$max_criteria_and_metric_scores$threshold[1] 
+        #       
+        #       deep.conf.matrix<-h2o.confusionMatrix(deep.model, test.h2o , thresholds=deep.f1)
+        #       deep.test.acc<-deep.conf.matrix$Error[3]
+        #       deep.test.adj.acc<-var(c(deep.conf.matrix$Error[1],deep.conf.matrix$Error[2])) + deep.test.acc
+        #       
+        #       #Predict
+        #       deep.pred.conf.matrix<-h2o.confusionMatrix(deep.model, train.h2o, thresholds=deep.f1)
+        #       deep.train.acc<-deep.pred.conf.matrix$Error[3]
+        #       deep.train.adj.acc<-var(c(deep.pred.conf.matrix$Error[1], deep.pred.conf.matrix$Error[2])) + deep.train.acc
+        
+        #Save models
+        #i.split<-i
+        #iteration<-n
+        model.id<-paste0("082815.TERUNUMA.MINUS","_",l, "_", m, "_",n,"_", round(gbm.train.acc,3), "_", round(gbm.test.acc,3))
+        h2o.saveModel(gbm.model, 
+                      paste0("//home/lobuto/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/MET.PREDICTION/H2O/CORRECTED.MODELS/GBM/BOOTSTRAP/"), 
+                      model.id)
+        
+        h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, c(key.z, "test")))
+        
+        #Store for reference
+        metrics.bootstrap.gbm<-rbind(metrics.bootstrap.gbm, data.table(FOLD=i, LEARN.RATE=l, MAX.DEPTH=m, N.TREES=n,
+                                                               TRAIN.ACC=gbm.train.acc, TRAIN.ADJ.ACC=gbm.train.adj.acc,
+                                                               TEST.ACC=gbm.test.acc, TEST.ADJ.ACC=gbm.test.adj.acc,
+                                                                METHOD="GBM", REGULARIZED=TRUE))
+      }
+    }
   }
 }
 
-ggplot(melt(teru.minus.metrics[,3:8, with=F], measure.vars = c("TRAIN.AUC", "TEST.AUC")), aes(factor(INPUT.DROPOUT), value, colour=variable)) +
-  geom_boxplot() + facet_grid(BOOTSTRAP.SIZE~REGULARIZED)
+ggplot(melt(metrics.bootstrap[,c(3,5,7:9), with=F], measure.vars = c("TRAIN.ACC", "TEST.ACC")), aes(factor(INPUT.DROPOUT), 1-value, colour=variable)) +
+  geom_boxplot() + facet_grid(METHOD~REGULARIZED) + theme.format +  theme(strip.text.x = element_text(size = 14))
+ggsave("~/Documents/FOLDER/LAB/NOTES.FIGURES/083015.TERUNUMA.ERMINUS.MODEL.DL.tiff", width = 12, height = 16, dpi = 600)
+
+ggplot(melt(metrics.bootstrap.gbm[,c(2:4, 5,7),with=F], measure.vars = c("TRAIN.ACC", "TEST.ACC")), aes(factor(LEARN.RATE), 1-value, colour=variable)) +
+  geom_boxplot() + facet_grid(MAX.DEPTH~N.TREES)
+metrics.bootstrap.gbm[order(TEST.ACC),]
+
+best.minus.model<-h2o.loadModel("//home/lobuto/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/OBJECTS/MET.PREDICTION/H2O/CORRECTED.MODELS/GBM/BOOTSTRAP/082815.TERUNUMA.MINUS_0.1_8_20_0.068_0.124",localH2O)
+best.minus.model@parameters$training_frame<-"holder.4"
+h2o.confusionMatrix(best.minus.model, tang.minus.h2o, thresholds=0.555767)
+
 
 #####Test best model####
 icgc.obj<-Function.process.icgc.matrix.to.obj("PIPELINES/METABOLIC.DRIVERS/OBJECTS/BRCA/082315.ICGC.RAW.COUNTS.MATRIX.rds", "DATABASES/CANCER_DATA/ICGC/BRCA/specimen.BRCA-US.tsv")
@@ -607,21 +655,4 @@ for (h2o.model in list.files("~/Dropbox/Lab/PIPELINES/METABOLIC.DRIVERS/OBJECTS/
   minus.model.data<-rbind(minus.model.data, data.table(METHOD="Rectifier", REGULARIZED=FALSE, INPUT.DROPOUT=0.0, MODEL.ID=h2o.model, F1.SCORE=c.f1.score, F2.SCORE=c.f2.score))
 }
 minus.model.data[order(F1.SCORE),]
-
-nrow(tang.matrix)
-nrow(teru.cancer.matrix$MATRIX)
-sum(rownames(teru.cancer.matrix$MATRIX) %in% unique(kegg.edges$PRODUCT))
-sum(rownames(tang.matrix) %in% unique(kegg.edges$SUBSTRATE))
-
-kegg.edges[SUBSTRATE %in% rownames(teru.cancer.matrix$MATRIX),][,list(N.GENE=length(Hugo_Symbol)), by="SUBSTRATE"][order(N.GENE),]
-length(intersect(unique(kegg.edges[SUBSTRATE %in% rownames(teru.cancer.matrix$MATRIX),]$SUBSTRATE), unique(kegg.edges[PRODUCT %in% rownames(teru.cancer.matrix$MATRIX),]$PRODUCT)))
-
-length(intersect(unique(kegg.edges[SUBSTRATE %in% rownames(tang.matrix),]$SUBSTRATE), unique(kegg.edges[PRODUCT %in% rownames(tang.matrix),]$PRODUCT)))
-
-k.test<-unique(rbind(data.table(GENE=kegg.edges$Hugo_Symbol, MET=kegg.edges$SUBSTRATE), data.table(GENE=kegg.edges$Hugo_Symbol, MET=kegg.edges$PRODUCT)))
-length(unique(k.test[MET %in% rownames(teru.cancer.matrix$MATRIX),]$MET))
-length(unique(k.test[MET %in% rownames(tang.matrix),]$MET))
-
-k.test[MET %in% rownames(teru.cancer.matrix$MATRIX),][,list(N.GENE=length(unique(GENE))), by="MET"][order(N.GENE),][1:20,]
-k.test[MET %in% rownames(tang.matrix),][,list(N.GENE=length(unique(GENE))), by="MET"][order(N.GENE),][1:20,]
 

@@ -680,11 +680,13 @@ Function.prep.kegg.pred.table<-function(kegg.edges, gene.diff.exp, met.diff.exp,
   main.table<-merge(main.table, kegg.between, by="MET") # Add BC
   main.table<-merge(main.table, met.gene.mcd, by="MET") #Add met gene mean correlation information
   
-  #Add path info - NOTE: For the time being it will be [# of paths, presence in Fats, Glyco, TCA and CANCER]
+  #Add path info (if necessary) - NOTE: For the time being it will be [# of paths, presence in Fats, Glyco, TCA and CANCER]
   kegg.path.count<-kegg.path[,list(PATH.COUNT=length(unique(DESCRIPTION))), by="COMPOUND"]
-  kegg.path.count<-rbind(kegg.path.count, 
-                         data.table(COMPOUND=setdiff(unique(main.table$MET), kegg.path.count$COMPOUND), PATH.COUNT=0)
-                         )
+  if (length(setdiff(unique(main.table$MET), kegg.path.count$COMPOUND))>0){
+    kegg.path.count<-rbind(kegg.path.count, 
+                           data.table(COMPOUND=setdiff(unique(main.table$MET), kegg.path.count$COMPOUND), PATH.COUNT=0)
+    )
+  }
   setnames(kegg.path.count, c("MET", "PATH.COUNT"))
   
   main.table$GLYCO.TCA.LIPID<-as.factor(ifelse(main.table$MET %in% kegg.path[grepl("Glycol", DESCRIPTION),]$COMPOUND, 1,
@@ -853,7 +855,8 @@ Function.process.icgc.exp.raw<-function(icgc.matrix, icgc_info, target.cancer.sa
   
   #Prep cpm, filter out genes that don't have at least 1 cpm in 1/4 of all samples 
   matrix_cpm<-cpm(cast.matrix) #For sample ordering in DGEList later
-  min_count<-ncol(matrix_cpm)/4
+  #min_count<-ncol(matrix_cpm)/4
+  min_count<-10
   keep<-rowSums(matrix_cpm>1)>=min_count
   matrix_filt<-matrix_cpm[keep, icgc_info$SAMPLE]
   
@@ -923,7 +926,8 @@ Function.process.icgc.matrix.to.obj<-function(icgc.matrix, icgc_info){
   
   #Prep cpm, filter out genes that don't have at least 1 cpm in 1/4 of all samples 
   matrix_cpm<-cpm(cast.matrix) #For sample ordering in DGEList later
-  min_count<-ncol(matrix_cpm)/4
+  #min_count<-ncol(matrix_cpm)/40
+  min_count<-10
   keep<-rowSums(matrix_cpm>1)>=min_count
   matrix_filt<-matrix_cpm[keep, icgc_info$SAMPLE]
   
