@@ -302,7 +302,7 @@ for (i in 1:length(plus.met.splits)){
     for (h in hidden){
       for (hd in hidden.dropout){
         
-        deep.model<-h2o.deeplearning(x=FEATURES, y="DIFF", training_frame = train.h2o, activation = "RectifierWithoutDropout", 
+        deep.model<-h2o.deeplearning(x=FEATURES, y="DIFF", training_frame = train.h2o, activation = "RectifierWithtDropout", 
                                      epochs = 500, hidden = rep(h, 3),
                                      input_dropout_ratio = id, hidden_dropout_ratios = rep(hd,3))
         #gbm.model<-h2o.gbm(x=FEATURES, y="DIFF", training_frame =  train.h2o, learn_rate = l, ntrees = n, max_depth = m)
