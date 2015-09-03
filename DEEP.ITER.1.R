@@ -323,7 +323,7 @@ for (i in 1:length(plus.met.splits)){
                                                                    GBM.TEST.ACC=gbm.test.acc, GBM.TEST.ADJ.ACC=gbm.test.adj.acc))
         #Save models
         model.id<-paste0("090315.TERUNUMA.PLUS","_",i,"_",h, "_", id, "_",hd,"_", round(gbm.train.acc,3), "_", round(gbm.test.acc,3))
-        h2o.saveModel(gbm.model, 
+        h2o.saveModel(deep.model, 
                       paste0("//", h2o.folder, "/"), 
                       model.id)
         
