@@ -295,31 +295,34 @@ for (i in 1:length(plus.met.splits)){
   #                                input_dropout_ratio = 0.0, hidden_dropout_ratios =c(0.2,0.2,0.2) ,
   #                               activation = "RectifierWithDropout", balance_classes = F, hidden=c(100,100,100), epochs=500)
   
-  learn.rate<-c(0.005,0.01,0.05,0.1)
-  max.depth<-c(2,4,6,8,10)
-  n.trees<-c(5,10,15,20,50,100,200)
-  for (l in learn.rate){
-    for (m in max.depth){
-      for (n in n.trees){
+  hidden<-c(20,30,50,80,100,200)
+  input.dropout<-c(0,0.1,0.2)
+  hidden.dropout<-c(0.1,0.3,0.5)
+  for (id in input.dropout){
+    for (h in hidden){
+      for (hd in hidden.dropout){
         
-        gbm.model<-h2o.gbm(x=FEATURES, y="DIFF", training_frame =  train.h2o, learn_rate = l, ntrees = n, max_depth = m)
+        deep.model<-h2o.deeplearning(x=FEATURES, y="DIFF", training_frame = train.h2o, activation = "RectifierWithoutDropout", 
+                                     epochs = 500, hidden = rep(h, 3),
+                                     input_dropout_ratio = id, hidden_dropout_ratios = rep(hd,3))
+        #gbm.model<-h2o.gbm(x=FEATURES, y="DIFF", training_frame =  train.h2o, learn_rate = l, ntrees = n, max_depth = m)
         
-        #GBM model predictions 
-        gbm.conf.matrix<-h2o.confusionMatrix(gbm.model, train.h2o)
+        #DEEP model predictions 
+        gbm.conf.matrix<-h2o.confusionMatrix(deep.model, train.h2o)
         gbm.train.acc<-gbm.conf.matrix$Error[3]
         gbm.train.adj.acc<-var(gbm.conf.matrix$Error[1:2]) + gbm.train.acc
         
         #Predict
-        gbm.pred.conf.matrix<-h2o.confusionMatrix(gbm.model, test.h2o)
+        gbm.pred.conf.matrix<-h2o.confusionMatrix(deep.model, test.h2o)
         gbm.test.acc<-gbm.pred.conf.matrix$Error[3]
         gbm.test.adj.acc<-var(gbm.pred.conf.matrix$Error[1:2]) + gbm.test.acc
         
         #Store
-        metrics.bootstrap.2<-rbind(metrics.bootstrap.2, data.table(FOLD=i, LEARN.RATE=l, MAX.DEPTH=m, N.TREES=n,
+        metrics.bootstrap.2<-rbind(metrics.bootstrap.2, data.table(FOLD=i, HIDDEN=h, INPUT.DROPOUT=id, HIDDEN.DROPOUT=hd,
                                                                    GBM.TRAIN.ACC=gbm.train.acc, GBM.TRAIN.ADJ.ACC=gbm.train.adj.acc,
                                                                    GBM.TEST.ACC=gbm.test.acc, GBM.TEST.ADJ.ACC=gbm.test.adj.acc))
         #Save models
-        model.id<-paste0("090215.TERUNUMA.PLUS","_",i,"_",l, "_", m, "_",n,"_", round(gbm.train.acc,3), "_", round(gbm.test.acc,3))
+        model.id<-paste0("090315.TERUNUMA.PLUS","_",i,"_",h, "_", id, "_",hd,"_", round(gbm.train.acc,3), "_", round(gbm.test.acc,3))
         h2o.saveModel(gbm.model, 
                       paste0("//", h2o.folder, "/"), 
                       model.id)
