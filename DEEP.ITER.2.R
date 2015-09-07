@@ -61,7 +61,7 @@ for (fold in 1:n_folds){
                         model.id)
           
           print (metrics.bootstrap)
-          h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, c(key.z, "teru.met"))) 
+          h2o.rm(localH2O, setdiff(h2o.ls(localH2O)$key, c("teru.met"))) 
         }
       }
     }  
