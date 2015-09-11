@@ -90,9 +90,9 @@ Function.teru.met.matrix<-function(teru.met.file, teru.id.to.gsm, teru.gene.obj,
   if (CANCER==T){
     id.to.gsm<-fread(teru.id.to.gsm, header=F, stringsAsFactors = F)
     id.to.er<-fread(teru.id.to.er, header=F, stringsAsFactors = F, select=c(1,4))
-    id.er<-merge(id.to.gsm, id.to.er, by="V1")
+    id.er<-merge(id.to.er, id.to.gsm, by="V1")
     id.er$V1<-NULL
-    setnames(id.er, c("SAMPLE", "ER.STATUS"))
+    setnames(id.er, c("ER.STATUS","SAMPLE",  "STAGE"))
     id.er<-id.er[grepl("TUMOR", ER.STATUS),]
     id.er$ER.STATUS<-ifelse(id.er$ER.STATUS=="NEG TUMOR", "NEG", "POS")
     
@@ -159,7 +159,7 @@ Function.tcga.mut.prep<-function(tcga.file, mut.filter=0){
   x<-rbind(x.sil, x.mut)
   
   #Clean up
-  x<-x[!grepl("-Sep", Hugo_Symbol),][!grepl("-Mar", Hugo_Symbol),]
+  x<-x[!grepl("-Sep", Hugo_Symbol),][!grepl("-Mar", Hugo_Symbol),][!grepl("-Dec", Hugo_Symbol),]
   
   #Return
   return(x)
@@ -560,12 +560,16 @@ Function.met.diff.exp<-function(met.matrix, target.samples, type="tang", normal.
   }
   
   #Calculate log fold change
-  pvals<-apply(main.matrix, 1, function(x) wilcox.test(x[cancer.samples], x[normal.samples])$p.value)
+  main.matrix<-main.matrix[apply(main.matrix, 1, function(x) sd(x)!=0),]
+  pvals<-apply(main.matrix, 1, function(x) t.test(x[cancer.samples], x[normal.samples])$p.value)
   lfc<-apply(main.matrix, 1, function(x) log2(median(x[cancer.samples])/median(x[normal.samples])))
-  pvals.adj<-p.adjust(pvals, method="fdr")
+  pvals.adj<-p.adjust(pvals, method="bonferroni")
+  
+  #Calculate the coverage per metabolite - Percentage of samples where metabolite is found to be at least twice as much as normal
+  perc<-apply(main.matrix, 1, function(x)  mean(log2(x[cancer.samples]/median(x[normal.samples]))>1))
   
   #Clean up and return
-  main.table<-data.table(MET=rownames(main.matrix), PVAL.ADJ=pvals.adj, LFC=lfc)
+  main.table<-data.table(MET=rownames(main.matrix), PVAL.ADJ=pvals.adj, LFC=lfc, PERC.COV=perc)
   main.table<-main.table[!is.na(PVAL.ADJ),][PVAL.ADJ!=Inf,][PVAL.ADJ!=-Inf,]
   main.table<-main.table[!is.na(LFC),][LFC!=Inf,][LFC!=-Inf,]
   main.table<-main.table[order(PVAL.ADJ),]
@@ -618,10 +622,10 @@ Function.met.gene.cor.diff<-function(met.pval.table, exp.obj, target.samples, ke
 #                      by="MET"]
   met.gene.cor<-kegg[,list(MEAN.CANCER.COR=mean(cancer.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(cancer.cor[Hugo_Symbol, Hugo_Symbol])]),
                            MEAN.NORMAL.COR=mean(normal.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(normal.cor[Hugo_Symbol, Hugo_Symbol])]),
-                           RATIO.CANCER.COR.POS=mean(cancer.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(cancer.cor[Hugo_Symbol, Hugo_Symbol])]>0),
-                           RATIO.CANCER.COR.NEG=mean(cancer.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(cancer.cor[Hugo_Symbol, Hugo_Symbol])]<0),
-                           RATIO.NORMAL.COR.POS=mean(normal.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(normal.cor[Hugo_Symbol, Hugo_Symbol])]>0),
-                           RATIO.NORMAL.COR.NEG=mean(normal.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(normal.cor[Hugo_Symbol, Hugo_Symbol])]<0)),
+                           RATIO.CANCER.COR.POS=mean(cancer.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(cancer.cor[Hugo_Symbol, Hugo_Symbol])]> 0.25),
+                           RATIO.CANCER.COR.NEG=mean(cancer.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(cancer.cor[Hugo_Symbol, Hugo_Symbol])]< -0.25),
+                           RATIO.NORMAL.COR.POS=mean(normal.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(normal.cor[Hugo_Symbol, Hugo_Symbol])]> 0.25),
+                           RATIO.NORMAL.COR.NEG=mean(normal.cor[Hugo_Symbol, Hugo_Symbol][upper.tri(normal.cor[Hugo_Symbol, Hugo_Symbol])]< -0.25)),
                      by="MET"]
   
   #Add zero difference for mets that had only one gene associated, since we could not calculate correlations for it
@@ -665,8 +669,9 @@ Function.prep.kegg.pred.table<-function(kegg.edges, gene.diff.exp, met.diff.exp,
   kegg.between<-data.table(as.matrix(betweenness(kegg.graph, directed = T, normalized = T)), keep.rownames = T)
   setnames(kegg.between, c("MET", "NORM.BC"))
   
-  #Classify metabolites into differentially expressed or not (based on thresholds)
-  met.sig<-met.diff.exp[PVAL.ADJ<pval.th & abs(LFC)>lfc.th,]$MET
+  #Classify metabolites based on the differential coverage they provide
+  met.sig<-unique(met.diff.exp[PERC.COV>=0.5,]$MET)
+  #met.sig<-met.diff.exp[PVAL.ADJ<pval.th & abs(LFC)>lfc.th,]$MET
   met.diff.exp$DIFF<-as.factor(ifelse(met.diff.exp$MET %in% met.sig, 1,0))
   
   #Obtain mean absolute lfc change of enzymes for each metabolite

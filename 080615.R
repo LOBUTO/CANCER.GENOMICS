@@ -16,9 +16,12 @@ teru.normal.matrix<-Function.teru.met.matrix("DATABASES/METABOLOMICS/TERUNUMA.20
                                              "DATABASES/METABOLOMICS/TERUNUMA.2014/NORMALIZED.AFFY.EXP.MATRIX.rds", "DATABASES/METABOLOMICS/TERUNUMA.2014/MET.KEGG.HMDB.csv",
                                              "DATABASES/METABOLOMICS/TANG.2014/NOT.FOUND.ANNOTATED", CANCER=F)
 
-teru.cancer.matrix<-Function.teru.met.matrix("DATABASES/METABOLOMICS/TERUNUMA.2014/cleaned.met.csv", "DATABASES/METABOLOMICS/TERUNUMA.2014/ID.TO.GSM.csv",
-                                             "DATABASES/METABOLOMICS/TERUNUMA.2014/NORMALIZED.AFFY.EXP.MATRIX.rds", "DATABASES/METABOLOMICS/TERUNUMA.2014/MET.KEGG.HMDB.csv",
-                                             "DATABASES/METABOLOMICS/TANG.2014/NOT.FOUND.ANNOTATED", CANCER=T, "DATABASES/METABOLOMICS/TERUNUMA.2014/TERU.ID.STATUS.csv")
+teru.cancer.matrix<-Function.teru.met.matrix("DATABASES/METABOLOMICS/TERUNUMA.2014/cleaned.met.csv", 
+                                             "DATABASES/METABOLOMICS/TERUNUMA.2014/ID.TO.GSM.new.csv",
+                                             "DATABASES/METABOLOMICS/TERUNUMA.2014/NORMALIZED.AFFY.EXP.MATRIX.rds", 
+                                             "DATABASES/METABOLOMICS/TERUNUMA.2014/MET.KEGG.HMDB.csv",
+                                             "DATABASES/METABOLOMICS/TANG.2014/NOT.FOUND.ANNOTATED", CANCER=T, 
+                                             "DATABASES/METABOLOMICS/TERUNUMA.2014/TERU.ID.STATUS.csv")
 
 dim(teru.normal.matrix$MATRIX)
 dim(teru.cancer.matrix$MATRIX)
@@ -36,7 +39,7 @@ met.gold.std<-Function.met.gold.std(teru.normal.matrix, teru.cancer.matrix, tang
 tcga.mut<-Function.tcga.mut.prep("DATABASES/CANCER_DATA/TCGA/SOMATIC_MUTATIONS/BRCA/030415/Somatic_Mutations/WUSM__IlluminaGA_DNASeq_curated/Level_2/genome.wustl.edu__IlluminaGA_curated_DNA_sequencing_level2.maf", mut.filter=1) #at least 1 people have all mutations
 tcga.mut
 
-kegg.edges<-Function.kegg.filtered("DATABASES/KEGG/063015.ENZYME.SUB.PROD", "DATABASES/RECON/042215.PROCESSED.METABOLITES", weight.filter = 60, n.edge.filter = 100)
+kegg.edges<-Function.kegg.filtered("DATABASES/KEGG/071415.ENZYME.SUB.PROD.MAIN.FILT", "DATABASES/RECON/042215.PROCESSED.METABOLITES", weight.filter = 60, n.edge.filter = 60)
 saveRDS(kegg.edges, "PIPELINES/METABOLIC.DRIVERS/OBJECTS/BRCA/081415.KEGG.EDGES.rds")
 
 gene.length<-fread("DATABASES/UNIPROT/042314_GENE_LENGTH", header=T, sep="\t", stringsAsFactors = F)
