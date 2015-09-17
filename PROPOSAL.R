@@ -92,3 +92,15 @@ main.D.3.3.PVAL<-Function.D.3.3.PVAL(main.D.3.3$MET.TABLE[MUTATION!="SILENT",], 
 main.D.3.3.PVAL[order(PVAL.ADJ),]
 ggplot(main.D.3.3.PVAL, aes(PVAL.ADJ)) + geom_histogram() + facet_wrap(~MUTATION)
 
+##Find significant metabolite in CORE paper##
+library(gdata)
+nci.60.core<-as.matrix(read.table("DATABASES/CANCER_DATA/NCI.60/NCI60.CORE.S1.csv", header=T))
+dim(nci.60.core)
+nci.60.core[1:3, 1:3]
+data.matrix(nci.60.core)[1:3, 1:3]
+
+nci.doubling<-fread("DATABASES/CANCER_DATA/NCI.60/doubling.time.csv", header=T)
+nci.doubling$Cell.line<-sapply(nci.doubling$Cell.line, function(x) gsub("-", ".", x))
+
+nci.doubling[!(Cell.line %in% colnames(nci.60.core)),]
+colnames(nci.60.core)
