@@ -3,8 +3,18 @@ library(reshape2)
 library(parallel)
 
 #Functions
-Function.icgc.enrich.1<-function(icgc.mut, brca.exp, table.2){
+Function.icgc.enrich.1<-function(icgc.mut, brca.exp, table.2, edges=F){
   #Finds enriched driver metabolites based on mutation and expression analysis
+  
+  #Are we supplying kegg.edges or table.2?
+  if (edges==T){
+    table.2<-rbind(data.table(KEGG.ID=kegg.edges$SUBSTRATE, Hugo_Symbol=kegg.edges$Hugo_Symbol),
+                   data.table(KEGG.ID=kegg.edges$PRODUCT, Hugo_Symbol=kegg.edges$Hugo_Symbol))
+    table.2<-unique(table.2)
+  } else {
+    table.2<-unique(table.2[,c("KEGG_ID", "GENE"),with=F])
+    setnames(table.2, c("KEGG.ID", "Hugo_Symbol")) 
+  }
   
   #Filter expression and mutation info against each other for common samples
   common.samples<-intersect(unique(icgc.mut$SAMPLE), unique(colnames(brca.exp$tumor)))
@@ -16,8 +26,6 @@ Function.icgc.enrich.1<-function(icgc.mut, brca.exp, table.2){
   
   #Assign sample mutations to kegg identifiers based on associated genes
   icgc.mut<-icgc.mut[MUTATION=="MISSENSE",]
-  table.2<-unique(table.2[,c("KEGG_ID", "GENE"),with=F])
-  setnames(table.2, c("KEGG.ID", "Hugo_Symbol"))
   mut.table<-merge(icgc.mut, table.2, by="Hugo_Symbol")
   
   #Filter mutation table by those metabolites that have at least 10 samples assocaited to them
