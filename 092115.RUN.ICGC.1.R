@@ -8,8 +8,8 @@ Function.icgc.enrich.1<-function(icgc.mut, brca.exp, table.2, edges=F){
   
   #Are we supplying kegg.edges or table.2?
   if (edges==T){
-    table.2<-rbind(data.table(KEGG.ID=kegg.edges$SUBSTRATE, Hugo_Symbol=kegg.edges$Hugo_Symbol),
-                   data.table(KEGG.ID=kegg.edges$PRODUCT, Hugo_Symbol=kegg.edges$Hugo_Symbol))
+    table.2<-rbind(data.table(KEGG.ID=table.2$SUBSTRATE, Hugo_Symbol=table.2$Hugo_Symbol),
+                   data.table(KEGG.ID=table.2$PRODUCT, Hugo_Symbol=table.2$Hugo_Symbol))
     table.2<-unique(table.2)
   } else {
     table.2<-unique(table.2[,c("KEGG_ID", "GENE"),with=F])
