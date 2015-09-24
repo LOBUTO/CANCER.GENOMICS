@@ -3,6 +3,9 @@ library(data.table)
 library(reshape2)
 library(ggplot2)
 library(gplots)
+library(pheatmap)
+library(made4)
+library(igraph)
 
 kegg.edges<-Function.kegg.filtered("DATABASES/KEGG/071415.ENZYME.SUB.PROD.MAIN.FILT", "DATABASES/RECON/042215.PROCESSED.METABOLITES", weight.filter = 60, n.edge.filter = 60)
 
@@ -168,37 +171,44 @@ icgc.brca.enrich.1[PVAL.ADJ.3<0.05,]
 saveRDS(icgc.brca.enrich.1, "PIPELINES/METABOLIC.DRIVERS/OBJECTS/092215.icgc.brca.enrich.1.table.2.rds")
 
 length(unique(icgc.brca.enrich.1[PVAL.ADJ<0.05,][KEGG.ID %in% table.2[,list(N=length(unique(GENE))), by="KEGG_ID"][N<40,]$KEGG_ID,]$KEGG.ID))
-
 icgc.brca.enrich.1[PVAL.ADJ<0.05,]
 
-icgc.hub<-Function.icgc.enrich.coverage(icgc.brca.enrich.1, brca.icgc.mut, table.2, pval.th = 0.05, kegg.th = 4, pval.col="PVAL.ADJ", gene.th=165, met.hub.th = 0.8, table.2=T)
+table.2.filt<-Function.kegg.table.filter(table.2, table.2 = T,gene.th = 40, degree.th = 100)
+
+icgc.hub<-Function.icgc.enrich.coverage(icgc.brca.enrich.1, brca.icgc.mut, table.2.filt, pval.th=0.05, kegg.th=5, pval.col="PVAL.ADJ", gene.th=60, met.hub.th=0.8, table.2=T)
 
 plot(icgc.hub$MET.HUBS.GRAPH)
 heatmap.2(icgc.hub$KEGG.COV.MET, scale="none", trace = "none")
 icgc.hub$KEGG.COV.SAMPLES
 icgc.hub$HUB.COV.SAMPLES
-icgc.hub$HUB.COV.GENES$C00390.C00399.C00721.C01134
+heatmap.2(icgc.hub$HUB.COV.GENES$C02140.C05497.C05498, scale="none", trace="none", margins=c(8,8))
+icgc.hub$ALL.COVERAGE
 
-icgc.brca.path<-Function.kegg.path.enrich(kegg.path, unique(icgc.brca.enrich.1[PVAL.ADJ.2<0.05,]$KEGG.ID), table.2, table.2 = T, th = 40)
+icgc.brca.path<-Function.kegg.path.enrich(kegg.path, unique(icgc.brca.enrich.1[PVAL.ADJ.2<0.05,]$KEGG.ID), table.2.filt, table.2 = T, gene.th = 40)
 icgc.brca.path[PVAL.ADJ<0.05,]
 
-table.2.dist<-Function.met.node.distance(table.2, table.2 = T, th = 40, degree.th = 60)
+table.2.dist<-Function.met.node.distance(table.2, table.2 = T, gene.th = 40, degree.th = 100)
 
 icgc.brca.assign.distance<-Function.met.assign.distance(icgc.brca.enrich.1, table.2.dist$KEGG.DISTANCE, pval.th = 0.05, pval.column = "PVAL.ADJ")
 
-ggplot(icgc.brca.assign.distance[EXP.MET.COUNT>=5,], aes(KEGG.ID, DIST)) + geom_boxplot()
+ggplot(icgc.brca.assign.distance[EXP.MET.COUNT>=5,], aes(KEGG.ID, DIST)) + geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 icgc.brca.enrich.distance<-Function.enrich.distance(icgc.brca.assign.distance, table.2.dist$KEGG.DISTANCE, exp.met.count.th = 5)
-hist(icgc.brca.enrich.distance$PVAL.ADJ)
+ggplot(icgc.brca.enrich.distance, aes(PVAL.ADJ)) + geom_histogram() + theme.format + geom_vline(xintercept=c(0.05), linetype="dashed", colour="red")
 icgc.brca.enrich.distance
 
-icgc.brca.assign.distance[KEGG.ID=="C00236",]
-x<-table.2.dist$KEGG.GRAPH
-V(x)$color<-ifelse(V(x)$name=="C05498", "red",
-                   ifelse(V(x)$name %in% icgc.brca.assign.distance[KEGG.ID=="C05498",]$EXP.METS, "green", "yellow"))
-plot(x, layout=layout.fruchterman.reingold.grid, vertex.size=2, vertex.label.cex=0.3)
 
-y<-unique(icgc.brca.assign.distance[KEGG.ID=="C05498",]$EXP.METS)
+#
+icgc.brca.assign.distance[KEGG.ID=="C02075",]
+x<-table.2.dist$KEGG.GRAPH
+V(x)$color<-ifelse(V(x)$name=="C05284", "red",
+                   ifelse(V(x)$name %in% icgc.brca.assign.distance[KEGG.ID=="C05284",]$EXP.METS, "green", "yellow"))
+par(mai=c(0,0,1,0))
+plot(x, layout=layout.fruchterman.reingold, vertex.size=2, vertex.label.cex=0.3, edge.width=0.3)
+dev.off()
+
+y<-unique(icgc.brca.assign.distance[KEGG.ID=="C05284",]$EXP.METS)
 z<-matrix(nrow=length(y), ncol=length(y), dimnames = list(y, y))
 for (i in y){
   for (j in y){
@@ -206,3 +216,146 @@ for (i in y){
       length(union(unique(table.2[KEGG_ID==i,]$GENE),unique(table.2[KEGG_ID==j,]$GENE)))
   }
 }
+
+heatmap.2(z, scale = "none", trace="none", margins=c(8,8))
+
+#Use kegg.edges results and apply pipeline to it
+icgc.brca.enrich.2<-readRDS("PIPELINES/METABOLIC.DRIVERS/OBJECTS/092115.ICGC.KEGG.IMPACT.rds")
+kegg.edges.filt<-Function.kegg.table.filter(kegg.edges, table.2 = F,gene.th = 40, degree.th = 60)
+icgc.brca.enrich.2$PVAL.ADJ.2<-p.adjust(icgc.brca.enrich.2$PVAL, method="fdr")
+icgc.brca.enrich.2$PVAL.ADJ.3<-p.adjust(icgc.brca.enrich.2$PVAL, method="bonferroni")
+icgc.brca.enrich.2[PVAL.ADJ<0.05,]
+icgc.brca.enrich.2[PVAL.ADJ.2<0.05,]
+icgc.brca.enrich.2[PVAL.ADJ.3<0.05,]
+
+icgc.brca.enrich.combn<-icgc.brca.enrich.2[KEGG.ID %in% unique(table.2$KEGG_ID) & EXP.METS %in% unique(table.2$KEGG_ID),]
+icgc.brca.enrich.combn[,PVAL:=p.adjust(PVAL, method="fdr"), by="KEGG.ID"]
+icgc.brca.enrich.combn$PVAL.ADJ.2<-p.adjust(icgc.brca.enrich.combn$PVAL, method="fdr")
+icgc.brca.enrich.combn$PVAL.ADJ.3<-p.adjust(icgc.brca.enrich.combn$PVAL, method="bonferroni")
+icgc.brca.enrich.combn[PVAL.ADJ<0.05,]
+
+
+icgc.hub.2<-Function.icgc.enrich.coverage(icgc.brca.enrich.combn, brca.icgc.mut, kegg.edges.filt, pval.th=0.05, kegg.th=5, pval.col="PVAL.ADJ",gene.th=40, met.hub.th=0.8, table.2=F)
+
+plot(icgc.hub.2$MET.HUBS.GRAPH)
+heatmap.2(icgc.hub.2$KEGG.COV.MET, scale="none", trace = "none")
+icgc.hub.2$KEGG.COV.SAMPLES
+icgc.hub.2$HUB.COV.SAMPLES
+heatmap.2(icgc.hub.2$HUB.COV.GENES$C02934.C00655.C00077.C00065.C00181.C00090.C02266.C00674.C00570.C12448.C16834.C00364.C03150.C01272.C00184.C00475.C00307.C00311, scale="none", trace="none", margins=c(8,8))
+icgc.hub.2$ALL.COVERAGE
+
+icgc.brca.path.2<-Function.kegg.path.enrich(kegg.path, unique(icgc.brca.enrich.combn[PVAL.ADJ<0.05,]$KEGG.ID), kegg.edges.filt, table.2 = F, gene.th = 40)
+icgc.brca.path.2[PVAL.ADJ<0.05,]
+
+kegg.dist<-Function.met.node.distance(kegg.edges, table.2 = F, gene.th = 40, degree.th = 60)
+
+icgc.brca.assign.distance.combn<-Function.met.assign.distance(icgc.brca.enrich.combn, kegg.dist$KEGG.DISTANCE, pval.th = 0.05, pval.column = "PVAL.ADJ")
+
+ggplot(icgc.brca.assign.distance.combn[EXP.MET.COUNT>=5,], aes(KEGG.ID, DIST)) + geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+icgc.brca.enrich.distance.combn<-Function.enrich.distance(icgc.brca.assign.distance.combn, kegg.dist$KEGG.DISTANCE, exp.met.count.th = 5)
+ggplot(icgc.brca.enrich.distance.combn, aes(PVAL.ADJ)) + geom_histogram() + theme.format + geom_vline(xintercept=c(0.05), linetype="dashed", colour="red")
+
+#NEED TO REPROCESS KEGG.EDGES
+write.table(kegg.edges, "PIPELINES/METABOLIC.DRIVERS/TABLES/092315.KEGG.EDGES", quote = F, sep = "\t", row.names = F, col.names = F)
+kegg.edges.refilt<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/092315.KEGG.EDGES.FILT", header=T) #done in python
+kegg.edges.refilt<-Function.kegg.table.filter(kegg.edges.refilt, table.2 = T,gene.th = 40, degree.th = 60) #40, 60
+
+length(unique(kegg.edges.refilt$KEGG_ID)) #897, 754
+length(unique(kegg.edges.refilt$GENE)) #1313, 1175
+
+icgc.brca.enrich.filtered<-icgc.brca.enrich.2[KEGG.ID %in% kegg.edges.refilt$KEGG_ID & EXP.METS %in% kegg.edges.refilt$KEGG_ID,][,c("KEGG.ID", "EXP.METS", "PVAL"),with=F]
+icgc.brca.enrich.filtered[,PVAL.ADJ:=p.adjust(PVAL, method="fdr"), by="KEGG.ID"]
+icgc.brca.enrich.filtered$PVAL.ADJ.2<-p.adjust(icgc.brca.enrich.filtered$PVAL, "fdr")
+
+icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]
+icgc.brca.enrich.filtered[PVAL.ADJ.2<0.05,]
+
+icgc.hub.3<-Function.icgc.enrich.coverage(icgc.brca.enrich.filtered, brca.icgc.mut, kegg.edges.refilt, pval.th=0.05, kegg.th=5, pval.col="PVAL.ADJ",gene.th=100, met.hub.th=0.8, table.2=T)
+
+plot(icgc.hub.3$MET.HUBS.GRAPH, layout=layout.fruchterman.reingold)
+heatmap.2(icgc.hub.3$KEGG.COV.MET, scale="none", trace = "none")
+icgc.hub.3$KEGG.COV.SAMPLES
+icgc.hub.3$HUB.COV.SAMPLES
+heatmap.2(icgc.hub.3$HUB.COV.GENES$C01042.C05467.C00246.C00986.C02059, scale="none", trace="none", margins=c(8,8))
+icgc.hub.3$ALL.COVERAGE
+
+icgc.brca.path.3<-Function.kegg.path.enrich(kegg.path, unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$KEGG.ID), kegg.edges.refilt, table.2 = T, gene.th = 100)
+icgc.brca.path.3[PVAL.ADJ<0.05,]
+
+kegg.refilt.dist<-Function.met.node.distance(kegg.edges.refilt, table.2 = T, gene.th = 40, degree.th = 60)
+
+icgc.brca.assign.distance.refilt<-Function.met.assign.distance(icgc.brca.enrich.filtered, kegg.refilt.dist$KEGG.DISTANCE, pval.th = 0.05, pval.column = "PVAL.ADJ")
+
+ggplot(icgc.brca.assign.distance.refilt[EXP.MET.COUNT>=5,], aes(KEGG.ID, DIST)) + geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+icgc.brca.enrich.distance.refilt<-Function.enrich.distance(icgc.brca.assign.distance.refilt, kegg.refilt.dist$KEGG.DISTANCE, exp.met.count.th = 5)
+ggplot(icgc.brca.enrich.distance.refilt, aes(PVAL.ADJ)) + geom_histogram() + theme.format + geom_vline(xintercept=c(0.05), linetype="dashed", colour="red")
+
+icgc.brca.enrich.distance.refilt
+
+#
+icgc.brca.assign.distance.refilt[KEGG.ID=="C00095",]
+x<-kegg.refilt.dist$KEGG.GRAPH
+V(x)$color<-ifelse(V(x)$name=="C00095", "red",
+                   ifelse(V(x)$name %in% icgc.brca.assign.distance.refilt[KEGG.ID=="C00095",]$EXP.METS, "green", "yellow"))
+par(mai=c(0,0,1,0))
+plot(x, layout=layout.fruchterman.reingold, vertex.size=2, vertex.label.cex=0.3, edge.width=0.3)
+dev.off()
+
+y<-unique(icgc.brca.assign.distance.refilt[KEGG.ID=="C00095",]$EXP.METS)
+z<-matrix(nrow=length(y), ncol=length(y), dimnames = list(y, y))
+for (i in y){
+  for (j in y){
+    z[i,j]<-length(intersect(unique(kegg.edges.refilt[KEGG_ID==i,]$GENE),unique(kegg.edges.refilt[KEGG_ID==j,]$GENE)))/
+      length(union(unique(kegg.edges.refilt[KEGG_ID==i,]$GENE),unique(kegg.edges.refilt[KEGG_ID==j,]$GENE)))
+  }
+}
+
+heatmap.2(z, scale = "none", trace="none", margins=c(8,8))
+
+#Validate against Terunuma and Tang differentially expressed metabolites
+length(unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$KEGG.ID))
+
+#TERU
+teru.diff.met<-sapply(rownames(teru.cancer.matrix$MATRIX), function(x) {
+  PVAL=wilcox.test(teru.cancer.matrix$MATRIX[x, ], teru.normal.matrix$MATRIX[x,])$p.value
+})
+teru.diff.met<-data.table(MET=rownames(teru.cancer.matrix$MATRIX), PVAL=teru.diff.met)
+teru.diff.met<-teru.diff.met[!is.na(PVAL),]
+teru.diff.met$PVAL.ADJ<-p.adjust(teru.diff.met$PVAL, method="fdr")
+teru.diff.met[PVAL.ADJ<0.05,]
+
+hist(teru.diff.met[MET %in% unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$KEGG.ID),]$PVAL.ADJ)
+binom.test( 23 ,24,p = 196/241, alternative = "greater") #KEGG.ID
+binom.test( 8,9,p = 196/241, alternative = "greater") #EXP.METS
+phyper(23-1,196, 241-196, 24, lower.tail = F) #KEGG.ID
+phyper(8-1, 196, 241-196, 9, lower.tail = F) #EXP.METS
+
+length(teru.diff.met[MET %in% unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$EXP.METS),]$PVAL.ADJ)
+sum(teru.diff.met[MET %in% unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$EXP.METS),]$PVAL.ADJ<0.05)
+binom.test(20,22,p = 196/241, alternative = "greater") #EXP.METS
+
+#TANG
+colnames(tang.matrix)<-colnames(data.frame(tang.matrix))
+tang.diff.met<-apply(tang.matrix, 1,  function(x) {
+  normal=c("NORMAL", "NORMAL.1", "NORMAL.2", "NORMAL.3", "NORMAL.4")
+  cancer=setdiff(colnames(tang.matrix), normal)
+  PVAL=wilcox.test(x[normal], x[cancer])$p.value
+})
+tang.diff.met<-data.table(MET=rownames(tang.matrix), PVAL=tang.diff.met)
+tang.diff.met<-tang.diff.met[!is.na(PVAL),]
+tang.diff.met$PVAL.ADJ<-p.adjust(tang.diff.met$PVAL, method="fdr")
+tang.diff.met[PVAL.ADJ<0.05,]
+
+hist(tang.diff.met[MET %in% unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$KEGG.ID),]$PVAL.ADJ)
+binom.test(16, 22,143/207, alternative = "greater") #KEGG.ID
+binom.test(8, 9,143/207, alternative = "greater") #EXP.METS
+
+length(tang.diff.met[MET %in% unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$KEGG.ID),]$PVAL.ADJ)
+sum(tang.diff.met[MET %in% unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$KEGG.ID),]$PVAL.ADJ<0.05)
+16/22
+30/41
+binom.test(25, 34,143/207, alternative = "greater") #EXP.METS
