@@ -7,9 +7,10 @@ library(pheatmap)
 library(made4)
 library(igraph)
 
-kegg.edges<-Function.kegg.filtered("DATABASES/KEGG/071415.ENZYME.SUB.PROD.MAIN.FILT", "DATABASES/RECON/042215.PROCESSED.METABOLITES", weight.filter = 60, n.edge.filter = 60)
+kegg.edges<-Function.kegg.filtered("DATABASES/KEGG/071415.ENZYME.SUB.PROD.MAIN.FILT", "DATABASES/RECON/042215.PROCESSED.METABOLITES", weight.filter = 60, n.edge.filter = 200)
 
 table.2<-readRDS("PIPELINES/METABOLIC.DRIVERS/OBJECTS/061214_Table.2.rds")
+write.table(table.2, "PIPELINES/METABOLIC.DRIVERS/TABLES/092415.TABLE.2", quote = F, sep = "\t", row.names = F, col.names = F)
 
 gene.length<-fread("DATABASES/UNIPROT/042314_GENE_LENGTH", header=T, sep="\t", stringsAsFactors = F)
 
@@ -272,16 +273,22 @@ icgc.brca.enrich.filtered$PVAL.ADJ.2<-p.adjust(icgc.brca.enrich.filtered$PVAL, "
 icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]
 icgc.brca.enrich.filtered[PVAL.ADJ.2<0.05,]
 
-icgc.hub.3<-Function.icgc.enrich.coverage(icgc.brca.enrich.filtered, brca.icgc.mut, kegg.edges.refilt, pval.th=0.05, kegg.th=5, pval.col="PVAL.ADJ",gene.th=100, met.hub.th=0.8, table.2=T)
+icgc.hub.3<-Function.icgc.enrich.coverage(icgc.brca.enrich.filtered, brca.icgc.mut, kegg.edges.refilt, pval.th=0.05, kegg.th=5, pval.col="PVAL.ADJ",gene.th=40, met.hub.th=0.8, table.2=T)
 
-plot(icgc.hub.3$MET.HUBS.GRAPH, layout=layout.fruchterman.reingold)
+table.2<-rbind(table.2, data.table(METABOLITE=c("S-Adenosylmethionine", "L-Cysteate", "Phenylacetic acid", "Benzenecarboxylic acid", "Butanoic acid", "5'-Deoxy-5-fluorocytidine"),
+                                   KEGG_ID=c("C00019", "C00506", "C07086", "C00180", "C00246","C16635"),
+                                   GENE=c(NA, NA, NA, NA, NA, NA)))
+V(icgc.hub.3$MET.HUBS.GRAPH)$name<-sapply(V(icgc.hub.3$MET.HUBS.GRAPH)$name, function(x)  as.character(table.2[KEGG_ID==x,]$METABOLITE[1]))
+plot(icgc.hub.3$MET.HUBS.GRAPH, layout=layout.fruchterman.reingold, vertex.size=6, vertex.label.cex=0.8, edge.width=0.8, edge.arrow.size=0.15)
+table.2
+
 heatmap.2(icgc.hub.3$KEGG.COV.MET, scale="none", trace = "none")
 icgc.hub.3$KEGG.COV.SAMPLES
 icgc.hub.3$HUB.COV.SAMPLES
-heatmap.2(icgc.hub.3$HUB.COV.GENES$C01042.C05467.C00246.C00986.C02059, scale="none", trace="none", margins=c(8,8))
+heatmap.2(icgc.hub.3$HUB.COV.GENES$C06429.C00606.C00506.C01120.C00510.C05580.C00412.C00245.C00319.C00836.C07086, scale="none", trace="none", margins=c(8,8))
 icgc.hub.3$ALL.COVERAGE
 
-icgc.brca.path.3<-Function.kegg.path.enrich(kegg.path, unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$KEGG.ID), kegg.edges.refilt, table.2 = T, gene.th = 100)
+icgc.brca.path.3<-Function.kegg.path.enrich(kegg.path, unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$KEGG.ID), kegg.edges.refilt, table.2 = T, gene.th = 40)
 icgc.brca.path.3[PVAL.ADJ<0.05,]
 
 kegg.refilt.dist<-Function.met.node.distance(kegg.edges.refilt, table.2 = T, gene.th = 40, degree.th = 60)
@@ -356,6 +363,45 @@ binom.test(8, 9,143/207, alternative = "greater") #EXP.METS
 
 length(tang.diff.met[MET %in% unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$KEGG.ID),]$PVAL.ADJ)
 sum(tang.diff.met[MET %in% unique(icgc.brca.enrich.filtered[PVAL.ADJ<0.05,]$KEGG.ID),]$PVAL.ADJ<0.05)
-16/22
-30/41
 binom.test(25, 34,143/207, alternative = "greater") #EXP.METS
+
+#Previous proposal validation with tang and terunuma
+teru.diff.met[MET %in% c("C01194", "C05489", "C00518", "C07490", "C05299", "C11136", "C03033", "C14869", "C05302", "C01194", "C05981", "C00334", "C00404"),]
+tang.diff.met[MET %in% c("C01194", "C05489", "C00518", "C07490", "C05299", "C11136", "C03033", "C14869", "C05302", "C01194", "C05981", "C00334", "C00404"),]
+
+teru.diff.met[MET %in% c("C02297", "C02714"),]
+tang.diff.met[MET %in% c("C02297", "C02714"),]
+
+x<-fread("DATABASES/KEGG/063015.ENZYME.SUB.PROD", header=T)
+length(union(x$SUBSTRATE, x$PRODUCT))
+length(unique(x$Hugo_Symbol))
+
+######APPLY METHOD TO TANG DATASET########
+tang.brca.enrich.1<-Function.icgc.enrich.1(brca.icgc.mut[SAMPLE %in% colnames(tang.matrix),], brca.exp, kegg.edges.refilt, n.samples = 2)
+hist(tang.brca.enrich.1$PVAL.ADJ)
+tang.brca.enrich.1[PVAL.ADJ<0.1,]
+
+tang.diff.met[MET %in% unique(tang.brca.enrich.1[PVAL.ADJ<0.1,]$EXP.METS),]
+
+icgc.brca.enrich.filtered[PVAL.ADJ<0.05,][,list(N.MET=length(unique(EXP.METS))), by="KEGG.ID"][order(N.MET),]
+x<-unique(kegg.edges.refilt[GENE %in% brca.icgc.mut[MUTATION=="MISSENSE",]$Hugo_Symbol,][KEGG_ID %in% icgc.brca.enrich.filtered[PVAL.ADJ<0.05,][,list(N.MET=length(unique(EXP.METS))), by="KEGG.ID"][order(N.MET),]$KEGG.ID,]$GENE)
+c("AKT1", "ARID1A", "ARID1B", "BAP1", "BRCA1", "BRCA2", "BRIP1", "CASP8", "CCND1", "CDH1", "CDKN1B", "CHEK2", "EP300","ERBB2", "ESR1", "ETV6",
+  "FOXA1", "GATA3", "MAP2K4", "MAP3K1", "MAP3K13", "NCOR1", "NOTCH1", "NTRK3", "PALB2", "PBRM1", "RB1", "SMARCD1","TBX3", "TP53", "PIK3CA") %in% table.2.filt$GENE
+
+######NEED TO REFILT TABLE.2 SO WE CAN HAVE GENES ASSOCIATED WITH CANCER PROGRESSION#######
+#Genes in latest original version of kegg.edges do belong to CCG list for breast cancer
+
+table.2.refilt<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/092415.TABLE.2.FILT", header=T)
+length(unique(table.2.refilt$KEGG_ID))
+length(unique(table.2.refilt$GENE))
+table.2.refilt[KEGG_ID=="C00004",]
+table.2.refilt[KEGG_ID=="C00037",]
+table.2.refilt[GENE=="PIK3CA",]
+
+table.2.refilt<-Function.kegg.table.filter(table.2.refilt, table.2 = T,gene.th = 60, degree.th = 60)
+icgc.brca.enrich.1<-readRDS("PIPELINES/METABOLIC.DRIVERS/OBJECTS/092215.icgc.brca.enrich.1.table.2.rds")
+
+icgc.hub.table.2.refilt<-Function.icgc.enrich.coverage(icgc.brca.enrich.1[KEGG.ID %in% table.2.refilt$KEGG_ID & EXP.METS %in% table.2.refilt$KEGG_ID,], 
+                                                       brca.icgc.mut, table.2.refilt, 
+                                                       pval.th=0.05, kegg.th=5, pval.col="PVAL.ADJ", 
+                                                       gene.th=60, met.hub.th=0.8, table.2=T)
