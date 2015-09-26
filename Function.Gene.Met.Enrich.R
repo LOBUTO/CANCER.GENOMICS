@@ -42,7 +42,7 @@ Function.icgc.enrich.2<-function(icgc.mut, brca.exp, table.2, edges=F){
   internal.function<-function(samples){
     
     not.samples<-setdiff(colnames(brca.exp$tumor), samples)
-    met.pvals<-sapply(exp.mets, function(x) {
+    met.pvals<-parSapply(cl,exp.mets, function(x) {
       met.hugos<-unique(exp.table[KEGG.ID==x, ]$Hugo_Symbol)
       PVAL=wilcox.test(rowMeans(brca.exp$tumor[met.hugos, samples]), rowMeans(brca.exp$tumor[met.hugos, not.samples]), paired = T)$p.value
       return(PVAL)
@@ -51,7 +51,6 @@ Function.icgc.enrich.2<-function(icgc.mut, brca.exp, table.2, edges=F){
     main.mets$PVAL.ADJ<-p.adjust(main.mets$PVAL, method="fdr")
     
     count<<-count+1
-    write.table(count, "log.txt")
     print (count)
     return(main.mets)
   }
@@ -68,7 +67,7 @@ Function.icgc.enrich.2<-function(icgc.mut, brca.exp, table.2, edges=F){
   #Executing
   print (length(unique(mut.table$Hugo_Symbol)))
   mut.genes<-unique(mut.table$Hugo_Symbol)
-  main.list<-parLapply(cl, mut.genes, function(y){
+  main.list<-lapply(mut.genes, function(y){
     mut.samples<-unique(mut.table[Hugo_Symbol==y, ]$SAMPLE)
     met.table<-internal.function(mut.samples)
     met.table$Hugo_Symbol<-y
