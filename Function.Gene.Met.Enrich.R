@@ -29,7 +29,7 @@ Function.icgc.enrich.2<-function(icgc.mut, brca.exp, table.2, edges=F){
   #Filter mutation table by those genes that have at least 5 samples assocaited to them
   mut.table<-icgc.mut[MUTATION=="MISSENSE",]
   mut.table[,N.SAMPLES:=length(unique(SAMPLE)), by="Hugo_Symbol"]
-  mut.table<-mut.table[N.SAMPLES>=5,]
+  mut.table<-mut.table[N.SAMPLES>=10,]
   
   #Filter expression metabolites by those that have at least 4 genes associated to them
   exp.table<-table.2[Hugo_Symbol %in% rownames(brca.exp$tumor),]
@@ -51,6 +51,7 @@ Function.icgc.enrich.2<-function(icgc.mut, brca.exp, table.2, edges=F){
     main.mets$PVAL.ADJ<-p.adjust(main.mets$PVAL, method="fdr")
     
     count<<-count+1
+    write.table(count, "log.txt")
     print (count)
     return(main.mets)
   }
@@ -72,7 +73,6 @@ Function.icgc.enrich.2<-function(icgc.mut, brca.exp, table.2, edges=F){
     met.table<-internal.function(mut.samples)
     met.table$Hugo_Symbol<-y
     
-    write.table(count, "log.txt")
     return(met.table)
   })
   main.table<-do.call(rbind, main.list)
