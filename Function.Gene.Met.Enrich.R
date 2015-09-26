@@ -95,7 +95,7 @@ table.2<-readRDS(args[3])
 output.file<-args[4]
 
 #Execute
-icgc.brca.enrich.1<-Function.icgc.enrich.1(brca.icgc.mut, brca.exp, table.2, edges=F)
+icgc.brca.enrich.1<-Function.icgc.enrich.2(brca.icgc.mut, brca.exp, table.2, edges=F)
 
 #Save
 saveRDS(object = icgc.brca.enrich.1 , file = output.file)
