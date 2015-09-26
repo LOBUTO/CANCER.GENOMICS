@@ -385,23 +385,68 @@ tang.diff.met[MET %in% unique(tang.brca.enrich.1[PVAL.ADJ<0.1,]$EXP.METS),]
 
 icgc.brca.enrich.filtered[PVAL.ADJ<0.05,][,list(N.MET=length(unique(EXP.METS))), by="KEGG.ID"][order(N.MET),]
 x<-unique(kegg.edges.refilt[GENE %in% brca.icgc.mut[MUTATION=="MISSENSE",]$Hugo_Symbol,][KEGG_ID %in% icgc.brca.enrich.filtered[PVAL.ADJ<0.05,][,list(N.MET=length(unique(EXP.METS))), by="KEGG.ID"][order(N.MET),]$KEGG.ID,]$GENE)
-c("AKT1", "ARID1A", "ARID1B", "BAP1", "BRCA1", "BRCA2", "BRIP1", "CASP8", "CCND1", "CDH1", "CDKN1B", "CHEK2", "EP300","ERBB2", "ESR1", "ETV6",
-  "FOXA1", "GATA3", "MAP2K4", "MAP3K1", "MAP3K13", "NCOR1", "NOTCH1", "NTRK3", "PALB2", "PBRM1", "RB1", "SMARCD1","TBX3", "TP53", "PIK3CA") %in% table.2.filt$GENE
+ccg.genes<-c("AKT1", "ARID1A", "ARID1B", "BAP1", "BRCA1", "BRCA2", "BRIP1", "CASP8", "CCND1", "CDH1", "CDKN1B", "CHEK2", "EP300","ERBB2", "ESR1", "ETV6",
+  "FOXA1", "GATA3", "MAP2K4", "MAP3K1", "MAP3K13", "NCOR1", "NOTCH1", "NTRK3", "PALB2", "PBRM1", "RB1", "SMARCD1","TBX3", "TP53", "PIK3CA") 
+sum(ccg.genes %in% table.2.refilt$Hugo_Symbol)
 
 ######NEED TO REFILT TABLE.2 SO WE CAN HAVE GENES ASSOCIATED WITH CANCER PROGRESSION#######
 #Genes in latest original version of kegg.edges do belong to CCG list for breast cancer
 
-table.2.refilt<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/092415.TABLE.2.FILT", header=T)
+table.2.refilt<-fread("PIPELINES/METABOLIC.DRIVERS/TABLES/092415.TABLE.2.FILT", header=T) #Done in python
 length(unique(table.2.refilt$KEGG_ID))
 length(unique(table.2.refilt$GENE))
-table.2.refilt[KEGG_ID=="C00004",]
+table.2.refilt[KEGG_ID=="C00005",]
 table.2.refilt[KEGG_ID=="C00037",]
 table.2.refilt[GENE=="PIK3CA",]
 
-table.2.refilt<-Function.kegg.table.filter(table.2.refilt, table.2 = T,gene.th = 60, degree.th = 60)
+
+table.2.refilt<-Function.kegg.table.filter(table.2.refilt, table.2 = T,gene.th = 195, degree.th = 285) 
 icgc.brca.enrich.1<-readRDS("PIPELINES/METABOLIC.DRIVERS/OBJECTS/092215.icgc.brca.enrich.1.table.2.rds")
 
-icgc.hub.table.2.refilt<-Function.icgc.enrich.coverage(icgc.brca.enrich.1[KEGG.ID %in% table.2.refilt$KEGG_ID & EXP.METS %in% table.2.refilt$KEGG_ID,], 
+
+icgc.brca.enrich.1.table.2.refilt<-icgc.brca.enrich.1[KEGG.ID %in% table.2.refilt$KEGG_ID & EXP.METS %in% table.2.refilt$KEGG_ID,][,c("KEGG.ID", "EXP.METS", "PVAL"),with=F]
+icgc.brca.enrich.1.table.2.refilt[,PVAL.ADJ:=p.adjust(PVAL, method="fdr"), "KEGG.ID"]
+icgc.brca.enrich.1.table.2.refilt[PVAL.ADJ<0.05,]
+
+
+icgc.hub.table.2.refilt<-Function.icgc.enrich.coverage(icgc.brca.enrich.1.table.2.refilt, 
                                                        brca.icgc.mut, table.2.refilt, 
-                                                       pval.th=0.05, kegg.th=5, pval.col="PVAL.ADJ", 
-                                                       gene.th=60, met.hub.th=0.8, table.2=T)
+                                                       pval.th=0.05, kegg.th=3, pval.col="PVAL.ADJ", 
+                                                       gene.th=500, met.hub.th=0.7, table.2=T)
+
+heatmap.2(icgc.hub.table.2.refilt$KEGG.COV.MET, scale="none", trace = "none")
+icgc.hub.table.2.refilt$KEGG.COV.SAMPLES
+plot(icgc.hub.table.2.refilt$MET.HUBS.GRAPH)
+icgc.hub.table.2.refilt$HUB.COV.SAMPLES
+heatmap.2(icgc.hub.table.2.refilt$HUB.COV.GENES$C01762.C00387.C00559.C00239, scale="none", trace="none", margins=c(8,8))
+icgc.hub.table.2.refilt$ALL.COVERAGE
+
+
+
+
+hist(teru.diff.met[MET %in% unique(icgc.brca.enrich.1.table.2.refilt[PVAL.ADJ<0.05,]$EXP.METS),]$PVAL.ADJ)
+length(teru.diff.met[MET %in% unique(icgc.brca.enrich.1.table.2.refilt[PVAL.ADJ<0.05,]$EXP.METS),]$PVAL.ADJ)
+sum(teru.diff.met[MET %in% unique(icgc.brca.enrich.1.table.2.refilt[PVAL.ADJ<0.05,]$EXP.METS),]$PVAL.ADJ<0.05)
+binom.test(29, 31, 196/241)
+
+hist(tang.diff.met[MET %in% unique(icgc.brca.enrich.1.table.2.refilt[PVAL.ADJ<0.05,]$EXP.METS),]$PVAL.ADJ)
+length(tang.diff.met[MET %in% unique(icgc.brca.enrich.1.table.2.refilt[PVAL.ADJ<0.05,]$EXP.METS),]$PVAL.ADJ)
+sum(tang.diff.met[MET %in% unique(icgc.brca.enrich.1.table.2.refilt[PVAL.ADJ<0.05,]$EXP.METS),]$PVAL.ADJ<0.05)
+binom.test(23,30, 143/207)
+
+method.ccg.1<-Function.cumulative.ccg(icgc.brca.enrich.1.table.2.refilt, table.2.refilt, pval.th = 0.05, table.2 = T)
+ggplot(method.ccg.1$EXP.MET.CCG, aes(LEVEL, CCG.RATIO)) + geom_point() + geom_line()
+method.ccg.1$EXP.MET.CCG
+icgc.brca.enrich.1.table.2.refilt[PVAL.ADJ<0.05,][,list(N=length(unique(KEGG.ID))), by="EXP.METS"][order(N, decreasing = T),]
+
+length(unique(icgc.brca.enrich.1.table.2.refilt[PVAL.ADJ<0.05,]$KEGG.ID))
+length(unique(icgc.brca.enrich.1.table.2.refilt[PVAL.ADJ<0.05,]$EXP.METS))
+
+grid.search.1<-Function.grid.search.1()
+grid.search.1[TERU.PVAL<0.05 & TANG.PVAL<0.05,]
+grid.search.1[TERU.PVAL<0.1,]
+grid.search.1[order(TERU.PVAL, TANG.PVAL)]
+grid.search.1[order(TANG.PVAL, TERU.PVAL)]
+
+hist(grid.search.1$TERU.PVAL)
+grid.search.1[TERU.PVAL<0.1,][C01194==T & C05981==T,][,list(GENE.TH=GENE.TH[1], DEGREE.TH=DEGREE.TH[1], SIG.KEGG.ID=SIG.KEGG.ID[1], SIG.EXP.METS=SIG.EXP.METS[1]), by="TERU.PVAL"]
