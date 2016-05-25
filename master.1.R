@@ -4,6 +4,9 @@ library(reshape2)
 tcga.drug.feat <- readRDS("~/Documents/FOLDER/OBJECTS/050916.TCGA.DRUG.FEAT.rds")
 nci.cgp.feat.class <- readRDS("~/Documents/FOLDER/OBJECTS/052516.NCI.CGP.FEAT.CLASS.rds")
 all.tcga.clinical <- readRDS("~/Documents/FOLDER/OBJECTS/050916.ALL.TCGA.CLINICAL.rds")
+cancer.samples <- readRDS("~/Documents/FOLDER/OBJECTS/052016.CANCER.SAMPLES.rds")
+
+target.samples <- unique(cancer.samples[CANCER=="Positive",]$SAMPLE)
 
 for (i in c(0)){
   print (i)
@@ -11,7 +14,7 @@ for (i in c(0)){
   #ITERATE THROUGH RANDOM SAMPLING
   for (iter in 1){
 
-    test.table <- tcga.drug.feat$FEAT.TABLE[DRUG %in% target.drug,][SAMPLE %in% target.samples,]
+    test.table <- tcga.drug.feat$FEAT.TABLE[SAMPLE %in% target.samples,]
     setnames(test.table, colnames(cgp.cor.AUC))
     temp.table <- nci.cgp.feat.class
     train.rows <- sample(1:nrow(temp.table), nrow(temp.table)*0.8)
