@@ -1,17 +1,19 @@
 library(data.table)
 library(reshape2)
 
-for (i in c(0.6)){
-  print (i)
+tcga.drug.feat <- readRDS("~/Documents/FOLDER/OBJECTS/050916.TCGA.DRUG.FEAT.rds")
+nci.cgp.feat.class <- readRDS("~/Documents/FOLDER/OBJECTS/052516.NCI.CGP.FEAT.CLASS.rds")
+all.tcga.clinical <- readRDS("~/Documents/FOLDER/OBJECTS/050916.ALL.TCGA.CLINICAL.rds")
 
-  selected.drugs <- unique(nci.gi50$NSC)
+for (i in c(0)){
+  print (i)
 
   #ITERATE THROUGH RANDOM SAMPLING
   for (iter in 1){
 
     test.table <- tcga.drug.feat$FEAT.TABLE[DRUG %in% target.drug,][SAMPLE %in% target.samples,]
     setnames(test.table, colnames(cgp.cor.AUC))
-    train.table <- nci.cgp.feat[Compound %in% selected.drugs, ]
+    train.table <- nci.cgp.feat.class
 
     test.table <- test.table[order(cell_name),] #Need to order to get survival curves later!!!
     #test.table$NORM_AUC <- -test.table$NORM_AUC
@@ -22,7 +24,7 @@ for (i in c(0.6)){
 
     target.drug <- "ALL"
     file.name <- paste0("CGP.AUC_DRUG.TH_", i ,"_",target.drug, "_TARGET",".",iter)
-    file.name <- paste0("PIPELINES/METABOLIC.DRIVERS/TABLES/DRUG.PRED/", "SMART.BATCH.COR", "/", file.name)
+    file.name <- paste0("~/Documents/FOLDER/TABLES/TCGA.TRAINING/", file.name)
 
     write.table(test.table, paste0(file.name, ".TEST", ".1"), sep = "\t", quote = F, row.names = F, col.names = T )
 
@@ -40,7 +42,7 @@ for (i in c(0.6)){
 
     #Write clinical table in valid table order
     write.table(all.tcga.clinical[SAMPLE %in% test.table$cell_name,][order(SAMPLE),],
-                "PIPELINES/METABOLIC.DRIVERS/TABLES/DRUG_THEANO_PRED/MLP/REGRESSION/TESTING/TRYING.FIGURES/master.clinical.txt",
+                "~/Documents/FOLDER/TABLES/TCGA.TRAINING/master.clinical.txt",
                 sep="\t", quote=F, row.names = F, col.names=T )
   }
 }
