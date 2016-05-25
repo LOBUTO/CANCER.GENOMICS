@@ -5,6 +5,7 @@ tcga.drug.feat <- readRDS("~/Documents/FOLDER/OBJECTS/050916.TCGA.DRUG.FEAT.rds"
 nci.cgp.feat.class <- readRDS("~/Documents/FOLDER/OBJECTS/052516.NCI.CGP.FEAT.CLASS.rds")
 all.tcga.clinical <- readRDS("~/Documents/FOLDER/OBJECTS/050916.ALL.TCGA.CLINICAL.rds")
 cancer.samples <- readRDS("~/Documents/FOLDER/OBJECTS/052016.CANCER.SAMPLES.rds")
+cgp.cor.AUC <- readRDS("~/Documents/FOLDER/OBJECTS/052516.CGP.COR.AUC.rds")
 
 target.samples <- unique(cancer.samples[CANCER=="Positive",]$SAMPLE)
 
