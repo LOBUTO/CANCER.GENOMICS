@@ -71,7 +71,7 @@ TRAIN <- x[nrow(x),]$TRAIN
 x <- melt(x,id.vars = "EPOCH")
 
 file.name <- paste0("/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/",
-                    "LOG.OUTPUT/",target.name, ".pdf")
+                    target.name, ".pdf")
 pdf(file.name, width=12, height=8)
 
 grid.arrange(
@@ -94,13 +94,13 @@ plot.epochs <- sort(unique(x.values$EPOCH), decreasing = T)[1:4]
 x.values <- x.values[EPOCH %in% plot.epochs,]
 print (dim(x.values))
 
-master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING//master.clinical.txt", header=T)
+master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/master.clinical.txt", header=T)
 print (dim(master.clinical))
 x.values$LIVED <- master.clinical$LIVED
 print (dim(x.values))
 
 file.name <- paste0("/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/",
-                    "LOG.OUTPUT/",target.name, ".values.pdf")
+                    target.name, ".values.pdf")
 pdf(file.name, width=12, height=8)
 
 ggplot(x.values, aes(factor(PREDICTED), LIVED)) + geom_boxplot() + geom_jitter(colour="steelblue4", size=0.2) +
@@ -119,7 +119,7 @@ dev.off()
 master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1)
 
 file.name <- paste0("/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/",
-                    "LOG.OUTPUT/",target.name, ".survival.pdf")
+                    target.name, ".survival.pdf")
 pdf(file.name, width=12, height=8)
 
 plot.list <- lapply(plot.epochs, function(ep) {
