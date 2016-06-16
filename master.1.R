@@ -2,6 +2,7 @@ library(data.table)
 library(reshape2)
 
 tcga.drug.feat <- readRDS("~/Documents/FOLDER/OBJECTS/050916.TCGA.DRUG.FEAT.rds")
+tcga.drug.feat.filtered <- readRDS("~/Documents/FOLDER/OBJECTS/061616.TCGA.DRUG.FEAT.FILTERED.2.rds")
 nci.cgp.feat.class <- readRDS("~/Documents/FOLDER/OBJECTS/052516.NCI.CGP.FEAT.CLASS.rds")
 all.tcga.clinical <- readRDS("~/Documents/FOLDER/OBJECTS/050916.ALL.TCGA.CLINICAL.rds")
 cancer.samples <- readRDS("~/Documents/FOLDER/OBJECTS/052016.CANCER.SAMPLES.rds")
@@ -16,7 +17,10 @@ for (i in c(0)){
   for (iter in 1){
 
     test.table <- tcga.drug.feat$FEAT.TABLE[SAMPLE %in% target.samples,]
+    #test.table <- tcga.drug.feat.filtered[SAMPLE %in% target.samples,]
     setnames(test.table, colnames(cgp.cor.AUC))
+    test.table$NORM_AUC <- scale(test.table$NORM_AUC)
+    print (dim(test.table))
 
     temp.table <- nci.cgp.feat.class
     train.rows <- sample(1:nrow(temp.table), nrow(temp.table)*0.8)
@@ -34,16 +38,16 @@ for (i in c(0)){
     write.table(test.table, paste0(file.name, ".TEST", ".1"), sep = "\t", quote = F, row.names = F, col.names = T )
 
     #Write indices
-    batch.size <- 100
-    train.index <- rep(batch.size, nrow(train.table)%/%batch.size)
-
-    l.batch <- nrow(train.table)%%batch.size
-    if (l.batch>80){
-      train.index <- c(train.index, l.batch)
-    }
+    # batch.size <- 100
+    # train.index <- rep(batch.size, nrow(train.table)%/%batch.size)
+    #
+    # l.batch <- nrow(train.table)%%batch.size
+    # if (l.batch>80){
+    #   train.index <- c(train.index, l.batch)
+    # }
     #train.index <- as.vector(table(train.table$Compound))
     write.table(train.table, paste0(file.name, ".TRAIN", ".1"), sep = "\t", quote = F, row.names = F, col.names = T )
-    write.table(train.index, paste0(file.name, ".TRAIN.INDEX.1"), row.names = F, quote = F, col.names = F)
+    #write.table(train.index, paste0(file.name, ".TRAIN.INDEX.1"), row.names = F, quote = F, col.names = F)
 
     #Write clinical table in valid table order
     write.table(all.tcga.clinical[SAMPLE %in% test.table$cell_name,][order(SAMPLE),],

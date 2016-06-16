@@ -8,7 +8,8 @@ import numpy
 import theano
 import cPickle
 import theano.tensor as T
-from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+#from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+from theano.tensor.shared_randomstreams import RandomStreams
 
 def pear (x, y):
 
@@ -236,6 +237,7 @@ class LogisticRegression(object):
                 ('y', y.type, 'y_pred', self.y_pred.type)
             )
         # check if y is of the correct datatype
+
         return T.mean(T.neq(self.y_pred, y))
         # if y.dtype.startswith('int'):
         #     # the T.neq operator returns a vector of 0s and 1s, where 1
@@ -243,6 +245,10 @@ class LogisticRegression(object):
         #     return T.mean(T.neq(self.y_pred, y))
         # else:
         #     raise NotImplementedError()
+
+    def diff(self, y):
+        setdiff = self.y_pred - y
+        return T.mean(abs(setdiff))
 
 def drop(input, rng, p=0.5):
     """
@@ -362,40 +368,41 @@ class MLP(object):
 
         # The logistic regression layer gets as input the hidden units
         # of the hidden layer
-        self.linearRegressionLayer = LinearRegression(
+        self.logRegressionLayer = LogisticRegression(
             input=getattr(self, "layer_" + str(layer_number-1)).output,
             n_in=n_hidden[layer_number-1],
             n_out=n_out,
             rng=rng #,batch_size=batch_size
         )
-        self.params = self.params + self.linearRegressionLayer.params
+        self.params = self.params + self.logRegressionLayer.params
 
         #L1 and L2 regularization
         self.L1 = (
-            abs(self.layer_0.W).sum() + abs(self.linearRegressionLayer.W).sum()
+            abs(self.layer_0.W).sum() + abs(self.logRegressionLayer.W).sum()
         )
 
         self.L2_sqr = (
-            (self.layer_0.W ** 2).sum() + (self.linearRegressionLayer.W ** 2).sum()
+            (self.layer_0.W ** 2).sum() + (self.logRegressionLayer.W ** 2).sum()
         )
         #
 
-        # self.negative_log_likelihood = (
-        #     self.logRegressionLayer.negative_log_likelihood
-        # )
-        #
-        # self.errors = self.logRegressionLayer.errors
-        # self.pred = self.logRegressionLayer.pred
-        self.errors = self.linearRegressionLayer.errors
-        self.loss = self.linearRegressionLayer.loss
-        self.NRMSE = self.linearRegressionLayer.NRMSE
-        self.pred = self.linearRegressionLayer.pred
+        self.negative_log_likelihood = (
+            self.logRegressionLayer.negative_log_likelihood
+        )
+
+        self.errors = self.logRegressionLayer.errors
+        self.pred = self.logRegressionLayer.pred
+        self.diff = self.logRegressionLayer.diff
+        # self.errors = self.linearRegressionLayer.errors
+        # self.loss = self.linearRegressionLayer.loss
+        # self.NRMSE = self.linearRegressionLayer.NRMSE
+        # self.pred = self.linearRegressionLayer.pred
 
         self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
 
 def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
              datasets="datasets", train_batch_size=20,
-             n_hidden=[500,200,100], p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER", INDICES=[]):
+             n_hidden=[500,200,100], p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"):
 
     #Demonstrate stochastic gradient descent optimization for a multilayer
     #perceptron
@@ -408,15 +415,13 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     valid_batch_size = valid_set_x.get_value(borrow=True).shape[0]
     test_batch_size= test_set_x.get_value(borrow=True).shape[0]
     N_IN=valid_set_x.get_value(borrow=True).shape[1]
+    train_samples = train_set_x.get_value(borrow=True).shape[0]
 
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] / train_batch_size
     n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / valid_batch_size
     n_test_batches = test_set_x.get_value(borrow=True).shape[0] / test_batch_size
 
-    #INDICES
-    TRAIN_INDEX = INDICES[0]
-    n_train_batches = len(TRAIN_INDEX)-1
 
     ######################
     # BUILD ACTUAL MODEL #
@@ -425,10 +430,10 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
     # allocate symbolic variables for the data
     index = T.lscalar("i") # index to a [mini]batch
-    index_l = T.lscalar("l") #MODIFIED
+    vector = T.vector("v", dtype='int32')
     x = T.matrix('x')
-    y = T.vector('y')
-    #y_value = T.vector("y_value")
+    y = T.ivector('y')
+    y_value = T.vector("y_value")
 
     is_train = T.iscalar('is_train') # pseudo boolean for switching between training and prediction
 
@@ -442,21 +447,22 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         input=x,
         n_in=N_IN,   #FIXED !!!!!!
         n_hidden=n_hidden,
-        n_out=1,
+        n_out=2,
         p=p,
         dropout=dropout,
         input_p=input_p #, batch_size=batch_size
     )
 
+    #classifier.negative_log_likelihood(y)
     cost = (
-        classifier.errors(y)
+        classifier.negative_log_likelihood(y)
         + L1_reg * classifier.L1
         + L2_reg * classifier.L2_sqr
     )
 
     validate_model = theano.function(
         inputs=[index],
-        outputs=classifier.errors(y),
+        outputs=classifier.negative_log_likelihood(y),
         givens={
             x: valid_set_x[index * valid_batch_size:(index + 1) * valid_batch_size],
             y: valid_set_y[index * valid_batch_size:(index + 1) * valid_batch_size],
@@ -467,10 +473,10 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
     test_model = theano.function(
         inputs=[index],
-        outputs=classifier.loss(y),
+        outputs=classifier.diff(y_value),
         givens={
             x: test_set_x[index * test_batch_size:(index + 1) * test_batch_size],
-            y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
+            y_value: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
             is_train: numpy.cast['int32'](0)
         },
         on_unused_input='warn',
@@ -478,10 +484,10 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
     test_pred = theano.function(
         inputs=[index],
-        outputs=classifier.pred(y),
+        outputs=classifier.pred(y_value),
         givens={
             x: test_set_x[index * test_batch_size:(index + 1) * test_batch_size],
-            y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
+            y_value: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
             is_train: numpy.cast['int32'](0)
         },
         on_unused_input='warn',
@@ -509,7 +515,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         # Note that when updating param_update, we are using its old value and also the new gradient step.
         updates.append((param, param - learning_rate*param_update))
         # Note that we don't need to derive backpropagation to compute updates - just use T.grad!
-        updates.append((param_update, momentum*param_update + (1. - momentum)*T.grad(cost, param)/train_batch_size))
+        updates.append((param_update, momentum*param_update + (1. - momentum)*T.grad(cost, param)/(2*train_batch_size) ))
 
     """
     gparams = [T.grad(cost, param) for param in classifier.params]
@@ -520,23 +526,23 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     ]
     """
     train_model = theano.function(
-        inputs=[index, index_l],
+        inputs=[vector],
         outputs=cost,
         updates=updates,
         givens={
-            x: train_set_x[index:index_l],
-            y: train_set_y[index:index_l],
+            x: train_set_x[vector,],
+            y: train_set_y[vector,],
             is_train: numpy.cast['int32'](1)
         },
         on_unused_input='warn',
     )
 
     train_error = theano.function(
-        inputs=[index, index_l],
+        inputs=[index],
         outputs=classifier.errors(y),
         givens={
-            x: train_set_x[index:index_l],
-            y: train_set_y[index:index_l],
+            x: train_set_x[index * train_batch_size:(index + 1) * train_batch_size],
+            y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
             is_train: numpy.cast['int32'](0)
         },
         on_unused_input='warn',
@@ -572,10 +578,10 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     #                     "L1"+"\t"+"L2"+"\t"+"N_HIDDEN"+"\t"+"P_HIDDEN"+"\t"+"DROPOUT"+"\t"+ "INPUT_DROPOUT"+"\t"+
     #                     "EPOCH_N"+"\t"+"BATCH_TYPE" + "\t" +"LOSS")
 
-    FILE_OUT = open("/Users/jzamalloa/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/TABLES/DRUG_THEANO_PRED/MLP/REGRESSION/TESTING/TRYING.FIGURES/combined_D.txt", "w")
+    FILE_OUT =  open("/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/combined_D.txt", "w")
     FILE_OUT.write("EPOCH" + "\t" + "TRAIN"+ "\t"+"VALID.ERROR" + "\t" + "TEST.COR")
 
-    FILE_OUT_val = open("/Users/jzamalloa/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/TABLES/DRUG_THEANO_PRED/MLP/REGRESSION/TESTING/TRYING.FIGURES/combined_D_values.txt", "w")
+    FILE_OUT_val = open("/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/combined_D_values.txt", "w")
     FILE_OUT_val.write("EPOCH" +"\t" + "ACTUAL" +"\t"+"PREDICTED")
 
     while (epoch < n_epochs) and (not done_looping):
@@ -583,14 +589,15 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         #print "momentum: ", momentum.get_value()
         # print "learning rate: ", learning_rate.get_value()
 
-        if LR_COUNT==50:
-            new_learning_rate = learning_rate.get_value() * 0.9
+        if LR_COUNT==100:
+            new_learning_rate = learning_rate.get_value() * 0.2
             print new_learning_rate
             learning_rate.set_value(numpy.cast[theano.config.floatX](new_learning_rate))
 
-        for minibatch_index in xrange(len(TRAIN_INDEX)-1):
+        for minibatch_index in xrange(n_train_batches):
 
-            minibatch_avg_cost = train_model(TRAIN_INDEX[minibatch_index], TRAIN_INDEX[minibatch_index+1])
+            ran_index = list(numpy.random.randint(low=0, high=train_samples-1, size=train_batch_size))
+            minibatch_avg_cost = train_model(train_index)
 
             # iteration number
             iter = (epoch - 1) * n_train_batches + minibatch_index
@@ -601,7 +608,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
                 validation_losses = [validate_model(i) for i in xrange(n_valid_batches)]
                 this_validation_loss = numpy.mean(validation_losses)
 
-                this_train_error = [train_error(TRAIN_INDEX[i], TRAIN_INDEX[i+1]) for i in xrange(len(TRAIN_INDEX)-1)]
+                this_train_error = [train_error(i) for i in xrange(n_train_batches)]
                 this_train_error = numpy.mean(this_train_error)
 
                 print(
@@ -638,6 +645,14 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
                         'best model %f %%') %
                         (epoch, minibatch_index + 1, n_train_batches, test_score))
 
+                    #ONLY SAVE MODEL if validation improves
+                    MODEL = [classifier.logRegressionLayer]
+                    for e in xrange(len(n_hidden)):
+                        MODEL = MODEL + [getattr(classifier, "layer_" + str(e))]
+                    MODEL = MODEL + [rng]
+                    with open(OUT_FOLDER + "/" + drug_name + ".pkl", "wb") as f:
+                        cPickle.dump(MODEL, f)
+
                     #Only write if validation improvement
                     ACTUAL = test_set_y.get_value()
                     PREDICTED = [test_pred(i) for i in xrange(n_test_batches)][0]
@@ -650,9 +665,9 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
             # if patience <= iter:
             #     done_looping = True
             #     break
-            if LR_COUNT==100:
-                done_looping = True
-                break
+            # if LR_COUNT==100:
+            #     done_looping = True
+            #     break
 
         # adaption of momentum
         # if momentum.get_value() < 0.99:
@@ -708,10 +723,10 @@ def shared_drug_dataset_IC50(drug_file, integers=True, target="AUC"):
 ####################################################################################################################################################################################################
 
 #OBTAIN FILES
-OUT_FOLDER="/Users/jzamalloa/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/TABLES/DRUG_THEANO_PRED/MLP/REGRESSION/TESTING/SMART.BATCH.COR.PIC50"
+OUT_FOLDER="/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING"
 TARGET_DRUG="ALL"
 
-IN_FOLDER="/Users/jzamalloa/Documents/Rotation/PIPELINES/METABOLIC.DRIVERS/TABLES/DRUG.PRED/SMART.BATCH.COR"
+IN_FOLDER="~/Documents/FOLDER/TABLES/TCGA.TRAINING"
 INDEX="1"
 METRIC = "AUC"
 
@@ -727,8 +742,8 @@ for niter in [1]:
         TEST_FILE = IN_FILE + "TEST"
 
         target=METRIC
-        train_drug_x, train_drug_y=shared_drug_dataset_IC50(TRAIN_FILE+"."+INDEX, integers=False, target=METRIC)
-        valid_drug_x, valid_drug_y=shared_drug_dataset_IC50(VALID_FILE+".1", integers=False, target=METRIC)
+        train_drug_x, train_drug_y=shared_drug_dataset_IC50(TRAIN_FILE+"."+INDEX, integers=True, target=METRIC)
+        valid_drug_x, valid_drug_y=shared_drug_dataset_IC50(VALID_FILE+".1", integers=True, target=METRIC)
         test_drug_x, test_drug_y=shared_drug_dataset_IC50(TEST_FILE+".1", integers=False, target=METRIC)
         #erlo_x, erlo_y=shared_drug_dataset_IC50(ERLO_FILE, integers=False, target=target) #MODIFIED
 
@@ -742,7 +757,7 @@ for niter in [1]:
 
         #DEEP LEARNING WITHOUT DROPOUT
         NEURONS = (valid_drug_x.get_value(borrow=True).shape[1] +1)*2/3
-        NEURONS = int(NEURONS * 2)
+        #NEURONS = int(NEURONS * 2)
         print NEURONS
         """
         for l in [1]:
@@ -759,11 +774,11 @@ for niter in [1]:
         for drop_out in [0.5]:
 
             for l in [2]:
-                test_mlp(learning_rate=0.09, L1_reg=0, L2_reg=0.0000000, n_epochs=4500, initial_momentum=0.98, input_p=0.5,
-                             datasets=drugval, train_batch_size=1,
+                test_mlp(learning_rate=0.01, L1_reg=0, L2_reg=0.0000000, n_epochs=4500, initial_momentum=0.98, input_p=0.2,
+                             datasets=drugval, train_batch_size=20,
                              n_hidden=[NEURONS]*l, p=drop_out, dropout=True,
-                             drug_name=TARGET_DRUG +".COMBINED_DROPOUT_" ,
-                             OUT_FOLDER = OUT_FOLDER, INDICES = [train_index])
+                             drug_name=TARGET_DRUG +"_nci60_class_model_" ,
+                             OUT_FOLDER = OUT_FOLDER)
 
         print "DONE"
         #"""
