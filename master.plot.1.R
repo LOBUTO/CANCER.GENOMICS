@@ -64,15 +64,17 @@ x <- read.csv("/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/combined_D.
           header=T, sep="\t")
 x <- data.table(x)
 x <- x[1:(nrow(x)-1),]
+#setnames(x, c("EPOCH", "TRAIN", "VALID.ERROR", "VALID.COR"))
+
+TRAIN <- x[nrow(x),]$TRAIN
 VALID.LOSS <- min(x$VALID.ERROR[x$VALID.ERROR!=Inf])
 TEST.LOSS <- x[nrow(x),]$TEST.COR
-TRAIN <- x[nrow(x),]$TRAIN
 
 x <- melt(x,id.vars = "EPOCH")
 
 file.name <- paste0("/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/",
                     target.name, ".pdf")
-pdf(file.name, width=12, height=8)
+pdf(file.name, width=16, height=12)
 
 grid.arrange(
   ggplot(x[variable=="TRAIN",], aes(EPOCH, value, colour=variable)) + geom_line() + theme_bw() + scale_fill_brewer(palette="Set1") +
@@ -90,7 +92,7 @@ x.values <- read.csv("/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/comb
           header=T, sep="\t")
 x.values <- data.table(x.values)
 
-plot.epochs <- sort(unique(x.values$EPOCH), decreasing = T)[1:4]
+plot.epochs <- sort(unique(x.values$EPOCH), decreasing = T)[2:5]
 x.values <- x.values[EPOCH %in% plot.epochs,]
 print (dim(x.values))
 
@@ -98,10 +100,11 @@ master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/m
 print (dim(master.clinical))
 x.values$LIVED <- master.clinical$LIVED
 print (dim(x.values))
+print (x.values)
 
 file.name <- paste0("/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/",
                     target.name, ".values.pdf")
-pdf(file.name, width=12, height=8)
+pdf(file.name, width=16, height=12)
 
 ggplot(x.values, aes(factor(PREDICTED), LIVED)) + geom_boxplot() + geom_jitter(colour="steelblue4", size=0.2) +
   facet_wrap(~EPOCH, ncol=2) + scale_fill_brewer(palette="Set1") + theme_classic() +
@@ -120,7 +123,7 @@ master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1
 
 file.name <- paste0("/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/",
                     target.name, ".survival.pdf")
-pdf(file.name, width=12, height=8)
+pdf(file.name, width=16, height=12)
 
 plot.list <- lapply(plot.epochs, function(ep) {
   ep.clinical <- copy(master.clinical)
