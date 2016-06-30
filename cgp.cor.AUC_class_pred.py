@@ -1,4 +1,7 @@
-#Produces prediction of input model and test table
+#cgp.cor.AUC_class_pred.py
+#Function to predict class from cgp.cor.AUC.class
+
+##################################################################################################################
 
 import pandas as pd
 import os
@@ -225,7 +228,7 @@ class MLP(object):
 
         self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
 
-def shared_drug_dataset_IC50(drug_data, integers=True, target="AUC"):
+def shared_drug_dataset_pred(drug_data, integers=True, target="AUC"):
 
     data_x=drug_data.iloc[:,3:]
 
@@ -273,37 +276,36 @@ def model_prediction(MODEL_FILE, test_drug_x):
 
     return prediction.eval()
 
-#Load file to predict
+##################################################################################################################
+#Load class file to make predictions for each drugs
 IN_FILE = sys.argv[1]
 MODEL_FILE = sys.argv[2]
-SAMPLES_FILE = sys.argv[3]
-METRIC = "LIVED"
+METRIC = "AUC"
 
-#Obtain predictions per cancer type
-all_tcga = pd.read_csv(IN_FILE, sep="\t")
-cancer_samples = pd.read_csv(SAMPLES_FILE, sep="\t")
+all_cgp = pd.read_csv(IN_FILE, sep="\t")
+all_drugs = list(set(all_cgp.Compound))
 
-OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/"
+#Predict and write tables for each drug
+OUT_FOLDER = "/tigress/zamalloa/RESULTS/TCGA.TRAINING/" #For tigress
+OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/" #For Lab
 
-FILE_OUT_val = open(OUT_FOLDER + "tcga_prediction_table.txt", "w")
-FILE_OUT_val.write("CANCER" + "\t" + "SAMPLE" + "\t" + "ACTUAL" +"\t"+"PREDICTED")
+FILE_OUT_val = open(OUT_FOLDER + "cgp_auc_class_predction", "w")
+FILE_OUT_val.write("DRUG" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
 
-for cancer in list(set(cancer_samples.CANCER)):
+COUNT = 0.0
+for drug in all_drugs:
 
-    print (cancer)
-    target_samples = cancer_samples[cancer_samples.CANCER==cancer].SAMPLE
-    target_table = all_tcga[all_tcga.SAMPLE.isin(target_samples)]
-
-    test_drug_x, test_drug_y = shared_drug_dataset_IC50(target_table, integers=False, target=METRIC)
+    test_drug_x, test_drug_y = shared_drug_dataset_pred(all_cgp[all_cgp.Compound==drug], integers=False, target=METRIC)
 
     prediction = model_prediction(MODEL_FILE, test_drug_x)
-    print(prediction)
-
-    target_samples = list(target_table.SAMPLE) #To keep in line with order of prediction table
     actual = test_drug_y.get_value()
 
-    for l in xrange(len(actual)):
-        FILE_OUT_val.write("\n" + cancer + "\t" + target_samples[l] + "\t" + str(actual[l]) + "\t" + str(prediction[l]))
+    for n in xrange(len(actual)):
+        FILE_OUT_val.write("\n" + drug + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+
+    COUNT = COUNT+1
+    print(COUNT/len(all_drugs))
 
 FILE_OUT_val.close()
+
 print("Done predicting!!")

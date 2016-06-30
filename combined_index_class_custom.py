@@ -594,11 +594,11 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     #                     "L1"+"\t"+"L2"+"\t"+"N_HIDDEN"+"\t"+"P_HIDDEN"+"\t"+"DROPOUT"+"\t"+ "INPUT_DROPOUT"+"\t"+
     #                     "EPOCH_N"+"\t"+"BATCH_TYPE" + "\t" +"LOSS")
 
-    FILE_OUT =  open(OUT_FOLDER + "/combined_D.txt", "w")
+    FILE_OUT =  open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "w")
     FILE_OUT.write("EPOCH" + "\t" + "TRAIN"+ "\t"+"VALID.ERROR" + "\t" + "TEST.COR")
     FILE_OUT.close()
 
-    FILE_OUT_val = open(OUT_FOLDER + "/combined_D_values.txt", "w")
+    FILE_OUT_val = open(OUT_FOLDER + "/combined_D_values." + drug_name + ".txt", "w")
     FILE_OUT_val.write("EPOCH" +"\t" + "ACTUAL" +"\t"+"PREDICTED")
     FILE_OUT_val.close()
 
@@ -608,7 +608,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         # print "momentum: ", momentum.get_value()
         # print "learning rate: ", learning_rate.get_value()
         log = "momentum: " + str(momentum.get_value()) + "; learning_rate: " + str(learning_rate.get_value())
-        with open(OUT_FOLDER + "/log.txt", "a") as logfile:
+        with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
             logfile.write(log + "\n")
 
         # if LR_COUNT==1000:
@@ -647,10 +647,10 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
                         this_validation_loss
                     ))
                 # print(log)
-                with open(OUT_FOLDER + "/log.txt", "a") as logfile:
+                with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
                     logfile.write(log + "\n")
 
-                with open(OUT_FOLDER + "/combined_D.txt", "a") as FILE_OUT:
+                with open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "a") as FILE_OUT:
                     FILE_OUT.write("\n"+ str(epoch) + "\t" + str(this_train_error) + "\t"+ str(this_validation_loss) +"\t" +str(test_score))
 
                 # if we got the best validation score until now
@@ -675,7 +675,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
                         'best model %f %%') %
                         (epoch, minibatch_index + 1, EPOCH_SIZE, test_score))
                     # print(log)
-                    with open(OUT_FOLDER + "/log.txt", "a") as logfile:
+                    with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
                         logfile.write(log + "\n")
 
                     #ONLY SAVE MODEL if validation improves
@@ -690,7 +690,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
                     ACTUAL = test_set_y.get_value()
                     PREDICTED = [test_pred(i) for i in xrange(n_test_batches)][0]
 
-                    with open(OUT_FOLDER + "/combined_D_values.txt", "a") as FILE_OUT_val:
+                    with open(OUT_FOLDER + "/combined_D_values." + drug_name + ".txt", "a") as FILE_OUT_val:
                         for l in xrange(len(ACTUAL)):
                             FILE_OUT_val.write("\n" + str(epoch) + "\t" + str(ACTUAL[l]) + "\t" + str(PREDICTED[l]))
                 else:
@@ -757,6 +757,10 @@ def shared_drug_dataset_IC50(drug_file, integers=True, target="AUC"):
 ####################################################################################################################################################################################################
 
 #OBTAIN FILES
+input_layers = [int(l) for l in sys.argv[1:]]
+print(input_layers)
+input_name = ".".join(sys.argv[1:])
+
 OUT_FOLDER="/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING" #For Lab
 OUT_FOLDER="/tigress/zamalloa/RESULTS/TCGA.TRAINING" #For tigress
 TARGET_DRUG="ALL"
@@ -804,8 +808,8 @@ for niter in [1]:
             for l in [2]:
                 test_mlp(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=3000, initial_momentum=0.5, input_p=0.2,
                              datasets=drugval, train_batch_size=100,
-                             n_hidden=[800]*2, p=drop_out, dropout=True,
-                             drug_name=TARGET_DRUG +"_nci60_class_model_" ,
+                             n_hidden=input_layers, p=drop_out, dropout=True,
+                             drug_name=TARGET_DRUG +"_nci60_class_model_" + input_name ,
                              OUT_FOLDER = OUT_FOLDER)
 
         print "DONE"

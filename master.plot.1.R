@@ -60,7 +60,14 @@ if (length(args)>1){
 #       ggtitle(paste0("VALID LOSS: ", VALID.LOSS))
 # dev.off()
 
-x <- read.csv("/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/combined_D.txt",
+TABLES <- "/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/"#For Lab
+TABLES <- "/tigress/zamalloa/TABLES/TCGA.TRAINING/" #For tigress
+RESULTS <- "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/" #For Lab
+RESULTS <- "/tigress/zamalloa/RESULTS/TCGA.TRAINING/" #For tigress
+FIGURES <- "/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/" #For Lab
+FIGURES <- "/tigress/zamalloa/FIGURES/TCGA.TRAINING/" #For tigress
+
+x <- read.csv(paste0(RESULTS,"combined_D.txt"),
           header=T, sep="\t")
 x <- data.table(x)
 x <- x[1:(nrow(x)-1),]
@@ -72,7 +79,7 @@ TEST.LOSS <- x[nrow(x),]$TEST.COR
 
 x <- melt(x,id.vars = "EPOCH")
 
-file.name <- paste0("/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/",
+file.name <- paste0(FIGURES,
                     target.name, ".pdf")
 pdf(file.name, width=16, height=12)
 
@@ -88,7 +95,7 @@ grid.arrange(
 dev.off()
 
 #Plot representation of results
-x.values <- read.csv("/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/combined_D_values.txt",
+x.values <- read.csv(paste0(RESULTS ,"combined_D_values.txt"),
           header=T, sep="\t")
 x.values <- data.table(x.values)
 
@@ -96,13 +103,13 @@ plot.epochs <- sort(unique(x.values$EPOCH), decreasing = T)[2:5]
 x.values <- x.values[EPOCH %in% plot.epochs,]
 print (dim(x.values))
 
-master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/master.clinical.txt", header=T)
+master.clinical <- fread(paste0(TABLES,"master.clinical.txt"), header=T)
 print (dim(master.clinical))
 x.values$LIVED <- master.clinical$LIVED
 print (dim(x.values))
 print (x.values)
 
-file.name <- paste0("/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/",
+file.name <- paste0(FIGURES,
                     target.name, ".values.pdf")
 pdf(file.name, width=16, height=12)
 
@@ -121,7 +128,7 @@ dev.off()
 
 master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1)
 
-file.name <- paste0("/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/",
+file.name <- paste0(FIGURES,
                     target.name, ".survival.pdf")
 pdf(file.name, width=16, height=12)
 
@@ -151,10 +158,10 @@ plot.list <- lapply(plot.epochs, function(ep) {
   return(list(PLOT=ep.plot, LABEL=label))
 })
 
-grid.arrange(plot.list[[1]][["PLOT"]] + geom_text(aes(0.65, 0.85, label= plot.list[[1]][["LABEL"]]), size=3.0)  ,
-             plot.list[[2]][["PLOT"]] + geom_text(aes(0.65, 0.85, label= plot.list[[2]][["LABEL"]]), size=3.0),
-             plot.list[[3]][["PLOT"]] + geom_text(aes(0.65, 0.85, label= plot.list[[3]][["LABEL"]]), size=3.0),
-             plot.list[[4]][["PLOT"]] + geom_text(aes(0.65, 0.85, label= plot.list[[4]][["LABEL"]]), size=3.0),
+grid.arrange(plot.list[[1]][["PLOT"]] + geom_text(aes(0.65, 0.85, label= plot.list[[1]][["LABEL"]]), size=5.0)  ,
+             plot.list[[2]][["PLOT"]] + geom_text(aes(0.65, 0.85, label= plot.list[[2]][["LABEL"]]), size=5.0),
+             plot.list[[3]][["PLOT"]] + geom_text(aes(0.65, 0.85, label= plot.list[[3]][["LABEL"]]), size=5.0),
+             plot.list[[4]][["PLOT"]] + geom_text(aes(0.65, 0.85, label= plot.list[[4]][["LABEL"]]), size=5.0),
             ncol=2, nrow=2)
 
 dev.off()
