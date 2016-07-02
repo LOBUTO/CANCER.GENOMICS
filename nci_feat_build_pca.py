@@ -28,7 +28,7 @@ float32_cols = {c:np.float32 for c in float_cols}
 df  = pd.read_csv(TABLES  + "nci60_all_feat_table_scaled_round.2.csv", sep="\t", engine="c", dtype=float32_cols)
 print(df.shape)
 
-df_labels = pd.read_csv(PCA + nci60.pca.labels.all.csv, sep="\t")
+df_labels = pd.read_csv(PCA + "nci60.pca.labels.all.csv", sep="\t")
 df_labels.columns = ["PCA"]
 print(df_labels.shape)
 
@@ -49,6 +49,8 @@ nci60_pca = pd.DataFrame(nci60_pca)
 
 nci60_pca = pd.concat([df_labels, nci60_pca], axis=1)
 print(list(nci60_pca.column.values)[:10])
+with open(TABLES + "nci_pca.pkl", "wb") as pca:
+    cPickle.dump(nci60_pca, pca) #Store for now
 
 #Obtain tcga features as PC
 tcga_feat = [c for c in df]
