@@ -22,7 +22,7 @@ TABLES = "/tigress/zamalloa/TABLES/TCGA.TRAINING/"
 with open(PCA_MODEL + "nci60.pca.random214.pc500.pkl", "rb") as md:
     pca_model = cPickle.load(md)
 
-# df_test  = pd.read_csv(TABLES + "nci60_all_feat_table_scaled_round.2.csv", sep="\t", nrows=100)
+df_test  = pd.read_csv(TABLES + "nci60_all_feat_table_scaled_round.2.csv", sep="\t", nrows=100)
 # float_cols = [c for c in df_test] # if df_test[c].dtype=="float64"]
 # float32_cols = {c:np.float32 for c in float_cols}
 # df  = pd.read_csv(TABLES  + "nci60_all_feat_table_scaled_round.2.csv", sep="\t", engine="c", dtype=float32_cols)
@@ -53,7 +53,7 @@ rotation = rotation.transpose()
 #     cPickle.dump(nci60_pca, pca) #Store for now
 
 #Obtain tcga features as PC
-tcga_feat = [c for c in df]
+tcga_feat = [c for c in df_test]
 tcga_feat = tcga[tcga_feat]
 
 tcga_pca = scale(tcga_feat)
