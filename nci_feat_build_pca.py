@@ -48,7 +48,7 @@ nci60_pca = np.dot(df, rotation)
 nci60_pca = pd.DataFrame(nci60_pca)
 
 nci60_pca = pd.concat([df_labels, nci60_pca], axis=1)
-print(list(nci60_pca.column.values)[:10])
+print(list(nci60_pca.columns.values)[:10])
 with open(TABLES + "nci_pca.pkl", "wb") as pca:
     cPickle.dump(nci60_pca, pca) #Store for now
 
@@ -65,7 +65,7 @@ tcga_labels = pd.DataFrame(tcga_labels)
 tcga_labels.columns = ["LIVED"]
 
 tcga_pca = pd.concat([tcga_labels, tcga_pca], axis=1)
-print(list(tcga_pca.column.values)[:10])
+print(list(tcga_pca.columns.values)[:10])
 
 print("Done executing")
 #####################################################################################################
