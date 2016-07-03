@@ -3,6 +3,7 @@
 
 import cPickle
 import random
+import sys
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
@@ -10,7 +11,8 @@ from sklearn.preprocessing import scale
 
 ######################################################################################################
 #LOAD INPUTS
-n_pcas = 300
+n_pcas = int(sys.argv[1])
+print(n_pcas)
 splits = 0.8
 
 ######################################################################################################
@@ -27,6 +29,9 @@ float_cols = [c for c in df_test] # if df_test[c].dtype=="float64"]
 float32_cols = {c:np.float32 for c in float_cols}
 df  = pd.read_csv(TABLES  + "nci60_all_feat_table_scaled_round.2.csv", sep="\t", engine="c", dtype=float32_cols)
 print(df.shape)
+
+with open(TABLES + "nci60_all_feat_table_scaled_round.2.pkl", "wb") as nci:
+    cPickle.dump(df, nci) #Store as pickle so it is easier to load later
 
 df_labels = pd.read_csv(PCA + "nci60.pca.labels.all.csv", sep="\t")
 df_labels.columns = ["PCA"]
@@ -50,7 +55,7 @@ nci60_pca = pd.DataFrame(nci60_pca)
 
 nci60_pca = pd.concat([df_labels, nci60_pca], axis=1)
 print(list(nci60_pca.columns.values)[:10])
-with open(TABLES + "nci_pca.pkl", "wb") as pca:
+with open(TABLES + "nci_pca." + str(n_pcas) + ".pkl", "wb") as pca:
     cPickle.dump(nci60_pca, pca) #Store for now
 
 #Obtain tcga features as PC and scale
@@ -81,13 +86,13 @@ valid_table = nci60_pca.iloc[valid_rows]
 print(train_table.shape)
 print(valid_table.shape)
 
-with open(TABLES + "nci60_train_matrix.pkl", "wb") as tr:
+with open(TABLES + "nci60_train_matrix_" + str(n_pcas) + ".pkl", "wb") as tr:
     cPickle.dump(train_table.as_matrix(), tr)
 
-with open(TABLES + "nci60_valid_matrix.pkl", "wb") as vd:
+with open(TABLES + "nci60_valid_matrix_" + str(n_pcas) + ".pkl", "wb") as vd:
     cPickle.dump(valid_table.as_matrix(), vd)
 
-with open(TABLES + "tcga_test_matrix.pkl", "wb") as tc:
+with open(TABLES + "tcga_test_matrix_" + str(n_pcas) + ".pkl", "wb") as tc:
     cPickle.dump(tcga_pca.as_matrix(), tc)
 
 print("DONE!")
