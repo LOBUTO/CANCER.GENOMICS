@@ -731,18 +731,20 @@ def shared_drug_dataset_IC50(drug_data, integers=True, target="AUC"):
 
     data_x=drug_data.iloc[:,1:]
 
-    if target=="AUC":
-        data_y=list(drug_data.NORM_AUC)
-    elif target=="pIC50":
-        data_y=list(drug_data.NORM_pIC50)
-    elif target=="IC50":
-        data_y=list(drug_data.NORM_IC50)
-    elif target=="LIVED":
-        data_y=list(drug_data.LIVED)
-    elif target=="CLASS":
-        data_y=list(drug_data.CLASS)
-    elif target=="PCA":
-        data_y=list(drug_data.PCA)
+    # if target=="AUC":
+    #     data_y=list(drug_data.NORM_AUC)
+    # elif target=="pIC50":
+    #     data_y=list(drug_data.NORM_pIC50)
+    # elif target=="IC50":
+    #     data_y=list(drug_data.NORM_IC50)
+    # elif target=="LIVED":
+    #     data_y=list(drug_data.LIVED)
+    # elif target=="CLASS":
+    #     data_y=list(drug_data.CLASS)
+    # elif target=="PCA":
+    #     data_y=list(drug_data.PCA)
+
+    data_y = list(drug_data[0])
 
     shared_x = theano.shared(np.asarray(data_x, dtype=theano.config.floatX), borrow=True)
     shared_y = theano.shared(np.asarray(data_y, dtype=theano.config.floatX), borrow=True )
@@ -768,12 +770,23 @@ TARGET_DRUG="ALL"
 IN_FOLDER="/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING" #For Lab
 IN_FOLDER="/tigress/zamalloa/TABLES/TCGA.TRAINING" #For tigress
 
-with open(IN_FOLDER + "/nci60_train.pkl", "rb") as tr:
+# with open(IN_FOLDER + "/nci60_train.pkl", "rb") as tr:
+#     train_table = cPickle.load(tr)
+# with open(IN_FOLDER + "/nci60_valid.pkl", "rb") as vd:
+#     valid_table = cPickle.load(vd)
+# with open(IN_FOLDER + "/tcga_test.pkl", "rb") as ts:
+#     test_table = cPickle.load(ts)
+
+with open(IN_FOLDER + "/nci60_train_matrix.pkl", "rb") as tr:
     train_table = cPickle.load(tr)
-with open(IN_FOLDER + "/nci60_valid.pkl", "rb") as vd:
+    train_table = pd.DataFrame(train_table)
+with open(IN_FOLDER + "/nci60_valid_matrix.pkl", "rb") as vd:
     valid_table = cPickle.load(vd)
-with open(IN_FOLDER + "/tcga_test.pkl", "rb") as ts:
+    valid_table = pd.DataFrame(valid_table)
+with open(IN_FOLDER + "/tcga_test_matrix.pkl", "rb") as ts:
     test_table = cPickle.load(ts)
+    test_table = pd.DataFrame(test_table)
+
 
 train_drug_x, train_drug_y=shared_drug_dataset_IC50(train_table, integers=True, target="PCA")
 valid_drug_x, valid_drug_y=shared_drug_dataset_IC50(valid_table, integers=True, target="PCA")
