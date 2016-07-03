@@ -4,7 +4,7 @@ import pandas as pd
 import os
 import sys
 import timeit
-import numpy
+import numpy as np
 import theano
 import cPickle
 import theano.tensor as T
@@ -38,12 +38,12 @@ class LinearRegression(object):
         """
         # start-snippet-1
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
-        #rng = numpy.random.RandomState(23455)
+        #rng = np.random.RandomState(23455)
         if W is None:
-            W_values = numpy.asarray(
+            W_values = np.asarray(
                     rng.uniform(
-                        low=-numpy.sqrt(6. / (n_in + n_out)),
-                        high=numpy.sqrt(6. / (n_in + n_out)),
+                        low=-np.sqrt(6. / (n_in + n_out)),
+                        high=np.sqrt(6. / (n_in + n_out)),
                         size=(n_in, n_out)
                     ),
                     dtype=theano.config.floatX
@@ -52,7 +52,7 @@ class LinearRegression(object):
 
         if b is None :
             b = theano.shared(
-                value=numpy.zeros(
+                value=np.zeros(
                     (n_out,),
                     dtype=theano.config.floatX
                 ),
@@ -66,15 +66,15 @@ class LinearRegression(object):
         """
         if W is None:
             # initialize with 0 the weights W as a matrix of shape (n_in, n_out), modified
-            #numpy.zeros((n_in, n_out)
-            W = theano.shared(value=numpy.asarray(rng.randn(n_in,n_out)*(0.1/n_in**0.5),
+            #np.zeros((n_in, n_out)
+            W = theano.shared(value=np.asarray(rng.randn(n_in,n_out)*(0.1/n_in**0.5),
                                                 dtype=theano.config.floatX),
                               name='W',borrow=True)
 
         if b is None:
             # initialize the biases b as a vector of n_out 0s, modified
-            #numpy.zeros((n_out,)
-            b = theano.shared(value=numpy.asarray(rng.randn(n_out,)*(0.1/n_in**0.5),
+            #np.zeros((n_out,)
+            b = theano.shared(value=np.asarray(rng.randn(n_out,)*(0.1/n_in**0.5),
                                                 dtype=theano.config.floatX),
                               name='b', borrow=True)
         """
@@ -189,10 +189,10 @@ class LogisticRegression(object):
     def __init__(self, input, n_in, n_out, rng, W=None, b=None):
 
         if W is None:
-            W_values = numpy.asarray(
+            W_values = np.asarray(
                     rng.uniform(
-                        low=-numpy.sqrt(6. / (n_in + n_out)),
-                        high=numpy.sqrt(6. / (n_in + n_out)),
+                        low=-np.sqrt(6. / (n_in + n_out)),
+                        high=np.sqrt(6. / (n_in + n_out)),
                         size=(n_in, n_out)
                     ),
                     dtype=theano.config.floatX
@@ -201,7 +201,7 @@ class LogisticRegression(object):
 
         if b is None :
             b = theano.shared(
-                value=numpy.zeros(
+                value=np.zeros(
                     (n_out,),
                     dtype=theano.config.floatX
                 ),
@@ -253,7 +253,7 @@ class LogisticRegression(object):
 
 def drop(input, rng, p=0.5):
     """
-    :type input: numpy.array
+    :type input: np.array
     :param input: layer or weight matrix on which dropout resp. dropconnect is applied
 
     :type p: float or double between 0. and 1.
@@ -278,10 +278,10 @@ class HiddenLayer(object):
         self.input = input
 
         if W is None:
-            W_values = numpy.asarray(
+            W_values = np.asarray(
                 rng.uniform(
-                    low=-numpy.sqrt(6. / (n_in + n_out)),
-                    high=numpy.sqrt(6. / (n_in + n_out)),
+                    low=-np.sqrt(6. / (n_in + n_out)),
+                    high=np.sqrt(6. / (n_in + n_out)),
                     size=(n_in, n_out)
                 ),
                 dtype=theano.config.floatX
@@ -293,11 +293,11 @@ class HiddenLayer(object):
             W = theano.shared(value=W_values, name='W', borrow=True)
 
         if b is None:
-            b_values = numpy.zeros((n_out,), dtype=theano.config.floatX)
+            b_values = np.zeros((n_out,), dtype=theano.config.floatX)
             b = theano.shared(value=b_values, name='b', borrow=True)
 
         if alpha is None:
-            alpha_value = numpy.full((n_out), .1,  dtype=theano.config.floatX)
+            alpha_value = np.full((n_out), .1,  dtype=theano.config.floatX)
             alpha = theano.shared(value=alpha_value, name='alpha', borrow=True)
 
         self.W = W
@@ -321,11 +321,11 @@ class HiddenLayer(object):
         self.params = [self.W, self.b, self.alpha]
 
 def rescale_weights(params, incoming_max):
-    incoming_max = numpy.cast[theano.config.floatX](incoming_max)
+    incoming_max = np.cast[theano.config.floatX](incoming_max)
     for p in params:
         w = p.get_value()
         w_sum = (w**2).sum(axis=0)
-        w[:, w_sum>incoming_max] = w[:, w_sum>incoming_max] * numpy.sqrt(incoming_max) / w_sum[w_sum>incoming_max]
+        w[:, w_sum>incoming_max] = w[:, w_sum>incoming_max] * np.sqrt(incoming_max) / w_sum[w_sum>incoming_max]
         p.set_value(w)
 
 class MLP(object):
@@ -453,7 +453,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
     is_train = T.iscalar('is_train') # pseudo boolean for switching between training and prediction
 
-    rng = numpy.random.RandomState(1234)
+    rng = np.random.RandomState(1234)
 
     # construct the MLP class
     N_HIDDEN = ".".join([str(NN) for NN in n_hidden])
@@ -482,7 +482,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         givens={
             x: valid_set_x[index * valid_batch_size:(index + 1) * valid_batch_size],
             y: valid_set_y[index * valid_batch_size:(index + 1) * valid_batch_size],
-            is_train: numpy.cast['int32'](0)
+            is_train: np.cast['int32'](0)
         },
         on_unused_input='warn',
     )
@@ -493,7 +493,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         givens={
             x: test_set_x[index * test_batch_size:(index + 1) * test_batch_size],
             y_value: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
-            is_train: numpy.cast['int32'](0)
+            is_train: np.cast['int32'](0)
         },
         on_unused_input='warn',
     )
@@ -504,19 +504,19 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         givens={
             x: test_set_x[index * test_batch_size:(index + 1) * test_batch_size],
             y_value: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
-            is_train: numpy.cast['int32'](0)
+            is_train: np.cast['int32'](0)
         },
         on_unused_input='warn',
     )
     ###################################
 
     #learning rate to shared
-    learning_rate = theano.shared(numpy.cast[theano.config.floatX](learning_rate) )
+    learning_rate = theano.shared(np.cast[theano.config.floatX](learning_rate) )
 
     # momentum implementation stolen from
     # http://nbviewer.ipython.org/github/craffel/theano-tutorial/blob/master/Theano%20Tutorial.ipynb
     assert initial_momentum >= 0. and initial_momentum < 1.
-    momentum =theano.shared(numpy.cast[theano.config.floatX](initial_momentum), name='momentum', borrow=True)
+    momentum =theano.shared(np.cast[theano.config.floatX](initial_momentum), name='momentum', borrow=True)
 
     # List of update steps for each parameter
     updates = []
@@ -548,7 +548,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         givens={
             x: train_set_x[vector,],
             y: train_set_y[vector,],
-            is_train: numpy.cast['int32'](1)
+            is_train: np.cast['int32'](1)
         },
         on_unused_input='warn',
     )
@@ -559,7 +559,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         givens={
             x: train_set_x[index * train_batch_size:(index + 1) * train_batch_size],
             y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
-            is_train: numpy.cast['int32'](0)
+            is_train: np.cast['int32'](0)
         },
         on_unused_input='warn',
     )
@@ -576,7 +576,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     improvement_threshold = 0.995 # a relative improvement of this much is considered significant (default = 0.995)
     validation_frequency = min(n_train_batches, patience / 2)
 
-    best_validation_loss = numpy.inf
+    best_validation_loss = np.inf
     best_iter = 0
     test_score = 0.
     start_time = timeit.default_timer()
@@ -614,12 +614,12 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         # if LR_COUNT==1000:
         #     new_learning_rate = learning_rate.get_value() * 0.2
         #     print new_learning_rate
-        #     learning_rate.set_value(numpy.cast[theano.config.floatX](new_learning_rate))
+        #     learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
 
         #for minibatch_index in xrange(n_train_batches):
         for minibatch_index in xrange(EPOCH_SIZE):
 
-            ran_index = list(numpy.random.randint(low=0, high=train_samples-1, size=train_batch_size))
+            ran_index = list(np.random.randint(low=0, high=train_samples-1, size=train_batch_size))
             minibatch_avg_cost = train_model(ran_index)
 
             rescale_weights(classifier.param_to_scale, 15.)
@@ -632,10 +632,10 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
                 # compute zero-one loss on validation set
 
                 validation_losses = [validate_model(i) for i in xrange(n_valid_batches)]
-                this_validation_loss = numpy.mean(validation_losses)
+                this_validation_loss = np.mean(validation_losses)
 
                 this_train_error = [train_error(i) for i in xrange(n_train_batches)]
-                this_train_error = numpy.mean(this_train_error)
+                this_train_error = np.mean(this_train_error)
 
 
                 log = ('epoch %i, minibatch %i/%i, train error %f ,validation error %f %%' %
@@ -669,7 +669,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
                     # test it on the test set
                     test_losses = [test_model(i) for i in xrange(n_test_batches)]
-                    test_score = numpy.mean(test_losses)
+                    test_score = np.mean(test_losses)
 
                     log = ((' epoch %i, minibatch %i/%i, test error of '
                         'best model %f %%') %
@@ -706,13 +706,13 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         # adaption of momentum
         if momentum.get_value() < 0.99:
             new_momentum = 1. - (1. - momentum.get_value()) * 0.999
-            momentum.set_value(numpy.cast[theano.config.floatX](new_momentum))
+            momentum.set_value(np.cast[theano.config.floatX](new_momentum))
         # adaption of learning rate
         new_learning_rate = learning_rate.get_value() * 0.998
-        learning_rate.set_value(numpy.cast[theano.config.floatX](new_learning_rate))
+        learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
         # if epoch%500 == 0:
         #     new_learning_rate = learning_rate.get_value() * 0.1
-        #     learning_rate.set_value(numpy.cast[theano.config.floatX](new_learning_rate))
+        #     learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
 
     end_time = timeit.default_timer()
 
@@ -744,8 +744,8 @@ def shared_drug_dataset_IC50(drug_data, integers=True, target="AUC"):
     elif target=="PCA":
         data_y=list(drug_data.PCA)
 
-    shared_x = theano.shared(numpy.asarray(data_x, dtype=theano.config.floatX), borrow=True)
-    shared_y = theano.shared(numpy.asarray(data_y, dtype=theano.config.floatX), borrow=True )
+    shared_x = theano.shared(np.asarray(data_x, dtype=theano.config.floatX), borrow=True)
+    shared_y = theano.shared(np.asarray(data_y, dtype=theano.config.floatX), borrow=True )
 
     if integers==True:
         return shared_x, T.cast(shared_y, 'int32')
