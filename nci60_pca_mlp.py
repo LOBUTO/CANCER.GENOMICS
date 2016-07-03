@@ -792,7 +792,7 @@ train_drug_x, train_drug_y=shared_drug_dataset_IC50(train_table, integers=True, 
 valid_drug_x, valid_drug_y=shared_drug_dataset_IC50(valid_table, integers=True, target="PCA")
 test_drug_x, test_drug_y=shared_drug_dataset_IC50(test_table, integers=False, target="LIVED")
 
-drugval= [(train_drug_x, train_drug_y), (valid_drug_x, valid_drug_y),(test_drug_x, test_drug_y)]#, (erlo_x, erlo_y)] #MODIFIED
+drugval= [(train_drug_x, train_drug_y), (valid_drug_x, valid_drug_y),(test_drug_x, test_drug_y)]
 
 #DEEP LEARNING WITHOUT DROPOUT
 NEURONS = (valid_drug_x.get_value(borrow=True).shape[1] +1)*2/3
