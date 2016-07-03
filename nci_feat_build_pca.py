@@ -84,7 +84,7 @@ print(valid_table.shape)
 with open(TABLES + "nci60_train_matrix.pkl", "wb") as tr:
     cPickle.dump(train_table.as_matrix(), tr)
 
-with open(TABLES + "nci60_valid_matrx.pkl", "wb") as vd:
+with open(TABLES + "nci60_valid_matrix.pkl", "wb") as vd:
     cPickle.dump(valid_table.as_matrix(), vd)
 
 with open(TABLES + "tcga_test_matrix.pkl", "wb") as tc:
