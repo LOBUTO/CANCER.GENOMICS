@@ -314,16 +314,15 @@ for cancer in list(set(cancer_samples.CANCER)):
     target_samples = cancer_samples[cancer_samples.CANCER==cancer].SAMPLE
     target_table = all_tcga[all_tcga.SAMPLE.isin(target_samples)]
     target_samples = list(target_table.SAMPLE) #To keep in line with order of prediction table
-    print(len(target_samples))
 
     #Do PCA transform prior to model
     tcga_labels = target_table.LIVED
+    tcga_labels = pd.DataFrame({"LIVED": list(tcga_labels) })
+
     target_table = target_table[used_feat]
-    print("pre-scaling")
     target_table = scale(target_table)
 
     target_table = numpy.dot(target_table, rotation)
-    print("post-scaling")
     target_table = scale(target_table)
     target_table = pd.DataFrame(target_table)
 
@@ -333,11 +332,9 @@ for cancer in list(set(cancer_samples.CANCER)):
     test_drug_x, test_drug_y = shared_drug_dataset_IC50(target_table, integers=False, target=METRIC)
 
     prediction = model_prediction(MODEL_FILE, test_drug_x)
-    print(len(prediction))
     print(prediction)
 
     actual = test_drug_y.get_value()
-    print(len(actual))
 
     for l in xrange(len(actual)):
         FILE_OUT_val.write("\n" + cancer + "\t" + target_samples[l] + "\t" + str(actual[l]) + "\t" + str(prediction[l]))
