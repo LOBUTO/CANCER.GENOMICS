@@ -30,8 +30,8 @@ float32_cols = {c:np.float32 for c in float_cols}
 df  = pd.read_csv(TABLES  + "nci60_all_feat_table_scaled_round.2.csv", sep="\t", engine="c", dtype=float32_cols)
 print(df.shape)
 
-with open(TABLES + "nci60_all_feat_table_scaled_round.2.pkl", "wb") as nci:
-    cPickle.dump(df, nci) #Store as pickle so it is easier to load later
+# with open(TABLES + "nci60_all_feat_table_scaled_round.2.pkl", "wb") as nci:
+#     cPickle.dump(df, nci) #Store as pickle so it is easier to load later
 
 df_labels = pd.read_csv(PCA + "nci60.pca.labels.all.csv", sep="\t")
 df_labels.columns = ["PCA"]
