@@ -291,7 +291,7 @@ n_pcas = 300
 #LOAD FILES
 all_tcga = pd.read_csv(IN_FILE, sep="\t")
 
-used_feat = pd.read_csv(BASE_FILE, sep="\t", sep="\t", nrows=100)
+used_feat = pd.read_csv(BASE_FILE, sep="\t", nrows=100)
 used_feat = [c for c in used_feat]
 
 with open(PCA_FILE, "rb") as md:
