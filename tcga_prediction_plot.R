@@ -12,7 +12,7 @@ library(GGally)
 # } else {
 #   target.name <- args[1]
 # }
-target.name <- "nci.60_based.scaled_model.800.800_no.dropout_"
+target.name <- "nci.60_based.pca300_model.300.300_"
 
 IN_FOLDER <- "/tigress/zamalloa/RESULTS/TCGA.TRAINING/" #For tigress
 IN_FOLDER <- "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/" #For Lab
