@@ -285,7 +285,7 @@ PCA_FILE = sys.argv[3]
 MODEL_FILE = sys.argv[4]
 SAMPLES_FILE = sys.argv[5]
 METRIC = "LIVED"
-n_pcas = 300
+n_pcas = 500
 
 ###################################################################################
 #LOAD FILES
