@@ -21,13 +21,13 @@ PCA = "/tigress/zamalloa/TABLES/TCGA.TRAINING/PCA/"
 PCA_MODEL = "/tigress/zamalloa/TABLES/TCGA.TRAINING/PCA.MODELS/"
 TABLES = "/tigress/zamalloa/TABLES/TCGA.TRAINING/"
 
-with open(PCA_MODEL + "nci60.pca.random214.pc500.pkl", "rb") as md:
+with open(PCA_MODEL + "nci60.pca.3.random208.pc1000.pkl", "rb") as md:
     pca_model = cPickle.load(md)
 
-df_test  = pd.read_csv(TABLES + "nci60_all_feat_table_scaled_round.2.csv", sep="\t", nrows=100)
+df_test  = pd.read_csv(TABLES + "nci60_all_feat_table_scaled_round.3.csv", sep="\t", nrows=100)
 float_cols = [c for c in df_test] # if df_test[c].dtype=="float64"]
 float32_cols = {c:np.float32 for c in float_cols}
-df  = pd.read_csv(TABLES  + "nci60_all_feat_table_scaled_round.2.csv", sep="\t", engine="c", dtype=float32_cols)
+df  = pd.read_csv(TABLES  + "nci60_all_feat_table_scaled_round.3.csv", sep="\t", engine="c", dtype=float32_cols)
 print(df.shape)
 
 # with open(TABLES + "nci60_all_feat_table_scaled_round.2.pkl", "wb") as nci:
