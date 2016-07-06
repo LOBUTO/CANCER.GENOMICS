@@ -152,7 +152,7 @@ Function_cgp_all_feat <- function(cgp.file,  DRUGS.MET.PROFILE, cosmic.expressio
 
   #Process chemical Tanimoto data
   DRUGS.MET.PROFILE.CGP <- DRUGS.MET.PROFILE[,1:3,with=F]
-  DRUGS.MET.PROFILE.CGP <- DRUGS.MET.PROFILE.CGP[DRUG %in% unique(cgp$Compound),]
+  DRUGS.MET.PROFILE.CGP <- DRUGS.MET.PROFILE.CGP[DRUG %in% unique(act.table$Compound),]
 
   drugs.prof <- acast(DRUGS.MET.PROFILE.CGP, DRUG~METABOLITE, value.var="TC")
   drugs.prof <- data.table(drugs.prof, keep.rownames = T)
