@@ -134,7 +134,7 @@ Function.pre.cgp.2 <- function (cgp.file, norm.resp="Compound") {
 }
 
 Function_cgp_all_feat <- function(cgp.file,  DRUGS.MET.PROFILE, cosmic.expression, norm.resp="Compound",
-                                  response="pIC50", feat.scaling=T, classify=T) {
+                                  response="pIC50", feat.scaling=T, classify=T, filtered_cols) {
 
   #Process target variable
   if (response=="pIC50" | response=="IC50"){
@@ -177,6 +177,9 @@ Function_cgp_all_feat <- function(cgp.file,  DRUGS.MET.PROFILE, cosmic.expressio
   main.table <- merge(act.table, drugs.prof, by="DRUG")
   main.table <- merge(main.table, cosmic.cast, by = "cell_name")
 
+  #Filter obtained columns
+  main.table <- main.table[,c("cell_name", "DRUG", "NORM.AUC", filtered_cols),with=F]
+
   #Do we need to scale features
   if (feat.scaling==T){
     main.table <- Function.scale.data.table(main.table, col.protect = 1:3)
@@ -187,18 +190,20 @@ Function_cgp_all_feat <- function(cgp.file,  DRUGS.MET.PROFILE, cosmic.expressio
 }
 #####################################################################################################################
 #Load files
+FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/" #For lab
 FOLDER = "/tigress/zamalloa/CGP_FILES/" #For cluster
-FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/"
 
 cgp.file = paste0(FOLDER, "gdsc_manova_input_w5.csv")
 DRUGS.MET.PROFILE = readRDS(paste0(FOLDER, "DRUGS.MET.PROFILE"))
 cosmic.exp <- fread(paste0(FOLDER, "CosmicCLP_CompleteGeneExpression.tsv"), sep="\t", header = T, drop=c(1,4))
+filtered_cols <- fread(paste0(FOLDER, "cols_for_pca"), header=T, sep="\t")[[1]]
 
 #####################################################################################################################
 #Execute
 cgp_all_feat <- Function_cgp_all_feat(cgp.file, DRUGS.MET.PROFILE,
                                       cosmic.exp, norm.resp="Compound",
-                                      response="AUC", feat.scaling=T, classify = F)
+                                      response="AUC", feat.scaling=T, classify = F,
+                                      filtered_cols = filtered_cols)
 
 #####################################################################################################################
 #Store
