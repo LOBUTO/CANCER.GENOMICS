@@ -190,9 +190,9 @@ Function_cgp_all_feat <- function(cgp.file,  DRUGS.MET.PROFILE, cosmic.expressio
 FOLDER = "/tigress/zamalloa/CGP_FILES/" #For cluster
 FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/"
 
-cgp.file = FOLDER + "gdsc_manova_input_w5.csv"
-DRUGS.MET.PROFILE = readRDS(FOLDER + "DRUGS.MET.PROFILE")
-cosmic.exp <- fread(FOLDER +"CosmicCLP_CompleteGeneExpression.tsv", sep="\t", header = T, drop=c(1,4))
+cgp.file = paste0(FOLDER, "gdsc_manova_input_w5.csv")
+DRUGS.MET.PROFILE = readRDS(paste0(FOLDER, "DRUGS.MET.PROFILE"))
+cosmic.exp <- fread(paste0(FOLDER, "CosmicCLP_CompleteGeneExpression.tsv"), sep="\t", header = T, drop=c(1,4))
 
 #####################################################################################################################
 #Execute
