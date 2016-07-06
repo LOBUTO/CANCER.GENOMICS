@@ -35,6 +35,6 @@ for i in xrange(30000, 630000, 30000):
         df.iloc[i:(i+30000),:].to_csv(ff, header=False, sep="\t", index=False, float_format='%.3f')
 
 with open(TABLES + "nci60_all_feat_table_scaled_round.3.csv", "a") as ff:
-    df.iloc[63000:,:].to_csv(ff, header=False, sep="\t", index=False, float_format='%.3f')
+    df.iloc[630000:,:].to_csv(ff, header=False, sep="\t", index=False, float_format='%.3f')
 
 print("Done writing feature space")
