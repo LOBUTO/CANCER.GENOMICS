@@ -187,7 +187,8 @@ Function_cgp_all_feat <- function(cgp.file,  DRUGS.MET.PROFILE, cosmic.expressio
 }
 #####################################################################################################################
 #Load files
-FOLDER = "/tigress/zamalloa/CGP_FILES/"
+FOLDER = "/tigress/zamalloa/CGP_FILES/" #For cluster
+FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/"
 
 cgp.file = FOLDER + "gdsc_manova_input_w5.csv"
 DRUGS.MET.PROFILE = readRDS(FOLDER + "DRUGS.MET.PROFILE")
