@@ -207,6 +207,6 @@ cgp_all_feat <- Function_cgp_all_feat(cgp.file, DRUGS.MET.PROFILE,
 
 #####################################################################################################################
 #Store
-write.table(cgp_all_feat, paste0(FOLDER + "cgp_all_feat"), sep="\t", col.names=T, row.names=F, quote=F)
+write.table(cgp_all_feat, paste0(FOLDER, "cgp_all_feat"), sep="\t", col.names=T, row.names=F, quote=F)
 
 print("Done writing")
