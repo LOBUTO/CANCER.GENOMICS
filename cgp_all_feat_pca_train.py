@@ -36,10 +36,10 @@ with open(FOLDER + "cgp_all_feat", "r") as cg:
 #EXECUTE
 
 #Split tables
-msk = np.random.rand(len(cgp_table)) < splits
-
 test_table = cgp_table[cgp_table["DRUG"]==drug]
 cgp_table = cgp_table[cgp_table["DRUG"]!=drug]
+msk = np.random.rand(len(cgp_table)) < splits
+
 train_table = cgp_table[msk]
 valid_table = cgp_table[~msk]
 
