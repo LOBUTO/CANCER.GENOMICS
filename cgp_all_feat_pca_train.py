@@ -69,19 +69,19 @@ print(var1)
 rotation = pca.components_[:n_pcas]
 rotation = rotation.transpose()
 
-train_labels = train_table.iloc[:,:3]
+train_labels = train_table.iloc[:,2:3]
 train_table = np.dot(train_table.iloc[:,3:], rotation)
 train_table = scale(train_table)
 train_table = pd.DataFrame(train_table)
 train_table = pd.concat([train_labels, train_table], axis=1)
 
-valid_labels = valid_table.iloc[:,:3]
+valid_labels = valid_table.iloc[:,2:3]
 valid_table = np.dot(valid_table.iloc[:,3:], rotation)
 valid_table = scale(valid_table)
 valid_table = pd.DataFrame(valid_table)
 valid_table = pd.concat([valid_labels, valid_table], axis=1)
 
-test_labels = test_table.iloc[:,:3]
+test_labels = test_table.iloc[:,2:3]
 test_table = np.dot(test_table.iloc[:,3:], rotation)
 test_table = scale(test_table)
 test_table = pd.DataFrame(test_table)
