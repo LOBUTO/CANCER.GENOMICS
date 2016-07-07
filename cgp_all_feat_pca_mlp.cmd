@@ -14,4 +14,4 @@
 module load cudatoolkit
 module load python
 
-THEANO_FLAGS='device=gpu' python GIT/cgp_all_feat_pca_mlp.py 300 300
+THEANO_FLAGS='device=gpu' python GIT/cgp_all_feat_pca_mlp.py 500 500
