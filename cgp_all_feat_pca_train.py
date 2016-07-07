@@ -24,8 +24,13 @@ FOLDER = "/tigress/zamalloa/CGP_FILES/"
 TRAIN_TABLES = "/tigress/zamalloa/CGP_FILES/CGP_TRAIN_TABLES/"
 MODELS = "/tigress/zamalloa/CGP_FILES/CGP_MODELS/"
 
+# df_test  = pd.read_csv(FOLDER + "cgp_all_feat", sep="\t", nrows=100)
+# float_cols = [c for c in df_test if df_test[c].dtype=="float64"]
+# float32_cols = {c:np.float32 for c in float_cols}
+# df  = pd.read_csv(FOLDER + "cgp_all_feat", sep="\t", engine="c", dtype=float32_cols)
+
 with open(FOLDER + "cgp_all_feat", "r") as cg:
-    cgp_table = pd.read_csv(cg, header=True, sep = "\t")
+    cgp_table = pd.read_csv(cg, sep = "\t")
 
 ######################################################################################################
 #EXECUTE
