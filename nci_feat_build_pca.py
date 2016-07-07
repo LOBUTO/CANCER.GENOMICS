@@ -50,7 +50,7 @@ rotation = rotation.transpose()
 
 #Obtain nci60 features as PC and scale
 nci60_pca = np.dot(df, rotation)
-nci60_pca = scale(nci60_pca)
+#nci60_pca = scale(nci60_pca) #Remove post scaling of
 nci60_pca = pd.DataFrame(nci60_pca)
 
 nci60_pca = pd.concat([df_labels, nci60_pca], axis=1)
@@ -64,7 +64,7 @@ tcga_feat = tcga[tcga_feat]
 
 tcga_pca = scale(tcga_feat)
 tcga_pca = np.dot(tcga_pca, rotation)
-tcga_pca = scale(tcga_pca)
+#tcga_pca = scale(tcga_pca) #Remove post-scaling of pca
 tcga_pca = pd.DataFrame(tcga_pca)
 
 tcga_labels = scale(tcga.LIVED.astype(float)) #May get dtype warning
@@ -86,13 +86,13 @@ valid_table = nci60_pca.iloc[valid_rows]
 print(train_table.shape)
 print(valid_table.shape)
 
-with open(TABLES + "nci60_train_matrix_" + str(n_pcas) + ".pkl", "wb") as tr:
+with open(TABLES + "nci60_train_matrix_unscaled_" + str(n_pcas) + ".pkl", "wb") as tr:
     cPickle.dump(train_table.as_matrix(), tr)
 
-with open(TABLES + "nci60_valid_matrix_" + str(n_pcas) + ".pkl", "wb") as vd:
+with open(TABLES + "nci60_valid_matrix_unscaled_" + str(n_pcas) + ".pkl", "wb") as vd:
     cPickle.dump(valid_table.as_matrix(), vd)
 
-with open(TABLES + "tcga_test_matrix_" + str(n_pcas) + ".pkl", "wb") as tc:
+with open(TABLES + "tcga_test_matrix_unscaled_" + str(n_pcas) + ".pkl", "wb") as tc:
     cPickle.dump(tcga_pca.as_matrix(), tc)
 
 print("DONE!")
