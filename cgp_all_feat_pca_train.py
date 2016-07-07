@@ -53,7 +53,7 @@ if len(sys.argv)>2 :
 
     with open(sys.argv[2], "rb") as ff:
         pca = cPickle.load(ff)
-        
+
 else:
 
     pca = PCA(n_components=1000)
@@ -69,20 +69,23 @@ print(var1)
 rotation = pca.components_[:n_pcas]
 rotation = rotation.transpose()
 
+train_labels = train_table.iloc[:,:3]
 train_table = np.dot(train_table.iloc[:,3:], rotation)
 train_table = scale(train_table)
 train_table = pd.DataFrame(train_table)
-train_table = pd.concat([train_table.iloc[:,:3], train_table], axis=1)
+train_table = pd.concat([train_labels, train_table], axis=1)
 
+valid_labels = valid_table.iloc[:,:3]
 valid_table = np.dot(valid_table.iloc[:,3:], rotation)
 valid_table = scale(valid_table)
 valid_table = pd.DataFrame(valid_table)
-valid_table = pd.concat([valid_table.iloc[:,:3], valid_table], axis=1)
+valid_table = pd.concat([valid_labels, valid_table], axis=1)
 
+test_labels = test_table.iloc[:,:3]
 test_table = np.dot(test_table.iloc[:,3:], rotation)
 test_table = scale(test_table)
 test_table = pd.DataFrame(test_table)
-test_table = pd.concat([test_table.iloc[:,:3], test_table], axis=1)
+test_table = pd.concat([test_labels, test_table], axis=1)
 
 print(train_table.shape)
 print(valid_table.shape)
