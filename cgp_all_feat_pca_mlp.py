@@ -671,7 +671,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
                         logfile.write(log + "\n")
 
                     #ONLY SAVE MODEL if validation improves
-                    MODEL = [classifier.logRegressionLayer]
+                    MODEL = [classifier.linearRegressionLayer]
                     for e in xrange(len(n_hidden)):
                         MODEL = MODEL + [getattr(classifier, "layer_" + str(e))]
                     MODEL = MODEL + [rng]
