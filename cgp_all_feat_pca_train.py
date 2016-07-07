@@ -73,7 +73,7 @@ train_labels = train_table["NORM.AUC"]
 train_labels = pd.DataFrame(train_labels)
 train_labels.columns = ["NORM_AUC"]
 train_table = np.dot(train_table.iloc[:,3:], rotation)
-train_table = scale(train_table)
+#train_table = scale(train_table)
 train_table = pd.DataFrame(train_table)
 print(train_labels.shape, train_table.shape)
 train_labels.reset_index(drop=True, inplace=True)
@@ -84,7 +84,7 @@ valid_labels = valid_table["NORM.AUC"]
 valid_labels = pd.DataFrame(valid_labels)
 valid_labels.columns = ["NORM_AUC"]
 valid_table = np.dot(valid_table.iloc[:,3:], rotation)
-valid_table = scale(valid_table)
+#valid_table = scale(valid_table)
 valid_table = pd.DataFrame(valid_table)
 print(valid_labels.shape, valid_table.shape)
 valid_labels.reset_index(drop=True, inplace=True)
@@ -95,7 +95,7 @@ test_labels = test_table["NORM.AUC"]
 test_labels = pd.DataFrame(test_labels)
 test_labels.columns = ["NORM_AUC"]
 test_table = np.dot(test_table.iloc[:,3:], rotation)
-test_table = scale(test_table)
+#test_table = scale(test_table)
 test_table = pd.DataFrame(test_table)
 print(test_labels.shape, test_table.shape)
 print(test_labels.iloc[:5,:])
