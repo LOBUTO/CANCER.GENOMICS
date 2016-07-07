@@ -76,7 +76,7 @@ train_table = np.dot(train_table.iloc[:,3:], rotation)
 train_table = scale(train_table)
 train_table = pd.DataFrame(train_table)
 print(train_labels.shape, train_table.shape)
-train_table = pd.concat([train_labels, train_table], axis=1)
+train_table = pd.concat([train_labels, train_table], axis=1, ignore_index=True)
 
 valid_labels = valid_table["NORM.AUC"]
 valid_labels = pd.DataFrame(valid_labels)
@@ -85,7 +85,7 @@ valid_table = np.dot(valid_table.iloc[:,3:], rotation)
 valid_table = scale(valid_table)
 valid_table = pd.DataFrame(valid_table)
 print(valid_labels.shape, valid_table.shape)
-valid_table = pd.concat([valid_labels, valid_table], axis=1)
+valid_table = pd.concat([valid_labels, valid_table], axis=1, ignore_index=True)
 
 test_labels = test_table["NORM.AUC"]
 test_labels = pd.DataFrame(test_labels)
@@ -94,7 +94,9 @@ test_table = np.dot(test_table.iloc[:,3:], rotation)
 test_table = scale(test_table)
 test_table = pd.DataFrame(test_table)
 print(test_labels.shape, test_table.shape)
-test_table = pd.concat([test_labels, test_table], axis=1)
+print(test_labels.iloc[:5,:])
+print(test_table.iloc[:5,:5])
+test_table = pd.concat([test_labels, test_table], axis=1, ignore_index=True)
 
 print(train_table.shape)
 print(valid_table.shape)
