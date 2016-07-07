@@ -48,30 +48,38 @@ gc.collect()
 print(train_table.shape)
 print(valid_table.shape)
 
-#Calculate PCA on training data and store model
-pca = PCA(n_components=1000)
-pca.fit(train_table.iloc[:,3:])
+#Calculate PCA on training data and store model (If not previously provided)
+if len(sys.argv)>2 :
+
+    with open(sys.argv[2], "rb") as ff:
+        pca = cPickle.load(ff)
+        
+else:
+
+    pca = PCA(n_components=1000)
+    pca.fit(train_table.iloc[:,3:])
+
+    with open(MODELS + "cgp_pca_1000.pkl", "wb") as ff:
+        cPickle.dump(pca, ff)
+
 var1=np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4)*100)
 print(var1)
-
-with open(MODELS + "cgp_pca_1000.pkl", "wb") as ff:
-    cPickle.dump(pca, ff)
 
 #Apply rotation
 rotation = pca.components_[:n_pcas]
 rotation = rotation.transpose()
 
-train_table = np.dot(train_table[:,3:], rotation)
+train_table = np.dot(train_table.iloc[:,3:], rotation)
 train_table = scale(train_table)
 train_table = pd.DataFrame(train_table)
 train_table = pd.concat([train_table.iloc[:,:3], train_table], axis=1)
 
-valid_table = np.dot(valid_table[:,3:], rotation)
+valid_table = np.dot(valid_table.iloc[:,3:], rotation)
 valid_table = scale(valid_table)
 valid_table = pd.DataFrame(valid_table)
 valid_table = pd.concat([valid_table.iloc[:,:3], valid_table], axis=1)
 
-test_table = np.dot(test_table[:,3:], rotation)
+test_table = np.dot(test_table.iloc[:,3:], rotation)
 test_table = scale(test_table)
 test_table = pd.DataFrame(test_table)
 test_table = pd.concat([test_table.iloc[:,:3], test_table], axis=1)
