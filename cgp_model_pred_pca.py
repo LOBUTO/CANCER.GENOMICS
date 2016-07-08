@@ -234,17 +234,16 @@ def shared_drug_dataset_pred(drug_data, integers=True, target="AUC"):
 
     data_x=drug_data.iloc[:,1:]
 
-    # if target=="AUC":
-    #     data_y=list(drug_data.NORM_AUC)
-    # elif target=="pIC50":
-    #     data_y=list(drug_data.NORM_pIC50)
-    # elif target=="IC50":
-    #     data_y=list(drug_data.NORM_IC50)
-    # elif target=="LIVED":
-    #     data_y=list(drug_data.LIVED)
-    # elif target=="CLASS":
-    #     data_y=list(drug_data.CLASS)
-    data_y = list(drug_data[0])
+    if target=="AUC":
+        data_y=list(drug_data.NORM_AUC)
+    elif target=="pIC50":
+        data_y=list(drug_data.NORM_pIC50)
+    elif target=="IC50":
+        data_y=list(drug_data.NORM_IC50)
+    elif target=="LIVED":
+        data_y=list(drug_data.LIVED)
+    elif target=="CLASS":
+        data_y=list(drug_data.CLASS)
 
     shared_x = theano.shared(numpy.asarray(data_x, dtype=theano.config.floatX), borrow=True)
     shared_y = theano.shared(numpy.asarray(data_y, dtype=theano.config.floatX), borrow=True)
@@ -325,8 +324,9 @@ for drug in all_drugs:
 
     target_table = pd.concat([target_labels, target_table], axis=1)
     print(target_table.shape)
+    print(target_table.iloc[:5,:5])
 
-    test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=True, target=METRIC)
+    test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=True, target="AUC")
 
     prediction = model_prediction(MODEL_FILE, test_drug_x)
     actual = test_drug_y.eval()
