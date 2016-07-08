@@ -287,7 +287,7 @@ METRIC = "AUC"
 n_pcas = 700
 
 all_cgp = pd.read_csv(IN_FILE, sep="\t")
-all_drugs = list(set(all_cgp.Compound))
+all_drugs = list(set(all_cgp.DRUG))
 
 used_feat = pd.read_csv(BASE_FILE, sep="\t", nrows=100)
 used_feat = [c for c in used_feat]
