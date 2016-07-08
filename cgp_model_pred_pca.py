@@ -13,6 +13,8 @@ import cPickle
 import theano.tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from scipy.stats import pearsonr
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import scale
 
 class LogisticRegression(object):
 
