@@ -231,18 +231,16 @@ def shared_drug_dataset_IC50(drug_data, integers=True, target="AUC"):
 
     data_x=drug_data.iloc[:,1:]
 
-    # if target=="AUC":
-    #     data_y=list(drug_data.NORM_AUC)
-    # elif target=="pIC50":
-    #     data_y=list(drug_data.NORM_pIC50)
-    # elif target=="IC50":
-    #     data_y=list(drug_data.NORM_IC50)
-    # elif target=="LIVED":
-    #     data_y=list(drug_data.LIVED)
-    # elif target=="CLASS":
-    #     data_y=list(drug_data.CLASS)
-
-    data_y = list(drug_data[0])
+    if target=="AUC":
+        data_y=list(drug_data.NORM_AUC)
+    elif target=="pIC50":
+        data_y=list(drug_data.NORM_pIC50)
+    elif target=="IC50":
+        data_y=list(drug_data.NORM_IC50)
+    elif target=="LIVED":
+        data_y=list(drug_data.LIVED)
+    elif target=="CLASS":
+        data_y=list(drug_data.CLASS)
 
     shared_x = theano.shared(numpy.asarray(data_x, dtype=theano.config.floatX), borrow=True)
     shared_y = theano.shared(numpy.asarray(data_y, dtype=theano.config.floatX), borrow=True)
@@ -284,7 +282,6 @@ BASE_FILE = sys.argv[2]
 PCA_FILE = sys.argv[3]
 MODEL_FILE = sys.argv[4]
 SAMPLES_FILE = sys.argv[5]
-METRIC = "LIVED"
 n_pcas = 700
 
 ###################################################################################
@@ -333,7 +330,7 @@ for cancer in list(set(cancer_samples.CANCER)):
     target_table = pd.concat([tcga_labels, target_table], axis=1)
 
     #Load pca transform to apply model
-    test_drug_x, test_drug_y = shared_drug_dataset_IC50(target_table, integers=False, target=METRIC)
+    test_drug_x, test_drug_y = shared_drug_dataset_IC50(target_table, integers=False, target="LIVED")
 
     prediction = model_prediction(MODEL_FILE, test_drug_x)
     print(prediction)
