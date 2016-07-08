@@ -309,7 +309,7 @@ FILE_OUT_val.write("DRUG" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
 COUNT = 0.0
 for drug in all_drugs:
 
-    target_table = all_cgp[all_cgp.Compound==drug]
+    target_table = all_cgp[all_cgp.DRUG==drug]
     target_labels = target_table["NORM.AUC"]
     target_labels = pd.DataFrame({"NORM_AUC": list(target_labels)})
 
