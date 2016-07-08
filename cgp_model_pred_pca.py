@@ -232,7 +232,7 @@ class MLP(object):
 
 def shared_drug_dataset_pred(drug_data, integers=True, target="AUC"):
 
-    data_x=drug_data.iloc[:,3:]
+    data_x=drug_data.iloc[:,1:]
 
     # if target=="AUC":
     #     data_y=list(drug_data.NORM_AUC)
