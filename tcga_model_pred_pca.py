@@ -320,10 +320,11 @@ for cancer in list(set(cancer_samples.CANCER)):
     tcga_labels = pd.DataFrame({"LIVED": list(tcga_labels) })
 
     target_table = target_table[used_feat]
+    print(target_table.shape)
     #target_table = scale(target_table) #Supposedly the population has been scaled!!!
 
     target_table = numpy.dot(target_table, rotation)
-    target_table = scale(target_table)
+    #target_table = scale(target_table) #Removed post scaling
     target_table = pd.DataFrame(target_table)
 
     target_table = pd.concat([tcga_labels, target_table], axis=1)
