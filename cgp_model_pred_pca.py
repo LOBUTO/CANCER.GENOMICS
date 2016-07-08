@@ -326,10 +326,11 @@ for drug in all_drugs:
     target_table = pd.concat([target_labels, target_table], axis=1)
     print(target_table.shape)
 
-    test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=False, target=METRIC)
+    test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=True, target=METRIC)
 
     prediction = model_prediction(MODEL_FILE, test_drug_x)
     actual = test_drug_y.get_value()
+    print(actual[:5])
 
     for n in xrange(len(actual)):
         FILE_OUT_val.write("\n" + drug + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
