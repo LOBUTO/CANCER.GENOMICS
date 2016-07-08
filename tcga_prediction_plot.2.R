@@ -31,6 +31,10 @@ drugs <- unique(prediction$DRUG)
 
 prediction <- merge(prediction, master.clinical[,c("SAMPLE", "LIVED"),with=F] , by ="SAMPLE")
 
+prediction[,MEAN:=mean(PREDICTED), by="DRUG"]
+prediction <- prediction[MEAN>=0.9,]
+prediction$MEAN <- NULL
+
 P.VALS <- sapply(drugs, function(x) {
   print(x)
   p.value <- wilcox.test(prediction[DRUG==x,][PREDICTED==1,]$LIVED,
