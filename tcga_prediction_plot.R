@@ -29,7 +29,7 @@ prediction <- fread(paste0(IN_FOLDER, "tcga_prediction_table.txt"), header=T)
 # prediction$FILTER <- NULL
 
 prediction[,COUNT:=length(SAMPLE), by="CANCER"]
-prediction <- prediction[COUNT>40,]
+prediction <- prediction[COUNT>50,]
 prediction$COUNT <- NULL
 
 #Load original clinical

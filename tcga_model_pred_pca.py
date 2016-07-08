@@ -321,7 +321,7 @@ for cancer in list(set(cancer_samples.CANCER)):
 
     target_table = target_table[used_feat]
     print(target_table.shape)
-    target_table = scale(target_table) #Supposedly the population has been scaled!!!
+    #target_table = scale(target_table) #Supposedly the population has been scaled!!!
 
     target_table = numpy.dot(target_table, rotation)
     #target_table = scale(target_table) #Removed post scaling
