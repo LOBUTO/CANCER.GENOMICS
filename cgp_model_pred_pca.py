@@ -329,7 +329,7 @@ for drug in all_drugs:
     test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=True, target=METRIC)
 
     prediction = model_prediction(MODEL_FILE, test_drug_x)
-    actual = test_drug_y.get_value()
+    actual = test_drug_y.eval()
     print(actual[:5])
 
     for n in xrange(len(actual)):
