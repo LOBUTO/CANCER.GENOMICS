@@ -32,8 +32,11 @@ drugs <- unique(prediction$DRUG)
 prediction <- merge(prediction, master.clinical[,c("SAMPLE", "LIVED"),with=F] , by ="SAMPLE")
 
 prediction[,MEAN:=mean(PREDICTED), by="DRUG"]
+print(prediction)
 prediction <- prediction[MEAN<=0.9,]
 prediction$MEAN <- NULL
+
+print(prediction)
 
 P.VALS <- sapply(drugs, function(x) {
   print(x)
