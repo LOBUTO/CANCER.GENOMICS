@@ -303,7 +303,7 @@ FILE_OUT_val.write("DRUG" + "\t" + "SAMPLE" + "\t" + "ACTUAL" +"\t"+"PREDICTED")
 
 #Filter by short longevity of dataset
 #cancer_samples = cancer_samples[cancer_samples["LIVED"]>50]
-all_tcga = all_tcga[all_tcga.LIVED>100]
+#all_tcga = all_tcga[all_tcga.LIVED>100]
 
 #Filter by drug count
 drug_count = pd.DataFrame(all_tcga.groupby(["DRUG"], as_index=False).size())
