@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import scale
+from sklearn.preprocessing import StandardScaler
 
 ######################################################################################################
 #LOAD INPUTS
@@ -30,9 +30,6 @@ float32_cols = {c:np.float32 for c in float_cols}
 df  = pd.read_csv(TABLES  + "nci60_all_feat_table_scaled_round.3.csv", sep="\t", engine="c", dtype=float32_cols)
 print(df.shape)
 
-# with open(TABLES + "nci60_all_feat_table_scaled_round.2.pkl", "wb") as nci:
-#     cPickle.dump(df, nci) #Store as pickle so it is easier to load later
-
 df_labels = pd.read_csv(PCA + "nci60.pca.labels.all.csv", sep="\t")
 df_labels.columns = ["PCA"]
 print(df_labels.shape)
@@ -48,15 +45,38 @@ print("Done loading files")
 rotation = pca_model.components_[:n_pcas]
 rotation = rotation.transpose()
 
-#Obtain nci60 features as PC and scale
+#Apply rotation
 nci60_pca = np.dot(df, rotation)
-#nci60_pca = scale(nci60_pca) #Remove post scaling of
-nci60_pca = pd.DataFrame(nci60_pca)
 
-nci60_pca = pd.concat([df_labels, nci60_pca], axis=1)
-print(list(nci60_pca.columns.values)[:10])
-with open(TABLES + "nci_pca." + str(n_pcas) + ".pkl", "wb") as pca:
-    cPickle.dump(nci60_pca, pca) #Store for now
+#Split as matrix
+all_rows = xrange(nci60_pca.shape[0])
+train_rows = random.sample(all_rows, int(len(all_rows) * splits))
+valid_rows = list(set(all_rows) - set(train_rows))
+
+train_table = nci60_pca[train_rows]
+valid_table = nci60_pca[valid_rows]
+
+train_labels = df_labels.iloc[train_rows].as_matrix() #To remove pre-indexes
+valid_labels = df_labels.iloc[valid_rows].as_matrix() #To remove pre-indexes
+
+#Apply scaling and labels
+std_scale = StandardScaler().fit(train_table)
+train_scaled = std_scale.transform(train_table)
+valid_scaled = std_scale.transform(valid_table)
+
+train_scaled = pd.DataFrame(train_scaled)
+valid_scaled = pd.DataFrame(valid_scaled)
+
+train_labels = pd.DataFrame(train_labels)
+valid_labels = pd.DataFrame(valid_labels)
+train_labels.columns = ["PCA"]
+valid_labels.columns = ["PCA"]
+
+print((train_scaled.shape, valid_scaled.shape))
+print((train_labels.shape, valid_labels.shape))
+
+train_scaled = pd.concat([train_labels, train_scaled], axis=1)
+valid_scaled = pd.concat([valid_labels, valid_scaled], axis=1)
 
 #Obtain tcga features as PC and scale
 tcga_feat = [c for c in df_test]
@@ -64,7 +84,7 @@ tcga_feat = tcga[tcga_feat]
 
 tcga_pca = scale(tcga_feat)
 tcga_pca = np.dot(tcga_pca, rotation)
-#tcga_pca = scale(tcga_pca) #Remove post-scaling of pca
+tcga_pca = std_scale.transform(tcga_pca)
 tcga_pca = pd.DataFrame(tcga_pca)
 
 tcga_labels = scale(tcga.LIVED.astype(float)) #May get dtype warning
@@ -77,22 +97,19 @@ print(list(tcga_pca.columns.values)[:10])
 print("Done executing")
 #####################################################################################################
 #Pickle files
-all_rows = xrange(nci60_pca.shape[0])
-train_rows = random.sample(all_rows, int(len(all_rows) * splits))
-valid_rows = list(set(all_rows) - set(train_rows))
+print(train_scaled.shape)
+print(valid_scaled.shape)
 
-train_table = nci60_pca.iloc[train_rows]
-valid_table = nci60_pca.iloc[valid_rows]
-print(train_table.shape)
-print(valid_table.shape)
-
-with open(TABLES + "nci60_train_matrix_unscaled_" + str(n_pcas) + ".pkl", "wb") as tr:
+with open(TABLES + "nci60_train_matrix" + str(n_pcas) + ".pkl", "wb") as tr:
     cPickle.dump(train_table.as_matrix(), tr)
 
-with open(TABLES + "nci60_valid_matrix_unscaled_" + str(n_pcas) + ".pkl", "wb") as vd:
+with open(TABLES + "nci60_valid_matrix" + str(n_pcas) + ".pkl", "wb") as vd:
     cPickle.dump(valid_table.as_matrix(), vd)
 
-with open(TABLES + "tcga_test_matrix_unscaled_" + str(n_pcas) + ".pkl", "wb") as tc:
+with open(TABLES + "tcga_test_matrix" + str(n_pcas) + ".pkl", "wb") as tc:
     cPickle.dump(tcga_pca.as_matrix(), tc)
+
+with open(TABLES + "nci60_train_scaling" + str(n_pcas) + ".pkl", "wb") as sc:
+    cPickle.dump(std_scale, sc)
 
 print("DONE!")
