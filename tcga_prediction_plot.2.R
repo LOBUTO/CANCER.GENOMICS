@@ -35,6 +35,9 @@ prediction[,MEAN:=mean(PREDICTED), by="DRUG"]
 prediction <- prediction[MEAN>=0.9,]
 prediction$MEAN <- NULL
 
+print(prediction[DRUG=="Carboplatin+Paclitaxel",])
+print(prediction[DRUG=="Carboplatin+Paclitaxel",]$PREDICTED)
+
 P.VALS <- sapply(drugs, function(x) {
   print(x)
   p.value <- wilcox.test(prediction[DRUG==x,][PREDICTED==1,]$LIVED,
