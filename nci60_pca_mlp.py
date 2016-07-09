@@ -770,20 +770,13 @@ TARGET_DRUG="ALL"
 IN_FOLDER="/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING" #For Lab
 IN_FOLDER="/tigress/zamalloa/TABLES/TCGA.TRAINING" #For tigress
 
-# with open(IN_FOLDER + "/nci60_train.pkl", "rb") as tr:
-#     train_table = cPickle.load(tr)
-# with open(IN_FOLDER + "/nci60_valid.pkl", "rb") as vd:
-#     valid_table = cPickle.load(vd)
-# with open(IN_FOLDER + "/tcga_test.pkl", "rb") as ts:
-#     test_table = cPickle.load(ts)
-
-with open(IN_FOLDER + "/nci60_train_matrix_unscaled_500.pkl", "rb") as tr:
+with open(IN_FOLDER + "/nci60_train_matrix500.pkl", "rb") as tr:
     train_table = cPickle.load(tr)
     train_table = pd.DataFrame(train_table)
-with open(IN_FOLDER + "/nci60_valid_matrix_unscaled_500.pkl", "rb") as vd:
+with open(IN_FOLDER + "/nci60_valid_matrix500.pkl", "rb") as vd:
     valid_table = cPickle.load(vd)
     valid_table = pd.DataFrame(valid_table)
-with open(IN_FOLDER + "/tcga_test_matrix_unscaled_500.pkl", "rb") as ts:
+with open(IN_FOLDER + "/tcga_test_matrix500.pkl", "rb") as ts:
     test_table = cPickle.load(ts)
     test_table = pd.DataFrame(test_table)
 
@@ -802,10 +795,10 @@ print NEURONS
 for drop_out in [0.5]:
 
     for l in [2]:
-        test_mlp(learning_rate=2.0, L1_reg=0, L2_reg=0.0000000, n_epochs=3000, initial_momentum=0.5, input_p=0.2,
+        test_mlp(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=3000, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
                      n_hidden=input_layers, p=drop_out, dropout=True,
-                     drug_name=TARGET_DRUG +"_nci60_pca500unscaled_class_model_" + input_name ,
+                     drug_name=TARGET_DRUG +"_nci60_pca500_class_model_" + input_name ,
                      OUT_FOLDER = OUT_FOLDER)
 
 print "DONE"
