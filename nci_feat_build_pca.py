@@ -84,7 +84,7 @@ tcga_feat = tcga[tcga_feat]
 
 tcga_pca = scale(tcga_feat)
 tcga_pca = np.dot(tcga_pca, rotation)
-tcga_pca = std_scale.transform(tcga_pca)
+tcga_pca = std_scale.transform(tcga_pca) #StandardScaler
 tcga_pca = pd.DataFrame(tcga_pca)
 
 tcga_labels = scale(tcga.LIVED.astype(float)) #May get dtype warning
@@ -101,10 +101,10 @@ print(train_scaled.shape)
 print(valid_scaled.shape)
 
 with open(TABLES + "nci60_train_matrix" + str(n_pcas) + ".pkl", "wb") as tr:
-    cPickle.dump(train_table.as_matrix(), tr)
+    cPickle.dump(train_scaled.as_matrix(), tr)
 
 with open(TABLES + "nci60_valid_matrix" + str(n_pcas) + ".pkl", "wb") as vd:
-    cPickle.dump(valid_table.as_matrix(), vd)
+    cPickle.dump(valid_scaled.as_matrix(), vd)
 
 with open(TABLES + "tcga_test_matrix" + str(n_pcas) + ".pkl", "wb") as tc:
     cPickle.dump(tcga_pca.as_matrix(), tc)
