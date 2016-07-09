@@ -302,7 +302,7 @@ FILE_OUT_val = open(OUT_FOLDER + "tcga_prediction_table.txt", "w")
 FILE_OUT_val.write("DRUG" + "\t" + "SAMPLE" + "\t" + "ACTUAL" +"\t"+"PREDICTED")
 
 #Filter by short longevity of dataset
-#cancer_samples = cancer_samples[cancer_samples["LIVED"]>50]
+cancer_samples = cancer_samples[cancer_samples["LIVED"]>50]
 
 #Filter by drug count
 drug_count = pd.DataFrame(all_tcga.groupby(["DRUG"], as_index=False).size())
