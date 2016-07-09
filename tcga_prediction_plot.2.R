@@ -27,16 +27,13 @@ prediction <- fread(paste0(IN_FOLDER, "tcga_prediction_table.txt"), header=T)
 master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/062116.ALL.TCGA.CLINICAL.csv", header=T)
 
 #Execute
-drugs <- unique(prediction$DRUG)
-
 prediction <- merge(prediction, master.clinical[,c("SAMPLE", "LIVED"),with=F] , by ="SAMPLE")
 
 prediction[,MEAN:=mean(PREDICTED), by="DRUG"]
-print(prediction)
 prediction <- prediction[MEAN<=0.9,]
 prediction$MEAN <- NULL
 
-print(prediction)
+drugs <- unique(prediction$DRUG)
 
 P.VALS <- sapply(drugs, function(x) {
   print(x)
