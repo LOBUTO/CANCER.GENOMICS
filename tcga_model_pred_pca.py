@@ -284,7 +284,7 @@ PCA_FILE = sys.argv[3]
 MODEL_FILE = sys.argv[4]
 SAMPLES_FILE = sys.argv[5]
 SCALING_FILE = sys.argv[6]
-n_pcas = 700
+n_pcas = 500
 
 ###################################################################################
 #LOAD FILES
@@ -304,6 +304,7 @@ with open(SCALING_FILE, "rb") as sc:
 ###################################################################################
 #EXECUTE
 OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/"
+OUT_FOLDER = "/tigress/zamalloa/RESULTS/TCGA.TRAINING/"
 
 FILE_OUT_val = open(OUT_FOLDER + "tcga_prediction_table.txt", "w")
 FILE_OUT_val.write("CANCER" + "\t" + "SAMPLE" + "\t" + "ACTUAL" +"\t"+"PREDICTED")

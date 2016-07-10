@@ -12,13 +12,13 @@ library(GGally)
 # } else {
 #   target.name <- args[1]
 # }
-target.name <- "nci.60_based.pca700_model.700.700_"
+target.name <- "nci.60_based.StandardScaler.pca500_model.500.500_"
 
-IN_FOLDER <- "/tigress/zamalloa/RESULTS/TCGA.TRAINING/" #For tigress
 IN_FOLDER <- "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/" #For Lab
+IN_FOLDER <- "/tigress/zamalloa/RESULTS/TCGA.TRAINING/" #For tigress
 
-FIGURES <- "/tigress/zamalloa/FIGURES/TCGA.TRAINING/" #For tigress
 FIGURES <- "/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/" #For Lab
+FIGURES <- "/tigress/zamalloa/FIGURES/TCGA.TRAINING/" #For tigress
 
 #Load prediction table
 prediction <- fread(paste0(IN_FOLDER, "tcga_prediction_table.txt"), header=T)
@@ -28,7 +28,8 @@ prediction <- prediction[COUNT>50,]
 prediction$COUNT <- NULL
 
 #Load original clinical
-master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/062116.ALL.TCGA.CLINICAL.csv", header=T)
+# master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/062116.ALL.TCGA.CLINICAL.csv", header=T)
+master.clinical <- fread("/tigress/zamalloa/TABLES/TCGA.TRAINING/062116.ALL.TCGA.CLINICAL.csv", header=T)
 
 #Execute
 cancers <- unique(prediction$CANCER)
@@ -70,8 +71,7 @@ for (cancer in cancers){
 
   P.VAL <- pchisq(SURV.DIFF$chisq, length(SURV.DIFF$n)-1, lower.tail = FALSE)
 
-  file.name <- paste0("/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/",
-                      target.name, "." , cancer, ".survival.pdf")
+  file.name <- paste0(FIGURES, target.name, "." , cancer, ".survival.pdf")
   pdf(file.name, width=12, height=18)
 
   print(ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
