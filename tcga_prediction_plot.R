@@ -23,11 +23,6 @@ FIGURES <- "/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/" #For Lab
 #Load prediction table
 prediction <- fread(paste0(IN_FOLDER, "tcga_prediction_table.txt"), header=T)
 
-#Filter out prediction table for number of samples and distribution
-# prediction[,FILTER:=mean(PREDICTED), by="CANCER"]
-# prediction <- prediction[FILTER<0.9,]
-# prediction$FILTER <- NULL
-
 prediction[,COUNT:=length(SAMPLE), by="CANCER"]
 prediction <- prediction[COUNT>50,]
 prediction$COUNT <- NULL

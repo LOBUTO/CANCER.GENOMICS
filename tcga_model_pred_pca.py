@@ -11,6 +11,7 @@ import theano.tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from scipy.stats import pearsonr
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import scale
 
 class LogisticRegression(object):
@@ -282,6 +283,7 @@ BASE_FILE = sys.argv[2]
 PCA_FILE = sys.argv[3]
 MODEL_FILE = sys.argv[4]
 SAMPLES_FILE = sys.argv[5]
+SCALING_FILE = sys.argv[6]
 n_pcas = 700
 
 ###################################################################################
@@ -296,6 +298,11 @@ with open(PCA_FILE, "rb") as md:
 
 cancer_samples = pd.read_csv(SAMPLES_FILE, sep="\t")
 
+with open(SCALING_FILE, "rb") as sc:
+    std_scale = cPickle.load(sc)
+
+###################################################################################
+#EXECUTE
 OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/"
 
 FILE_OUT_val = open(OUT_FOLDER + "tcga_prediction_table.txt", "w")
@@ -321,10 +328,11 @@ for cancer in list(set(cancer_samples.CANCER)):
 
     target_table = target_table[used_feat]
     print(target_table.shape)
-    #target_table = scale(target_table) #Supposedly the population has been scaled!!!
+    target_table = scale(target_table) #Supposedly the population has been scaled!!!
 
     target_table = numpy.dot(target_table, rotation)
-    target_table = scale(target_table) #Removed post scaling
+
+    target_table = std_scale.transform(target_table) #Standard Post PCA scaling using training set scaling parameters
     target_table = pd.DataFrame(target_table)
 
     target_table = pd.concat([tcga_labels, target_table], axis=1)
