@@ -49,7 +49,7 @@ for (pca in c(500, 800, 1000)){
   print(prediction)
   print(ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_point(colour="steelblue4", size=0.2) +
     geom_text(data=cancer.cors, aes(x=1000, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
-    scale_fill_brewer(palette="Set1") + theme_bw() + geom_smooth(method="lm", se=T) +
+    scale_fill_brewer(palette="Set1") + theme_bw() + geom_smooth(method="lm", se=T, color = "black", size=2) +
     facet_wrap(~CANCER, scales="free"))
   dev.off()
 
