@@ -411,7 +411,9 @@ for cancer in list(set(cancer_samples.CANCER)):
     target_table = scale(target_table)
     target_table = pd.DataFrame(target_table)
 
-    target_table = pd.concat([target_labels, target_table], axis=1)
+    print(tcga_labels.iloc[:5,:])
+    target_table = pd.concat([tcga_labels, target_table], axis=1)
+    print(target_table.iloc[:5,:5])
     print(target_table.shape)
 
     test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=False, target="LIVED")
