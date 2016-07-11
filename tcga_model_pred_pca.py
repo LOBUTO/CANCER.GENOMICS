@@ -310,7 +310,7 @@ FILE_OUT_val = open(OUT_FOLDER + "tcga_prediction_table.txt", "w")
 FILE_OUT_val.write("CANCER" + "\t" + "SAMPLE" + "\t" + "ACTUAL" +"\t"+"PREDICTED")
 
 #Filter by short longevity of dataset
-cancer_samples = cancer_samples[cancer_samples["LIVED"]>50]
+#cancer_samples = cancer_samples[cancer_samples["LIVED"]>50]
 
 #Obtain predictions per cancer type
 rotation = pca_model.components_[:n_pcas]
