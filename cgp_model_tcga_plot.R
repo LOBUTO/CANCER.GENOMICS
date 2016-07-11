@@ -34,8 +34,8 @@ for (pca in c(500, 800, 1000)){
   cancer.cors <- sapply(cancers, function(x) {
     print(x)
 
-    y <- cor(prediction[CANCER==x,][PREDICTED==1,]$LIVED,
-            prediction[CANCER==x,][PREDICTED==0,]$LIVED,
+    y <- cor(prediction[CANCER==x,]$ACTUAL,
+            prediction[CANCER==x,]$PREDICTED,
             method="pearson")
     return(y)
 
@@ -50,7 +50,7 @@ for (pca in c(500, 800, 1000)){
   print(ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_point(colour="steelblue4", size=0.2) +
     geom_text(data=cancer.cors, aes(x=1000, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
     scale_fill_brewer(palette="Set1") + theme_bw() +
-    facet_wrap(~CANCER))
+    facet_wrap(~CANCER, scales="free"))
   dev.off()
 
   #Survival plot
