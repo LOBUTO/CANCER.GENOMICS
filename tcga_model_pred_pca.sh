@@ -2,7 +2,7 @@
 #tcga_model_pred.sh
 #Bash script to predict and produce plots for tcga drug predictions on the nci60 based model
 
-python /home/zamalloa/Documents/FOLDER/GIT/tcga_model_pred_pca.py \
+python /home/zamalloa/Documents/FOLDER/GIT/tcga_model_pred_pca.2.py \
 /home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/062816_tcga_all_feat_table.csv \
 /home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/nci60_all_feat_table_scaled_round.3.csv \
 /home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/PCA.MODELS/nci60.pca.3.random208.pc1000.pkl \
@@ -10,7 +10,7 @@ python /home/zamalloa/Documents/FOLDER/GIT/tcga_model_pred_pca.py \
 /home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/062116.CANCER.SAMPLES.csv \
 /home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/nci60_train_scaling_dict500.pkl
 
-Rscript /home/zamalloa/Documents/FOLDER/GIT/tcga_prediction_plot.R
+Rscript /home/zamalloa/Documents/FOLDER/GIT/tcga_prediction_plot.2.R
 
 # python /tigress/zamalloa/GIT/tcga_model_pred_pca.py \
 # /tigress/zamalloa/TABLES/TCGA.TRAINING/062816_tcga_all_feat_table.csv \

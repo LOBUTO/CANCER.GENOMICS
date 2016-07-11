@@ -282,7 +282,7 @@ BASE_FILE = sys.argv[2]
 PCA_FILE = sys.argv[3]
 MODEL_FILE = sys.argv[4]
 SAMPLES_FILE = sys.argv[5]
-n_pcas = 700
+n_pcas = 500
 
 ###################################################################################
 #LOAD FILES
