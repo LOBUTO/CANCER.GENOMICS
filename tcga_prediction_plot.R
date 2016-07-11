@@ -14,11 +14,11 @@ library(GGally)
 # }
 target.name <- "nci.60_based.StandardScaler.pca500_model.500.500_"
 
-IN_FOLDER <- "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/" #For Lab
 IN_FOLDER <- "/tigress/zamalloa/RESULTS/TCGA.TRAINING/" #For tigress
+IN_FOLDER <- "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/" #For Lab
 
-FIGURES <- "/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/" #For Lab
 FIGURES <- "/tigress/zamalloa/FIGURES/TCGA.TRAINING/" #For tigress
+FIGURES <- "/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/" #For Lab
 
 #Load prediction table
 prediction <- fread(paste0(IN_FOLDER, "tcga_prediction_table.txt"), header=T)
@@ -28,8 +28,8 @@ prediction <- prediction[COUNT>50,]
 prediction$COUNT <- NULL
 
 #Load original clinical
-# master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/062116.ALL.TCGA.CLINICAL.csv", header=T)
-master.clinical <- fread("/tigress/zamalloa/TABLES/TCGA.TRAINING/062116.ALL.TCGA.CLINICAL.csv", header=T)
+master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/062116.ALL.TCGA.CLINICAL.csv", header=T)
+#master.clinical <- fread("/tigress/zamalloa/TABLES/TCGA.TRAINING/062116.ALL.TCGA.CLINICAL.csv", header=T)
 
 #Execute
 cancers <- unique(prediction$CANCER)

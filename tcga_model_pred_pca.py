@@ -278,7 +278,7 @@ def model_prediction(MODEL_FILE, test_drug_x):
 
 ###################################################################################
 #LOAD INPUTS
-IN_FILE = sys.argv[1]
+IN_FILE = sys.ar  gv[1]
 BASE_FILE = sys.argv[2]
 PCA_FILE = sys.argv[3]
 MODEL_FILE = sys.argv[4]
@@ -303,8 +303,8 @@ with open(SCALING_FILE, "rb") as sc:
 
 ###################################################################################
 #EXECUTE
-OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/"
 OUT_FOLDER = "/tigress/zamalloa/RESULTS/TCGA.TRAINING/"
+OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/"
 
 FILE_OUT_val = open(OUT_FOLDER + "tcga_prediction_table.txt", "w")
 FILE_OUT_val.write("CANCER" + "\t" + "SAMPLE" + "\t" + "ACTUAL" +"\t"+"PREDICTED")
@@ -333,7 +333,8 @@ for cancer in list(set(cancer_samples.CANCER)):
 
     target_table = numpy.dot(target_table, rotation)
 
-    target_table = std_scale.transform(target_table) #Standard Post PCA scaling using training set scaling parameters
+    #Standard Post PCA scaling using training set scaling parameters
+    target_table = (target_table -  std_scale["mean"]) / std_scale["std"]
     target_table = pd.DataFrame(target_table)
 
     target_table = pd.concat([tcga_labels, target_table], axis=1)
