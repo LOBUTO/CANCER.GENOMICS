@@ -81,7 +81,7 @@ for (pca in c(500, 800, 1000)){
   dev.off()
 
   #DEFINED CLASSES PLOT
-  pred.classes <- Function.classify.lived.pred(prediction$PREDICTED, sd.multiplier=0.5, effective="POS")
+  pred.classes <- Function.classify.lived.pred(prediction$PREDICTED, sd.multiplier=0.3, effective="POS")
   prediction <- merge(prediction, pred.classes, by.x="PREDICTED", by.y="PREDICTION")
 
   cancers <- unique(prediction$CANCER)
