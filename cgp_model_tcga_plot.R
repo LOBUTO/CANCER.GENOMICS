@@ -6,6 +6,30 @@ library(reshape2)
 library(survival)
 library(GGally)
 
+Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="NEG"){
+
+  sd.factor <- sd(x) * sd.multiplier
+  sd.mean <- mean(x)
+
+  above.sd <- x[x > (sd.mean + sd.factor)]
+  below.sd <- x[x < (sd.mean - sd.factor)]
+
+  if (effective=="NEG"){
+    main.table <- data.table(PREDICTION=below.sd, CASE="EFFECTIVE")
+    main.table <- rbind(main.table,
+                        data.table(PREDICTION=above.sd, CASE="NOT_EFFECTIVE"))
+  } else {
+    main.table <- data.table(PREDICTION=above.sd, CASE="EFFECTIVE")
+    main.table <- rbind(main.table,
+                        data.table(PREDICTION=below.sd, CASE="NOT_EFFECTIVE"))
+  }
+
+  #Return
+  return (main.table)
+}
+
+################################################################################################################################
+
 target.name <- "cgp_based_model_for_tcga_pcas_"
 
 IN_FOLDER <- "/tigress/zamalloa/RESULTS/TCGA.TRAINING/" #For tigress
@@ -32,7 +56,7 @@ for (pca in c(500, 800, 1000)){
 
   #Execute
   cancers <- unique(prediction$CANCER)
-  prediction <- merge(prediction, master.clinical[,c("SAMPLE", "LIVED"),with=F] , by ="SAMPLE")
+  prediction <- merge(prediction, master.clinical[,c("SAMPLE", "LIVED", "STATUS"),with=F] , by ="SAMPLE")
 
   cancer.cors <- sapply(cancers, function(x) {
     print(x)
@@ -45,7 +69,7 @@ for (pca in c(500, 800, 1000)){
     })
   cancer.cors <- data.table(CANCER = cancers, COR = cancer.cors)
 
-  #Regression plots
+  #REGRESSION PLOT
   file.name <- paste0(FIGURES, target.name, pca ,"_regression.pdf")
   pdf(file.name, width=12, height=8)
 
@@ -56,10 +80,32 @@ for (pca in c(500, 800, 1000)){
     facet_wrap(~CANCER, scales="free"))
   dev.off()
 
+  #DEFINED CLASSES PLOT
+  pred.classes <- Function.classify.lived.pred(prediction$PREDICTED, sd.multiplier=0.5, effective="POS")
+  prediction <- merge(prediction, pred.class, by.x="PREDICTED", by.y="PREDICTION")
+
+  cancers <- unique(prediction$CANCER)
+
+  P.VALS <- sapply(cancers, function(x) {
+    print(x)
+    p.value <- wilcox.test(prediction[CANCER==x,][CASE=="EFFECTIVE",]$LIVED,
+                           prediction[CANCER==x,][CASE=="NOT_EFFECTIVE",]$LIVED,
+                           paired=F, alternative="greater")$p.value
+    return(p.value)
+    } )
+  P.VALS <- data.table(CANCER = cancers, P.VAL = P.VALS)
+
+  file.name <- paste0(FIGURES, target.name, pca ,"_est.classes.pdf")
+  pdf(file.name, width=12, height=8)
+
+  print( ggplot(prediction, aes(CANCER, LIVED)) + geom_boxplot(aes(fill=factor(CASE))) +
+    geom_jitter(colour="steelblue4", size=0.2) +
+    geom_text(data=P.VALS, aes(x=CANCER, y=4000, label=paste0("P-val=", round(P.VAL,3)) )) +
+    scale_fill_brewer(palette="Set1") + theme_bw() )
+
+  dev.off()
+
   #Survival plot
-  # master.clinical <- merge(master.clinical, prediction[,c("SAMPLE", "PREDICTED", "CANCER"),with=F], by="SAMPLE")
-  # master.clinical$CASE <- ifelse(master.clinical$PREDICTED==1, "EFFECTIVE", "NOT_EFFECTIVE")
-  #
   # for (cancer in cancers){
   #
   #   cancer.clinical <- master.clinical[CANCER==cancer,]
