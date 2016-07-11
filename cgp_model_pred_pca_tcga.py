@@ -370,7 +370,7 @@ SAMPLES_FILE = sys.argv[4]
 n_pcas = int(sys.argv[5])
 
 used_feat = pd.read_csv(IN_FILE, sep="\t", nrows=10)
-used_feat = list(all_cgp.columns.values[3:])
+used_feat = list(used_feat.columns.values[3:])
 
 all_tcga = pd.read_csv(TCGA_FILE, sep="\t")
 
