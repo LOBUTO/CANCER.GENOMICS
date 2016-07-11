@@ -16,6 +16,7 @@ FIGURES <- "/home/zamalloa/Documents/FOLDER/FIGURES/TCGA.TRAINING/" #For Lab
 
 #Load original clinical
 master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/062116.ALL.TCGA.CLINICAL.csv", header=T)
+master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1)
 
 #Load prediction table per PCA used
 for (pca in c(500, 800, 1000)){
@@ -46,15 +47,13 @@ for (pca in c(500, 800, 1000)){
   pdf(file.name, width=12, height=8)
 
   print(prediction)
-  ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_line(colour="steelblue4", size=0.2) +
+  print(ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_point(colour="steelblue4", size=0.2) +
     geom_text(data=cancer.cors, aes(x=1000, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
     scale_fill_brewer(palette="Set1") + theme_bw() +
-    facet_wrap(~CANCER)
+    facet_wrap(~CANCER))
   dev.off()
 
   #Survival plot
-  master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1)
-
   # master.clinical <- merge(master.clinical, prediction[,c("SAMPLE", "PREDICTED", "CANCER"),with=F], by="SAMPLE")
   # master.clinical$CASE <- ifelse(master.clinical$PREDICTED==1, "EFFECTIVE", "NOT_EFFECTIVE")
   #
