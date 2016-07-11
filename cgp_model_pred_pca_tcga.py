@@ -419,7 +419,7 @@ for cancer in list(set(cancer_samples.CANCER)):
     test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=False, target="LIVED")
 
     prediction = model_prediction(MODEL_FILE, test_drug_x)
-    actual = test_drug_y.eval()
+    actual = test_drug_y.get_value()
     print(actual[:5])
 
     for n in xrange(len(actual)):
