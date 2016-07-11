@@ -754,10 +754,9 @@ def shared_drug_dataset_IC50(drug_data, integers=True):
 input_layers = [int(l) for l in sys.argv[1:]]
 print(input_layers)
 input_name = ".".join(sys.argv[1:])
-drug = "Erlotinib"
+drug = "TCGA"
 
 OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_RESULTS" #For tigress
-TARGET_DRUG="ALL"
 
 IN_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_TRAIN_TABLES" #For tigress
 
@@ -786,10 +785,10 @@ print NEURONS
 for drop_out in [0.5]:
 
     for l in [2]:
-        test_mlp(learning_rate=2.0, L1_reg=0, L2_reg=0.0000000, n_epochs=3000, initial_momentum=0.5, input_p=0.2,
+        test_mlp(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=10000, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
                      n_hidden=input_layers, p=drop_out, dropout=True,
-                     drug_name=TARGET_DRUG +"_cgp_pca500_class_model_" + input_name ,
+                     drug_name=drug +"_cgp_pca500_class_model_" + input_name ,
                      OUT_FOLDER = OUT_FOLDER)
 
 print "DONE"
