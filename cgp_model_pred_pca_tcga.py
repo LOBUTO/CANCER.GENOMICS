@@ -387,7 +387,7 @@ OUT_FOLDER = "/tigress/zamalloa/RESULTS/TCGA.TRAINING/" #For tigress
 OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/" #For Lab
 
 FILE_OUT_val = open(OUT_FOLDER + "cgp_auc_tcga_prediction_" + str(n_pcas), "w")
-FILE_OUT_val.write("CANCER" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
+FILE_OUT_val.write("CANCER" + "\t" + "SAMPLE" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
 
 #Obtain predictions per cancer type
 rotation = pca_model.components_[:n_pcas]

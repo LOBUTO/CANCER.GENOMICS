@@ -47,38 +47,38 @@ for (pca in c(500, 800, 1000)){
 
   print(prediction)
   ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_line(colour="steelblue4", size=0.2) +
-    geom_text(data=cancer.cors, aes(x=0.5, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
+    geom_text(data=cancer.cors, aes(x=1000, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
     scale_fill_brewer(palette="Set1") + theme_bw() +
     facet_wrap(~CANCER)
   dev.off()
 
+  #Survival plot
+  master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1)
+
+  # master.clinical <- merge(master.clinical, prediction[,c("SAMPLE", "PREDICTED", "CANCER"),with=F], by="SAMPLE")
+  # master.clinical$CASE <- ifelse(master.clinical$PREDICTED==1, "EFFECTIVE", "NOT_EFFECTIVE")
+  #
+  # for (cancer in cancers){
+  #
+  #   cancer.clinical <- master.clinical[CANCER==cancer,]
+  #
+  #   test.survival<-survfit(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
+  #   SURV.DIFF <- survdiff(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
+  #
+  #   P.VAL <- pchisq(SURV.DIFF$chisq, length(SURV.DIFF$n)-1, lower.tail = FALSE)
+  #
+  #   file.name <- paste0(FIGURES, target.name, "." , cancer, ".survival.pdf")
+  #   pdf(file.name, width=12, height=18)
+  #
+  #   print(ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
+  #           theme_classic() +
+  #           geom_text(aes(mean(cancer.clinical$LIVED), 0.85, label= P.VAL), size=8.0))
+  #   dev.off()
+  #
+  # }
+  #
+
 }
-#
-# #Survival plot
-# master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1)
-#
-# master.clinical <- merge(master.clinical, prediction[,c("SAMPLE", "PREDICTED", "CANCER"),with=F], by="SAMPLE")
-# master.clinical$CASE <- ifelse(master.clinical$PREDICTED==1, "EFFECTIVE", "NOT_EFFECTIVE")
-#
-# for (cancer in cancers){
-#
-#   cancer.clinical <- master.clinical[CANCER==cancer,]
-#
-#   test.survival<-survfit(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
-#   SURV.DIFF <- survdiff(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
-#
-#   P.VAL <- pchisq(SURV.DIFF$chisq, length(SURV.DIFF$n)-1, lower.tail = FALSE)
-#
-#   file.name <- paste0(FIGURES, target.name, "." , cancer, ".survival.pdf")
-#   pdf(file.name, width=12, height=18)
-#
-#   print(ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
-#           theme_classic() +
-#           geom_text(aes(mean(cancer.clinical$LIVED), 0.85, label= P.VAL), size=8.0))
-#   dev.off()
-#
-# }
-#
 
 #DONE
 print ("Done plotting!!")
