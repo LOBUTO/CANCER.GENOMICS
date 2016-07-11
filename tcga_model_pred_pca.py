@@ -278,7 +278,7 @@ def model_prediction(MODEL_FILE, test_drug_x):
 
 ###################################################################################
 #LOAD INPUTS
-IN_FILE = sys.ar  gv[1]
+IN_FILE = sys.argv[1]
 BASE_FILE = sys.argv[2]
 PCA_FILE = sys.argv[3]
 MODEL_FILE = sys.argv[4]
