@@ -282,6 +282,7 @@ BASE_FILE = sys.argv[2]
 PCA_FILE = sys.argv[3]
 MODEL_FILE = sys.argv[4]
 SAMPLES_FILE = sys.argv[5]
+SCALING_FILE = sys.argv[6]
 n_pcas = 500
 
 ###################################################################################
@@ -295,6 +296,9 @@ with open(PCA_FILE, "rb") as md:
     pca_model = cPickle.load(md)
 
 #cancer_samples = pd.read_csv(SAMPLES_FILE, sep="\t")
+
+with open(SCALING_FILE, "rb") as sc:
+    std_scale = cPickle.load(sc)
 
 OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/"
 
@@ -330,7 +334,8 @@ for drug in filt_drugs:
     #target_table = scale(target_table) #Supposedly the population has been scaled!!!
 
     target_table = numpy.dot(target_table, rotation)
-    target_table = scale(target_table) #Removed post scaling
+    #target_table = scale(target_table) #Removed post scaling
+    target_table = (target_table -  std_scale["mean"]) / std_scale["std"]
     target_table = pd.DataFrame(target_table)
 
     target_table = pd.concat([tcga_labels, target_table], axis=1)
