@@ -423,7 +423,7 @@ for cancer in list(set(cancer_samples.CANCER)):
     print(actual[:5])
 
     for n in xrange(len(actual)):
-        FILE_OUT_val.write("\n" + cancer + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+        FILE_OUT_val.write("\n" + cancer + "\t" + target_samples[l]  + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
 
 
 FILE_OUT_val.close()
