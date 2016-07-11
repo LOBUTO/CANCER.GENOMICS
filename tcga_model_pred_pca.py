@@ -334,7 +334,8 @@ for cancer in list(set(cancer_samples.CANCER)):
     target_table = numpy.dot(target_table, rotation)
 
     #Standard Post PCA scaling using training set scaling parameters
-    target_table = (target_table -  std_scale["mean"]) / std_scale["std"]
+    #target_table = (target_table -  std_scale["mean"]) / std_scale["std"]
+    target_table = scale(target_table)
     target_table = pd.DataFrame(target_table)
 
     target_table = pd.concat([tcga_labels, target_table], axis=1)
