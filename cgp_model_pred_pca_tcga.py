@@ -425,8 +425,6 @@ for cancer in list(set(cancer_samples.CANCER)):
     for n in xrange(len(actual)):
         FILE_OUT_val.write("\n" + cancer + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
 
-    COUNT = COUNT+1
-    print(COUNT/len(all_drugs))
 
 FILE_OUT_val.close()
 
