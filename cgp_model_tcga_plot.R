@@ -23,6 +23,9 @@ for (pca in c(500, 800, 1000)){
 
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
 
+  #Do we need to filter?
+  prediction <- prediction[LIVED>50, ]
+
   prediction[,COUNT:=length(SAMPLE), by="CANCER"]
   prediction <- prediction[COUNT>50,]
   prediction$COUNT <- NULL
