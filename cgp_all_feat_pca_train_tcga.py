@@ -54,10 +54,10 @@ if len(sys.argv)>2 :
 
 else:
 
-    pca = PCA(n_components=1000)
+    pca = PCA(n_components=2000)
     pca.fit(train_table.iloc[:,3:])
 
-    with open(MODELS + "cgp_pca_1000.pkl", "wb") as ff:
+    with open(MODELS + "cgp_pca_2000.pkl", "wb") as ff:
         cPickle.dump(pca, ff)
 
 var1=np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4)*100)
