@@ -199,6 +199,7 @@ for (pca in c(500, 800, 1000)){
   print(pca)
 
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_drug_", pca), header=T)
+  prediction$PREDICTION <- scale(prediction$PREDICTION)
 
   #Do we need to filter based on minimum stay in trial?
   #prediction <- prediction[ACTUAL>50, ]
@@ -239,7 +240,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(drugs, function(x) {
 
     pred.temp <- prediction[DRUG==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.3, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.1, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
