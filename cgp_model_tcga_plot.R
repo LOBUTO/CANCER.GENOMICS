@@ -89,7 +89,7 @@ master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1
 #Load prediction table per PCA used
 LOG_FILE <- "/home/zamalloa/Documents/FOLDER/LOG.PVAL"
 
-for (l in seq(0.01, 0.2, 0.01)){
+for (l in seq(0.01, 0.15, 0.01)){
   print (l)
   for (pca in c(500, 800, 1000)){
     print(pca)
