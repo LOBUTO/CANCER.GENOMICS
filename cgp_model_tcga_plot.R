@@ -249,6 +249,7 @@ for (pca in c(500, 800, 1000)){
   prediction <- do.call(rbind, pred.classes)
   print (prediction)
 
+  drugs <- unique(prediction$DRUG)
   P.VALS <- sapply(drugs, function(x) {
     print(x)
     p.value <- wilcox.test(prediction[DRUG==x,][CASE=="EFFECTIVE",]$LIVED,
