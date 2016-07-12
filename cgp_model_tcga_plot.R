@@ -47,14 +47,21 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 }
 
 Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="POS"){
+  #Will classify outliers as "OUTLIER"
 
   sd.factor <- sd(x) * sd.multiplier
-  sd.mean <- median(x)
+  sd.mean <- mean(x)
   # sd.mean <- 0
   # sd.factor <- sd.multiplier
+  of <- 2
 
   above.sd <- x[x > (sd.mean + sd.factor)]
   below.sd <- x[x < (sd.mean - sd.factor)]
+  outlier  <- x[ifelse(x > (median(x) + of*sd(x)), TRUE,
+                       ifelse( x  < (median(x) - of*sd(x)), TRUE , FALSE  ))]
+
+  above.sd <- above.sd[!above.sd %in% outlier]
+  below.sd <- below.sd[!below.sd %in% outlier]
 
   if (effective=="NEG"){
 
@@ -136,7 +143,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(cancers, function(x) {
 
     pred.temp <- prediction[CANCER==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.2, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.5, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
