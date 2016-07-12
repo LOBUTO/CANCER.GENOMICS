@@ -5,6 +5,43 @@ library(ggplot2)
 library(reshape2)
 library(survival)
 library(GGally)
+library(grid)
+
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+
+  # Make a list from the ... arguments and plotlist
+  #plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
 
 Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="NEG"){
 
@@ -88,7 +125,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(cancers, function(x) {
 
     pred.temp <- prediction[CANCER==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.1, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.5, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
@@ -115,26 +152,33 @@ for (pca in c(500, 800, 1000)){
 
   dev.off()
 
-  #Survival plot
-  # for (cancer in cancers){
-  #
-  #   cancer.clinical <- master.clinical[CANCER==cancer,]
-  #
-  #   test.survival<-survfit(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
-  #   SURV.DIFF <- survdiff(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
-  #
-  #   P.VAL <- pchisq(SURV.DIFF$chisq, length(SURV.DIFF$n)-1, lower.tail = FALSE)
-  #
-  #   file.name <- paste0(FIGURES, target.name, "." , cancer, ".survival.pdf")
-  #   pdf(file.name, width=12, height=18)
-  #
-  #   print(ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
-  #           theme_classic() +
-  #           geom_text(aes(mean(cancer.clinical$LIVED), 0.85, label= P.VAL), size=8.0))
-  #   dev.off()
-  #
-  # }
-  #
+  #SURVIVAL PLOTS
+  surv.plots <- lapply(cancers, function(cancer) {
+
+    cancer.clinical <- prediction[CANCER==cancer,]
+
+    test.survival<-survfit(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
+    SURV.DIFF <- survdiff(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
+
+    P.VAL <- pchisq(SURV.DIFF$chisq, length(SURV.DIFF$n)-1, lower.tail = FALSE)
+
+    # file.name <- paste0(FIGURES, target.name, pca,  "." , cancer, ".survival.pdf")
+    # pdf(file.name, width=12, height=18)
+
+    temp.plot <- ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
+                  theme_classic() + ggtitle(cancer) +
+                  geom_text(aes(mean(cancer.clinical$LIVED), 0.85, label= P.VAL), size=8.0)
+    return(temp.plot)
+    # dev.off()
+
+  })
+
+  file.name <- paste0(FIGURES, target.name, pca,  "." , ".survival.pdf")
+  pdf(file.name, width=12, height=18)
+
+  multiplot(surv.plot)
+
+  dev.off()
 
 }
 
