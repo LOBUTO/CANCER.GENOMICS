@@ -206,7 +206,7 @@ for (pca in c(500, 800, 1000)){
 
   #Do we need to filter based on number of samples per drug
   prediction[,COUNT:=length(SAMPLE), by="DRUG"]
-  prediction <- prediction[COUNT>60,]
+  prediction <- prediction[COUNT>40,]
   prediction$COUNT <- NULL
 
   #Execute
@@ -240,7 +240,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(drugs, function(x) {
 
     pred.temp <- prediction[DRUG==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.1, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.3, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
@@ -258,8 +258,7 @@ for (pca in c(500, 800, 1000)){
                            paired=F, alternative="greater")$p.value
     return(p.value)
     } )
-  print (drugs)
-  print (as.vector(P.VALS))
+
   P.VALS <- data.table(DRUG = drugs, P.VAL = as.vector(P.VALS))
 
   # PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
@@ -278,7 +277,7 @@ for (pca in c(500, 800, 1000)){
   #SURVIVAL PLOTS
   surv.plots <- lapply(drugs, function(drug) {
 
-    cancer.clinical <- prediction[DRUG==drugs,]
+    cancer.clinical <- prediction[DRUG==drug,]
 
     test.survival<-survfit(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
     SURV.DIFF <- survdiff(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
