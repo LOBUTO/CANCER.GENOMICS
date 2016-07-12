@@ -86,7 +86,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(cancers, function(x) {
 
     pred.temp <- Function.classify.lived.pred(prediction[CANCER==x,]$PREDICTED, sd.multiplier=0.3, effective="POS")
-    pred.temp <- merge(prediction[CANCER==x,]$PREDICTED, pred.classes, by.x="PREDICTED", by.y="PREDICTION")
+    pred.temp <- merge(prediction[CANCER==x,]$PREDICTED, pred.temp, by.x="PREDICTED", by.y="PREDICTION")
 
     return(pred.temp)
     } )
