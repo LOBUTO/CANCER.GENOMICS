@@ -700,7 +700,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
             new_momentum = 1. - (1. - momentum.get_value()) * 0.999
             momentum.set_value(np.cast[theano.config.floatX](new_momentum))
         # adaption of learning rate
-        new_learning_rate = learning_rate.get_value() * 0.998
+        new_learning_rate = learning_rate.get_value() * 0.999
         learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
         # if epoch%500 == 0:
         #     new_learning_rate = learning_rate.get_value() * 0.1
@@ -786,7 +786,7 @@ print NEURONS
 for drop_out in [0.5]:
 
     for l in [2]:
-        test_mlp(learning_rate=5.0, L1_reg=0, L2_reg=0.0000000, n_epochs=10000, initial_momentum=0.5, input_p=0.2,
+        test_mlp(learning_rate=2.0, L1_reg=0, L2_reg=0.0000000, n_epochs=10000, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
                      n_hidden=input_layers, p=drop_out, dropout=True,
                      drug_name=drug +"_cgp_pca" + pcas +"_class_model_" + input_name ,
