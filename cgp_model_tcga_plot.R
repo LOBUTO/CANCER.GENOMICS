@@ -206,7 +206,7 @@ for (pca in c(500, 800, 1000)){
 
   #Do we need to filter based on number of samples per drug
   prediction[,COUNT:=length(SAMPLE), by="DRUG"]
-  prediction <- prediction[COUNT>40,]
+  prediction <- prediction[COUNT>60,]
   prediction$COUNT <- NULL
 
   #Execute
