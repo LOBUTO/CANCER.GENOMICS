@@ -446,6 +446,7 @@ pre_meta = pd.DataFrame({"SAMPLE": list(all_tcga.SAMPLE) ,
                          "LIVED":  list(all_tcga.LIVED),
                          "DRUG":   list(all_tcga.DRUG)    })
 pre_table = scale(all_tcga[used_feat])
+pre_table.columns = used_feat
 pre_table = pd.concat([pre_meta , pd.DataFrame(pre_table)], axis=1)
 
 #Execute on whole pre-scaled data
