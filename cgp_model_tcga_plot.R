@@ -199,7 +199,7 @@ for (pca in c(500, 800, 1000)){
   print(pca)
 
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_drug_", pca), header=T)
-  prediction$PREDICTION <- scale(prediction$PREDICTION)
+  prediction$PREDICTED <- scale(prediction$PREDICTED)
 
   #Do we need to filter based on minimum stay in trial?
   #prediction <- prediction[ACTUAL>50, ]
