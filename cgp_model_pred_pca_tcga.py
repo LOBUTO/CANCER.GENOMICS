@@ -462,7 +462,7 @@ for drug in filt_drugs:
     target_table = pd.concat([tcga_labels, target_table], axis=1)
 
     #Load pca transform to apply model
-    test_drug_x, test_drug_y = shared_drug_dataset_IC50(target_table, integers=False, target="LIVED")
+    test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=False, target="LIVED")
 
     prediction = model_prediction(MODEL_FILE, test_drug_x)
     print(prediction)
