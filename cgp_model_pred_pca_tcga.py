@@ -405,7 +405,7 @@ for cancer in list(set(cancer_samples.CANCER)):
     tcga_labels = pd.DataFrame({"LIVED": list(tcga_labels) })
 
     target_table = target_table[used_feat]
-    target_table = scale(target_table) #Provide pre-scaling
+    #target_table = scale(target_table) #Provide pre-scaling
     print(target_table.shape)
 
     target_table = numpy.dot(target_table, rotation)
