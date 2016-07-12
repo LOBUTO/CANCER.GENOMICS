@@ -48,10 +48,10 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="POS"){
 
-  sd.factor <- sd(x) * sd.multiplier
-  sd.mean <- mean(x)
-  # sd.mean <- 0
-  # sd.factor <- sd.multiplier
+  # sd.factor <- sd(x) * sd.multiplier
+  # sd.mean <- mean(x)
+  sd.mean <- 0
+  sd.factor <- sd.multiplier
 
   above.sd <- x[x > (sd.mean + sd.factor)]
   below.sd <- x[x < (sd.mean - sd.factor)]
@@ -93,7 +93,7 @@ for (pca in c(500, 800, 1000)){
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
 
   #Do we need to filter?
-  prediction <- prediction[ACTUAL>50, ]
+  # prediction <- prediction[ACTUAL>50, ]
 
   prediction[,COUNT:=length(SAMPLE), by="CANCER"]
   prediction <- prediction[COUNT>50,]
