@@ -756,7 +756,7 @@ input_layers = sys.argv[1].split("f")[0].split("_")
 input_layers = [int(l) for l in input_layers]
 print(input_layers)
 
-input_name = ".".join(input_layers)
+input_name = ".".join([str(c) for c in input_layers])
 drug = "TCGA"
 
 pcas = sys.argv[1].split("f")[1]
