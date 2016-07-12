@@ -15,6 +15,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   plots <- plotlist
 
   numPlots = length(plots)
+  print(numPlots)
 
   # If layout is NULL, then use 'cols' to determine layout
   if (is.null(layout)) {
@@ -177,8 +178,7 @@ for (pca in c(500, 800, 1000)){
   file.name <- paste0(FIGURES, target.name, pca,  "." , ".survival.pdf")
   pdf(file.name, width=12, height=18)
 
-  print(length(surv.plots))
-  multiplot(surv.plots)
+  multiplot(surv.plots, cols=3)
 
   dev.off()
 
