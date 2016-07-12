@@ -16,17 +16,19 @@ Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="NEG"){
   below.sd <- x[x < (sd.mean - sd.factor)]
 
   if (effective=="NEG"){
-    main.table <- data.table(PREDICTION=below.sd, CASE="EFFECTIVE")
-    main.table <- rbind(main.table,
-                        data.table(PREDICTION=above.sd, CASE="NOT_EFFECTIVE"))
+
+    CASE  <- ifelse(x %in% below.sd , "EFFECTIVE",
+                    ifelse(x %in% above.sd, "NOT_EFFECTIVE", "NO_CLASS"))
+
   } else {
-    main.table <- data.table(PREDICTION=above.sd, CASE="EFFECTIVE")
-    main.table <- rbind(main.table,
-                        data.table(PREDICTION=below.sd, CASE="NOT_EFFECTIVE"))
+
+    CASE  <- ifelse(x %in% below.sd , "NOT_EFFECTIVE",
+                    ifelse(x %in% above.sd, "EFFECTIVE", "NO_CLASS"))
+
   }
 
   #Return
-  return (main.table)
+  return (CASE)
 }
 
 ################################################################################################################################
@@ -85,10 +87,10 @@ for (pca in c(500, 800, 1000)){
 
   pred.classes <- lapply(cancers, function(x) {
 
-    pred.temp <- Function.classify.lived.pred(prediction[CANCER==x,]$PREDICTED, sd.multiplier=0.3, effective="POS")
-    print(prediction[CANCER==x,])
-    print(pred.temp) 
-    pred.temp <- merge(prediction[CANCER==x,], pred.temp, by.x="PREDICTED", by.y="PREDICTION")
+    pred.temp <- prediction[CANCER==x,]
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.3, effective="POS")
+
+    pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
     return(pred.temp)
     } )
