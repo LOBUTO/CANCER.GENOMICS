@@ -409,7 +409,7 @@ for cancer in list(set(cancer_samples.CANCER)):
     print(target_table.shape)
 
     target_table = numpy.dot(target_table, rotation)
-    target_table = scale(target_table)
+    target_table = scale(target_table) #Required post-scaling to keep in line with pre-training treatment
     target_table = pd.DataFrame(target_table)
 
     print(tcga_labels.iloc[:5,:])
@@ -429,4 +429,48 @@ for cancer in list(set(cancer_samples.CANCER)):
 
 FILE_OUT_val.close()
 
+####################################################################################################################################
+#OBTAIN PREDICTIONS PER DRUG
+#Filter by drug count
+drug_count = pd.DataFrame(all_tcga.groupby(["DRUG"], as_index=False).size())
+drug_count["DRUG"] = list(drug_count.index)
+drug_count = drug_count[drug_count[0]>40]
+filt_drugs = list(set(drug_count.DRUG))
+
+FILE_OUT_val = open(OUT_FOLDER + "cgp_auc_tcga_prediction_drug_" + str(n_pcas), "w")
+FILE_OUT_val.write("DRUG" + "\t" + "SAMPLE" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
+
+for drug in filt_drugs:
+
+    print (drug)
+
+    target_table = all_tcga[all_tcga.DRUG==drug]
+    target_samples = list(target_table.SAMPLE) #To keep in line with order of prediction table
+
+    #Do PCA transform prior to model
+    tcga_labels = target_table.LIVED
+    tcga_labels = pd.DataFrame({"LIVED": list(tcga_labels) })
+
+    target_table = target_table[used_feat]
+    print(target_table.shape)
+    #target_table = scale(target_table) #Supposedly the population has been scaled!!!
+
+    target_table = numpy.dot(target_table, rotation)
+    target_table = scale(target_table) #post scaling is necessary to keep in line with pre-training treatment
+    target_table = pd.DataFrame(target_table)
+
+    target_table = pd.concat([tcga_labels, target_table], axis=1)
+
+    #Load pca transform to apply model
+    test_drug_x, test_drug_y = shared_drug_dataset_IC50(target_table, integers=False, target="LIVED")
+
+    prediction = model_prediction(MODEL_FILE, test_drug_x)
+    print(prediction)
+
+    actual = test_drug_y.get_value()
+
+    for l in xrange(len(actual)):
+        FILE_OUT_val.write("\n" + drug + "\t" + target_samples[l] + "\t" + str(actual[l]) + "\t" + str(prediction[l]))
+
+FILE_OUT_val.close()
 print("Done predicting!!")
