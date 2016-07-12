@@ -247,9 +247,10 @@ for (pca in c(500, 800, 1000)){
     return(pred.temp)
     } )
   prediction <- do.call(rbind, pred.classes)
+  print (prediction)
 
   P.VALS <- sapply(drugs, function(x) {
-
+    print(x)
     p.value <- wilcox.test(prediction[DRUG==x,][CASE=="EFFECTIVE",]$LIVED,
                            prediction[DRUG==x,][CASE=="NOT_EFFECTIVE",]$LIVED,
                            paired=F, alternative="greater")$p.value
