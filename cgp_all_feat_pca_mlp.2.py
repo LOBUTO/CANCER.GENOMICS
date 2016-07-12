@@ -751,11 +751,16 @@ def shared_drug_dataset_IC50(drug_data, integers=True):
 ####################################################################################################################################################################################################
 
 #OBTAIN FILES
-input_layers = [int(l) for l in sys.argv[1:]]
+#input_layers = [int(l) for l in sys.argv[1:]]
+input_layers = sys.argv[1].split("f")[0].split("_")
+input_layers = [int(l) for l in input_layers]
 print(input_layers)
-input_name = ".".join(sys.argv[1:])
+
+input_name = ".".join(input_layers)
 drug = "TCGA"
-pcas = str(input_layers[0])
+
+pcas = sys.argv[1].split("f")[1]
+pcas = str(pcas)
 
 OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_RESULTS" #For tigress
 
@@ -786,7 +791,7 @@ print NEURONS
 for drop_out in [0.5]:
 
     for l in [2]:
-        test_mlp(learning_rate=2.0, L1_reg=0, L2_reg=0.0000000, n_epochs=10000, initial_momentum=0.5, input_p=0.2,
+        test_mlp(learning_rate=5.0, L1_reg=0, L2_reg=0.0000000, n_epochs=10000, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
                      n_hidden=input_layers, p=drop_out, dropout=True,
                      drug_name=drug +"_cgp_pca" + pcas +"_class_model_" + input_name ,
