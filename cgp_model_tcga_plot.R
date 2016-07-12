@@ -248,7 +248,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(drugs, function(x) {
 
     pred.temp <- prediction[DRUG==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.3, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.5, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
@@ -303,7 +303,7 @@ for (pca in c(500, 800, 1000)){
   file.name <- paste0(FIGURES, target.name, pca,  ".drug." , ".survival.pdf")
   pdf(file.name, width=12, height=8)
 
-  multiplot(plotlist = surv.plots, cols=3)
+  multiplot(plotlist = surv.plots, cols=2)
 
   dev.off()
 
