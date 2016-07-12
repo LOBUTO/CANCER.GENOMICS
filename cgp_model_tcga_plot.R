@@ -177,7 +177,7 @@ for (pca in c(500, 800, 1000)){
   file.name <- paste0(FIGURES, target.name, pca,  "." , ".survival.pdf")
   pdf(file.name, width=12, height=18)
 
-  multiplot(surv.plot)
+  multiplot(surv.plots)
 
   dev.off()
 
