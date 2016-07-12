@@ -259,8 +259,8 @@ for (pca in c(500, 800, 1000)){
     return(p.value)
     } )
   print (drugs)
-  print (P.VALS)
-  P.VALS <- data.table(DRUG = drugs, P.VAL = P.VALS)
+  print (as.vector(P.VALS))
+  P.VALS <- data.table(DRUG = drugs, P.VAL = as.vector(P.VALS))
 
   # PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
   # write.table(data.table(PCA=pca, FILTER=l, SCORE=PVAL_SCORE), LOG_FILE, quote=F, col.names=F, row.names=F, append=T)
