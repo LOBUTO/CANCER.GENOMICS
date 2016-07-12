@@ -27,8 +27,8 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 
  if (numPlots==1) {
-    print(plots[[1]]["TEMP.PLOT"] +
-          geom_text(aes(plots[[1]]["POS"], 0.85, label= plots[[1]]["PVAL"]), size=8.0))
+    print(plots[[1]][["TEMP.PLOT"]] +
+          geom_text(aes(plots[[1]][["POS"]], 0.85, label= plots[[1]][["PVAL"]]), size=8.0))
 
   } else {
     # Set up the page
@@ -40,8 +40,8 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
       # Get the i,j matrix positions of the regions that contain this subplot
       matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
 
-      print(plots[[i]]["TEMP.PLOT"] +
-            geom_text(aes(plots[[i]]["POS"], 0.85, label= plots[[i]]["PVAL"]), size=8.0),
+      print(plots[[i]][["TEMP.PLOT"]] +
+            geom_text(aes(plots[[i]][["POS"]], 0.85, label= plots[[i]][["PVAL"]]), size=8.0),
             vp = viewport(layout.pos.row = matchidx$row,
                           layout.pos.col = matchidx$col))
     }
