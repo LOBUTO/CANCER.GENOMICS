@@ -258,6 +258,8 @@ for (pca in c(500, 800, 1000)){
                            paired=F, alternative="greater")$p.value
     return(p.value)
     } )
+  print (drugs)
+  print (P.VALS)
   P.VALS <- data.table(DRUG = drugs, P.VAL = P.VALS)
 
   # PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
