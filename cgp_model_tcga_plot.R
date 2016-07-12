@@ -97,7 +97,7 @@ for (l in seq(0.05, 0.6, 0.01)){
     prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
 
     #Do we need to filter?
-    prediction <- prediction[ACTUAL>100, ]
+    prediction <- prediction[ACTUAL>50, ]
 
     prediction[,COUNT:=length(SAMPLE), by="CANCER"]
     prediction <- prediction[COUNT>50,]
@@ -151,7 +151,7 @@ for (l in seq(0.05, 0.6, 0.01)){
       } )
     P.VALS <- data.table(CANCER = cancers, P.VAL = P.VALS)
 
-    PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
+    PVAL_SCORE = mean(P.VALS$P.VAL < 0.15)
     write.table(data.table(PCA=pca, FILTER=l, SCORE=PVAL_SCORE), LOG_FILE, quote=F, col.names=F, row.names=F, append=T)
 
     # file.name <- paste0(FIGURES, target.name, pca ,"_est.classes.pdf")
