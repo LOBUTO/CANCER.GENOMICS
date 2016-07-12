@@ -48,10 +48,10 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="POS"){
 
-  sd.factor <- sd(x) * sd.multiplier
-  sd.mean <- mean(x)
-  #sd.mean <- 0
-  #sd.factor <- sd.multiplier
+  # sd.factor <- sd(x) * sd.multiplier
+  # sd.mean <- mean(x)
+  sd.mean <- 0
+  sd.factor <- sd.multiplier
 
   above.sd <- x[x > (sd.mean + sd.factor)]
   below.sd <- x[x < (sd.mean - sd.factor)]
@@ -89,7 +89,7 @@ master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1
 #Load prediction table per PCA used
 LOG_FILE <- "/home/zamalloa/Documents/FOLDER/LOG.PVAL"
 
-for (l in seq(0.05, 0.6, 0.01)){
+for (l in seq(0.01, 0.2, 0.01)){
   print (l)
   for (pca in c(500, 800, 1000)){
     print(pca)
