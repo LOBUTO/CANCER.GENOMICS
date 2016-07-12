@@ -461,6 +461,7 @@ for drug in filt_drugs:
     tcga_labels = target_table.LIVED
     tcga_labels = pd.DataFrame({"LIVED": list(tcga_labels) })
 
+    target_table = target_table[used_feat]
     print(target_table.shape)
 
     target_table = numpy.dot(target_table, rotation)
