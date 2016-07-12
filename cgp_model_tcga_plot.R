@@ -87,105 +87,112 @@ master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/0
 master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1)
 
 #Load prediction table per PCA used
-for (pca in c(500, 800, 1000)){
-  print(pca)
+LOG_FILE <- "/home/zamalloa/Documents/FOLDER/LOG.PVAL"
 
-  prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
+for (l in seq(0.05, 0.6, 0.01)){
+  print (l)
+  for (pca in c(500, 800, 1000)){
+    print(pca)
 
-  #Do we need to filter?
-  # prediction <- prediction[ACTUAL>50, ]
+    prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
 
-  prediction[,COUNT:=length(SAMPLE), by="CANCER"]
-  prediction <- prediction[COUNT>50,]
-  prediction$COUNT <- NULL
+    #Do we need to filter?
+    prediction <- prediction[ACTUAL>100, ]
 
-  #Execute
-  cancers <- unique(prediction$CANCER)
-  prediction <- merge(prediction, master.clinical[,c("SAMPLE", "LIVED", "STATUS"),with=F] , by ="SAMPLE")
+    prediction[,COUNT:=length(SAMPLE), by="CANCER"]
+    prediction <- prediction[COUNT>50,]
+    prediction$COUNT <- NULL
 
-  cancer.cors <- sapply(cancers, function(x) {
+    #Execute
+    cancers <- unique(prediction$CANCER)
+    prediction <- merge(prediction, master.clinical[,c("SAMPLE", "LIVED", "STATUS"),with=F] , by ="SAMPLE")
 
-    y <- cor(prediction[CANCER==x,]$ACTUAL,
-            prediction[CANCER==x,]$PREDICTED,
-            method="pearson")
-    return(y)
+    cancer.cors <- sapply(cancers, function(x) {
 
-    })
-  cancer.cors <- data.table(CANCER = cancers, COR = cancer.cors)
+      y <- cor(prediction[CANCER==x,]$ACTUAL,
+              prediction[CANCER==x,]$PREDICTED,
+              method="pearson")
+      return(y)
 
-  #REGRESSION PLOT
-  file.name <- paste0(FIGURES, target.name, pca ,"_regression.pdf")
-  pdf(file.name, width=12, height=8)
+      })
+    cancer.cors <- data.table(CANCER = cancers, COR = cancer.cors)
 
-  print(prediction)
-  print(ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_point(colour="steelblue4", size=0.2) +
-    geom_text(data=cancer.cors, aes(x=1000, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
-    scale_fill_brewer(palette="Set1") + theme_bw() + geom_smooth(method="lm", se=T, color = "black", size=0.3) +
-    facet_wrap(~CANCER, scales="free"))
-  dev.off()
-
-  #DEFINED CLASSES PLOT
-  cancers <- unique(prediction$CANCER)
-
-  pred.classes <- lapply(cancers, function(x) {
-
-    pred.temp <- prediction[CANCER==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.6, effective="POS")
-
-    pred.temp <- pred.temp[CASE!="NO_CLASS",]
-
-    return(pred.temp)
-    } )
-  prediction <- do.call(rbind, pred.classes)
-
-  P.VALS <- sapply(cancers, function(x) {
-
-    p.value <- wilcox.test(prediction[CANCER==x,][CASE=="EFFECTIVE",]$LIVED,
-                           prediction[CANCER==x,][CASE=="NOT_EFFECTIVE",]$LIVED,
-                           paired=F, alternative="greater")$p.value
-    return(p.value)
-    } )
-  P.VALS <- data.table(CANCER = cancers, P.VAL = P.VALS)
-
-  file.name <- paste0(FIGURES, target.name, pca ,"_est.classes.pdf")
-  pdf(file.name, width=12, height=8)
-
-  print( ggplot(prediction, aes(CANCER, LIVED)) + geom_boxplot(aes(fill=factor(CASE))) +
-    geom_jitter(colour="steelblue4", size=0.2) +
-    geom_text(data=P.VALS, aes(x=CANCER, y=4000, label=paste0("P-val=", round(P.VAL,3)) )) +
-    scale_fill_brewer(palette="Set1") + theme_bw() )
-
-  dev.off()
-
-  #SURVIVAL PLOTS
-  surv.plots <- lapply(cancers, function(cancer) {
-
-    cancer.clinical <- prediction[CANCER==cancer,]
-
-    test.survival<-survfit(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
-    SURV.DIFF <- survdiff(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
-
-    P.VAL <- pchisq(SURV.DIFF$chisq, length(SURV.DIFF$n)-1, lower.tail = FALSE)
-
-    # file.name <- paste0(FIGURES, target.name, pca,  "." , cancer, ".survival.pdf")
-    # pdf(file.name, width=12, height=18)
-
-    temp.plot <- ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
-                  theme_classic() + ggtitle(paste0(cancer, " - P-val: ", round(P.VAL,3))) #+
-
-    return(temp.plot)
+    #REGRESSION PLOT
+    # file.name <- paste0(FIGURES, target.name, pca ,"_regression.pdf")
+    # pdf(file.name, width=12, height=8)
+    #
+    # print(prediction)
+    # print(ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_point(colour="steelblue4", size=0.2) +
+    #   geom_text(data=cancer.cors, aes(x=1000, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
+    #   scale_fill_brewer(palette="Set1") + theme_bw() + geom_smooth(method="lm", se=T, color = "black", size=0.3) +
+    #   facet_wrap(~CANCER, scales="free"))
     # dev.off()
 
-  })
+    #DEFINED CLASSES PLOT
+    cancers <- unique(prediction$CANCER)
 
-  file.name <- paste0(FIGURES, target.name, pca,  "." , ".survival.pdf")
-  pdf(file.name, width=12, height=18)
+    pred.classes <- lapply(cancers, function(x) {
 
-  multiplot(plotlist = surv.plots, cols=3)
+      pred.temp <- prediction[CANCER==x,]
+      pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=l, effective="POS")
 
-  dev.off()
+      pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
+      return(pred.temp)
+      } )
+    prediction <- do.call(rbind, pred.classes)
+
+    P.VALS <- sapply(cancers, function(x) {
+
+      p.value <- wilcox.test(prediction[CANCER==x,][CASE=="EFFECTIVE",]$LIVED,
+                             prediction[CANCER==x,][CASE=="NOT_EFFECTIVE",]$LIVED,
+                             paired=F, alternative="greater")$p.value
+      return(p.value)
+      } )
+    P.VALS <- data.table(CANCER = cancers, P.VAL = P.VALS)
+
+    PVAL_SCORE = mean(P.VALS$P.VALS < 0.1)
+    write.table(data.table(PCA=pca, FILTER=l, SCORE=PVAL_SCORE), LOG_FILE, quote=F, col.names=F, row.names=T, append=T)
+
+    # file.name <- paste0(FIGURES, target.name, pca ,"_est.classes.pdf")
+    # pdf(file.name, width=12, height=8)
+    #
+    # print( ggplot(prediction, aes(CANCER, LIVED)) + geom_boxplot(aes(fill=factor(CASE))) +
+    #   geom_jitter(colour="steelblue4", size=0.2) +
+    #   geom_text(data=P.VALS, aes(x=CANCER, y=4000, label=paste0("P-val=", round(P.VAL,3)) )) +
+    #   scale_fill_brewer(palette="Set1") + theme_bw() )
+    #
+    # dev.off()
+    #
+    # #SURVIVAL PLOTS
+    # surv.plots <- lapply(cancers, function(cancer) {
+    #
+    #   cancer.clinical <- prediction[CANCER==cancer,]
+    #
+    #   test.survival<-survfit(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
+    #   SURV.DIFF <- survdiff(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
+    #
+    #   P.VAL <- pchisq(SURV.DIFF$chisq, length(SURV.DIFF$n)-1, lower.tail = FALSE)
+    #
+    #   # file.name <- paste0(FIGURES, target.name, pca,  "." , cancer, ".survival.pdf")
+    #   # pdf(file.name, width=12, height=18)
+    #
+    #   temp.plot <- ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
+    #                 theme_classic() + ggtitle(paste0(cancer, " - P-val: ", round(P.VAL,3))) #+
+    #
+    #   return(temp.plot)
+    #   # dev.off()
+    #
+    # })
+    #
+    # file.name <- paste0(FIGURES, target.name, pca,  "." , ".survival.pdf")
+    # pdf(file.name, width=12, height=18)
+    #
+    # multiplot(plotlist = surv.plots, cols=3)
+    #
+    # dev.off()
+
+  }
 }
-
 #DONE
 print ("Done plotting!!")
