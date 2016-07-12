@@ -136,7 +136,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(cancers, function(x) {
 
     pred.temp <- prediction[CANCER==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.3, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.2, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
