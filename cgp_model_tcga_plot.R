@@ -175,7 +175,7 @@ for (pca in c(500, 800, 1000)){
                   theme_classic() + ggtitle(cancer) #+
 
     return(list(TEMP.PLOT = temp.plot,
-                POS = mean.lived
+                POS = mean.lived,
                 PVAL = P.VAL))
     # dev.off()
 
