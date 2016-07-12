@@ -106,10 +106,10 @@ for (pca in c(500, 800, 1000)){
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
 
   #Do we need to filter?
-  prediction <- prediction[ACTUAL>50, ]
+  #prediction <- prediction[ACTUAL>50, ]
 
   prediction[,COUNT:=length(SAMPLE), by="CANCER"]
-  prediction <- prediction[COUNT>50,]
+  prediction <- prediction[COUNT>40,]
   prediction$COUNT <- NULL
 
   #Execute
@@ -143,7 +143,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(cancers, function(x) {
 
     pred.temp <- prediction[CANCER==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.5, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.6, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
@@ -214,7 +214,7 @@ for (pca in c(500, 800, 1000)){
   #Do we need to filter based on number of samples per drug
   prediction[,COUNT:=length(SAMPLE), by="DRUG"]
   print(unique(prediction[,c("DRUG", "COUNT"),with=F]))
-  prediction <- prediction[COUNT>45,]
+  prediction <- prediction[COUNT>40,]
   prediction$COUNT <- NULL
 
   #Execute
@@ -248,7 +248,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(drugs, function(x) {
 
     pred.temp <- prediction[DRUG==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.5, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.6, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
