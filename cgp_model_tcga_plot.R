@@ -12,7 +12,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
   # Make a list from the ... arguments and plotlist
   #plots <- c(list(...), plotlist)
-  plots <<- plotlist
+  plots <- plotlist
 
   numPlots = length(plots)
   print(numPlots)
@@ -27,8 +27,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 
  if (numPlots==1) {
-    print(plots[[1]][["TEMP.PLOT"]] +
-          geom_text(aes(plots[[1]][["POS"]], 0.85, label= plots[[1]][["PVAL"]]), size=8.0))
+    print(plots[[1]])
 
   } else {
     # Set up the page
@@ -40,8 +39,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
       # Get the i,j matrix positions of the regions that contain this subplot
       matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
 
-      print(plots[[i]][["TEMP.PLOT"]] +
-            geom_text(aes(plots[[i]][["POS"]], 0.85, label= plots[[i]][["PVAL"]]), size=2.0),
+      print(plots[[i]],
             vp = viewport(layout.pos.row = matchidx$row,
                           layout.pos.col = matchidx$col))
     }
@@ -170,13 +168,10 @@ for (pca in c(500, 800, 1000)){
     # file.name <- paste0(FIGURES, target.name, pca,  "." , cancer, ".survival.pdf")
     # pdf(file.name, width=12, height=18)
 
-    mean.lived <- mean(cancer.clinical$LIVED)
     temp.plot <- ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
-                  theme_classic() + ggtitle(cancer) #+
+                  theme_classic() + ggtitle(paste0(cancer, " - P-val: ", P.VAL)) #+
 
-    return(list(TEMP.PLOT = temp.plot,
-                POS = mean.lived,
-                PVAL = P.VAL))
+    return(temp.plot)
     # dev.off()
 
   })
