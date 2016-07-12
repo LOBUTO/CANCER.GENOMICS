@@ -48,10 +48,10 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="POS"){
 
-  # sd.factor <- sd(x) * sd.multiplier
-  # sd.mean <- mean(x)
-  sd.mean <- 0
-  sd.factor <- sd.multiplier
+  sd.factor <- sd(x) * sd.multiplier
+  sd.mean <- mean(x)
+  #sd.mean <- 0
+  #sd.factor <- sd.multiplier
 
   above.sd <- x[x > (sd.mean + sd.factor)]
   below.sd <- x[x < (sd.mean - sd.factor)]
@@ -130,7 +130,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(cancers, function(x) {
 
     pred.temp <- prediction[CANCER==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.15, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.5, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
