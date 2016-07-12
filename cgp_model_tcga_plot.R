@@ -248,6 +248,7 @@ for (pca in c(500, 800, 1000)){
     } )
   prediction <- do.call(rbind, pred.classes)
   print (prediction)
+  print (prediction[,list(COUNT=length(SAMPLE)), by="DRUG"])
 
   drugs <- unique(prediction$DRUG)
   P.VALS <- sapply(drugs, function(x) {
