@@ -151,7 +151,7 @@ for (l in seq(0.05, 0.6, 0.01)){
       } )
     P.VALS <- data.table(CANCER = cancers, P.VAL = P.VALS)
 
-    PVAL_SCORE = mean(P.VALS$P.VALS < 0.1)
+    PVAL_SCORE = mean(P.VALS$P.VAL < 0.1)
     write.table(data.table(PCA=pca, FILTER=l, SCORE=PVAL_SCORE), LOG_FILE, quote=F, col.names=F, row.names=T, append=T)
 
     # file.name <- paste0(FIGURES, target.name, pca ,"_est.classes.pdf")
