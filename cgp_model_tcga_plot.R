@@ -169,7 +169,7 @@ for (pca in c(500, 800, 1000)){
     # pdf(file.name, width=12, height=18)
 
     temp.plot <- ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
-                  theme_classic() + ggtitle(paste0(cancer, " - P-val: ", round(P.VAL,2))) #+
+                  theme_classic() + ggtitle(paste0(cancer, " - P-val: ", round(P.VAL,3))) #+
 
     return(temp.plot)
     # dev.off()
