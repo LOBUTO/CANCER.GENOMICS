@@ -10,6 +10,7 @@ Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="NEG"){
 
   sd.factor <- sd(x) * sd.multiplier
   sd.mean <- mean(x)
+  #sd.mean <- 0
 
   above.sd <- x[x > (sd.mean + sd.factor)]
   below.sd <- x[x < (sd.mean - sd.factor)]
@@ -59,7 +60,6 @@ for (pca in c(500, 800, 1000)){
   prediction <- merge(prediction, master.clinical[,c("SAMPLE", "LIVED", "STATUS"),with=F] , by ="SAMPLE")
 
   cancer.cors <- sapply(cancers, function(x) {
-    print(x)
 
     y <- cor(prediction[CANCER==x,]$ACTUAL,
             prediction[CANCER==x,]$PREDICTED,
@@ -81,13 +81,19 @@ for (pca in c(500, 800, 1000)){
   dev.off()
 
   #DEFINED CLASSES PLOT
-  pred.classes <- Function.classify.lived.pred(prediction$PREDICTED, sd.multiplier=0.3, effective="POS")
-  prediction <- merge(prediction, pred.classes, by.x="PREDICTED", by.y="PREDICTION")
-
   cancers <- unique(prediction$CANCER)
 
+  pred.classes <- lapply(cancers, function(x) {
+
+    pred.temp <- Function.classify.lived.pred(prediction[CANCER==x,]$PREDICTED, sd.multiplier=0.3, effective="POS")
+    pred.temp <- merge(prediction[CANCER==x,]$PREDICTED, pred.classes, by.x="PREDICTED", by.y="PREDICTION")
+
+    return(pred.temp)
+    } )
+  prediction <- do.call(rbind, pred.classes)
+
   P.VALS <- sapply(cancers, function(x) {
-    print(x)
+
     p.value <- wilcox.test(prediction[CANCER==x,][CASE=="EFFECTIVE",]$LIVED,
                            prediction[CANCER==x,][CASE=="NOT_EFFECTIVE",]$LIVED,
                            paired=F, alternative="greater")$p.value
