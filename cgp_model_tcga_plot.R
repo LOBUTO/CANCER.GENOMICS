@@ -201,11 +201,11 @@ for (pca in c(500, 800, 1000)){
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_drug_", pca), header=T)
 
   #Do we need to filter based on minimum stay in trial?
-  prediction <- prediction[ACTUAL>50, ]
+  #prediction <- prediction[ACTUAL>50, ]
 
   #Do we need to filter based on number of samples per drug
   prediction[,COUNT:=length(SAMPLE), by="DRUG"]
-  prediction <- prediction[COUNT>50,]
+  prediction <- prediction[COUNT>40,]
   prediction$COUNT <- NULL
 
   #Execute
@@ -239,7 +239,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(drugs, function(x) {
 
     pred.temp <- prediction[DRUG==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.55, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.3, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
