@@ -168,8 +168,8 @@ for (pca in c(500, 800, 1000)){
     # pdf(file.name, width=12, height=18)
 
     temp.plot <- ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
-                  theme_classic() + ggtitle(cancer) +
-                  geom_text(aes(mean(cancer.clinical$LIVED), 0.85, label= P.VAL), size=8.0)
+                  theme_classic() + ggtitle(cancer) #+
+                  #geom_text(aes(mean(cancer.clinical$LIVED), 0.85, label= P.VAL), size=8.0)
     return(temp.plot)
     # dev.off()
 
