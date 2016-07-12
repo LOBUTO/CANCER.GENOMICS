@@ -170,7 +170,7 @@ for (pca in c(500, 800, 1000)){
     mean.lived <- mean(cancer.clinical$LIVED)
     temp.plot <- ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
                   theme_classic() + ggtitle(cancer) +
-                  geom_text(aes(mean.lived, 0.85, label= P.VAL), size=8.0)
+                  geom_text(aes(1000, 0.85, label= P.VAL), size=8.0)
     return(temp.plot)
     # dev.off()
 
