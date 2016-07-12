@@ -49,7 +49,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="POS"){
 
   sd.factor <- sd(x) * sd.multiplier
-  sd.mean <- mean(x)
+  sd.mean <- median(x)
   # sd.mean <- 0
   # sd.factor <- sd.multiplier
 
