@@ -440,20 +440,26 @@ filt_drugs = list(set(drug_count.DRUG))
 FILE_OUT_val = open(OUT_FOLDER + "cgp_auc_tcga_prediction_drug_" + str(n_pcas), "w")
 FILE_OUT_val.write("DRUG" + "\t" + "SAMPLE" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
 
+
+#Pre-scale whole data
+pre_meta = pd.DataFrame({"SAMPLE": list(all_tcga.SAMPLE) ,
+                         "LIVED":  list(all_tcga.LIVED) })
+pre_table = scale(all_tcga[used_feat])
+pre_table = pd.concat([pre_meta , pd.DataFrame(pre_table)], axis=1)
+
+#Execute on whole pre-scaled data
 for drug in filt_drugs:
 
     print (drug)
 
-    target_table = all_tcga[all_tcga.DRUG==drug]
+    target_table = pre_table[pre_table.DRUG==drug]
     target_samples = list(target_table.SAMPLE) #To keep in line with order of prediction table
 
     #Do PCA transform prior to model
     tcga_labels = target_table.LIVED
     tcga_labels = pd.DataFrame({"LIVED": list(tcga_labels) })
 
-    target_table = target_table[used_feat]
     print(target_table.shape)
-    #target_table = scale(target_table) #Supposedly the population has been scaled!!!
 
     target_table = numpy.dot(target_table, rotation)
     target_table = scale(target_table) #post scaling is necessary to keep in line with pre-training treatment
