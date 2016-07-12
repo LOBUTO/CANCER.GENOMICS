@@ -88,6 +88,7 @@ master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1
 
 #Load prediction table per PCA used
 for (pca in c(500, 800, 1000)){
+  print(pca)
 
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
 
