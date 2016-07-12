@@ -443,7 +443,8 @@ FILE_OUT_val.write("DRUG" + "\t" + "SAMPLE" + "\t" + "ACTUAL" + "\t" + "PREDICTE
 
 #Pre-scale whole data
 pre_meta = pd.DataFrame({"SAMPLE": list(all_tcga.SAMPLE) ,
-                         "LIVED":  list(all_tcga.LIVED) })
+                         "LIVED":  list(all_tcga.LIVED),
+                         "DRUG":   list(all_tcga.DRUG)    })
 pre_table = scale(all_tcga[used_feat])
 pre_table = pd.concat([pre_meta , pd.DataFrame(pre_table)], axis=1)
 
