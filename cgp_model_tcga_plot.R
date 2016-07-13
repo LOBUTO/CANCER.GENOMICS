@@ -107,6 +107,7 @@ for (pca in c(500, 800, 1000)){
   print(pca)
 
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
+  prediction <- prediction[CANCER!="gbm",]
 
   #Do we need to filter?
   prediction <- prediction[ACTUAL>sample.filter, ]
