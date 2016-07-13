@@ -49,10 +49,10 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="POS"){
   #Will classify outliers as "OUTLIER"
 
-  sd.factor <- sd(x) * sd.multiplier
-  sd.mean <- mean(x)
-  # sd.mean <- 0
-  # sd.factor <- sd.multiplier
+  # sd.factor <- sd(x) * sd.multiplier
+  # sd.mean <- mean(x)
+  sd.mean <- 0
+  sd.factor <- sd.multiplier
   of <- 2
 
   above.sd <- x[x > (sd.mean + sd.factor)]
@@ -94,14 +94,14 @@ master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/0
 master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1)
 
 #Load prediction table per PCA used
-LOG_FILE <- "/home/zamalloa/Documents/FOLDER/LOG.PVAL"
+LOG_FILE <- "/home/zamalloa/Documents/FOLDER/LOG.PVAL.NOPRESCALED.SDS"
 
-for (l in seq(0.01, 0.6, 0.01)){
+for (l in seq(0.01, 0.2, 0.01)){
 print (l)
 ############################################################################################################################################
 #PREDICTION PER CANCER
 sd.filter <- l
-sample.filter <- 100
+sample.filter <- 50
 
 for (pca in c(200, 500, 800, 1000)){
   print(pca)

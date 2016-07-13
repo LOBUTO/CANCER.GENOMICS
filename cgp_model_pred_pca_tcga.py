@@ -410,7 +410,7 @@ for cancer in list(set(cancer_samples.CANCER)):
     tcga_labels = pd.DataFrame({"LIVED": list(tcga_labels) })
 
     target_table = target_table[used_feat]
-    target_table = scale(target_table) #Provide pre-scaling
+    #target_table = scale(target_table) #Provide pre-scaling
     print(target_table.shape)
 
     target_table = numpy.dot(target_table, rotation)
@@ -447,12 +447,12 @@ FILE_OUT_val.write("DRUG" + "\t" + "SAMPLE" + "\t" + "ACTUAL" + "\t" + "PREDICTE
 
 
 #Pre-scale whole data
-pre_meta = pd.DataFrame({"SAMPLE": list(all_tcga.SAMPLE) ,
-                         "LIVED":  list(all_tcga.LIVED),
-                         "DRUG":   list(all_tcga.DRUG)    })
-pre_table = pd.DataFrame(scale(all_tcga[used_feat]))
-pre_table.columns = used_feat
-pre_table = pd.concat([pre_meta , pre_table], axis=1)
+# pre_meta = pd.DataFrame({"SAMPLE": list(all_tcga.SAMPLE) ,
+#                          "LIVED":  list(all_tcga.LIVED),
+#                          "DRUG":   list(all_tcga.DRUG)    })
+# pre_table = pd.DataFrame(scale(all_tcga[used_feat]))
+# pre_table.columns = used_feat
+# pre_table = pd.concat([pre_meta , pre_table], axis=1)
 #pre_table = all_tcga
 
 #Execute on whole pre-scaled data
