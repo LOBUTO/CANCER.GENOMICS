@@ -94,14 +94,14 @@ master.clinical <- fread("/home/zamalloa/Documents/FOLDER/TABLES/TCGA.TRAINING/0
 master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1)
 
 #Load prediction table per PCA used
-LOG_FILE <- "/home/zamalloa/Documents/FOLDER/LOG.PVAL"
+LOG_FILE <- "/home/zamalloa/Documents/FOLDER/LOG.PVAL.NOPRESCALED"
 
 for (l in seq(0.01, 0.6, 0.01)){
 print (l)
 ############################################################################################################################################
 #PREDICTION PER CANCER
 sd.filter <- l
-sample.filter <- 100
+sample.filter <- 0
 
 for (pca in c(500, 800, 1000)){
   print(pca)
