@@ -756,6 +756,7 @@ input_layers = [int(l) for l in input_layers]
 print(input_layers)
 
 drug = sys.argv[2]
+input_name = ".".join([str(c) for c in input_layers])
 
 OUT_FOLDER = "/tigress/zamalloa/CGP_FILES/CGP_RESULTS" #For tigress
 OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_RESULTS"
@@ -784,7 +785,7 @@ for drop_out in [0.5]:
         test_mlp(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=10000, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
                      n_hidden=input_layers, p=drop_out, dropout=True,
-                     drug_name=drug +"_cgp_pIC50" + input_name ,
+                     drug_name=drug +"_cgp_pIC50." + input_name ,
                      OUT_FOLDER = OUT_FOLDER)
 
 print "DONE"
