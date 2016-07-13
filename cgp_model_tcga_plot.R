@@ -179,7 +179,7 @@ for (pca in c(200, 500, 800, 1000)){
 
   print( ggplot(prediction, aes(CANCER, LIVED)) + geom_boxplot(aes(fill=factor(CASE))) +
     geom_jitter(colour="steelblue4", size=0.3) +
-    geom_text(data=P.VALS, aes(x=CANCER, y=4000, label=paste0("P-val=", round(P.VAL,3)), "\n", "N=",N)) +
+    geom_text(data=P.VALS, aes(x=CANCER, y=4000, label=paste0("P-val=", round(P.VAL,3), "\n", "N=",N))) +
     scale_fill_brewer(palette="Set1") + theme_bw() )
 
   dev.off()
