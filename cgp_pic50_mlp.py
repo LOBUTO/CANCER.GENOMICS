@@ -763,9 +763,9 @@ OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_RESULTS"
 IN_FOLDER = "/tigress/zamalloa/CGP_FILES/CGP_TRAIN_TABLES" #For tigress
 IN_FOLDER = "/home/zamalloa/Documents/FOLDER/TABLES/CGP.TRAINING"
 
-train_table = pd.read_csv(IN_FOLDER + "TRAIN." + drug + ".pIC50.csv", sep="\t")
-valid_table = pd.read_csv(IN_FOLDER + "VALID." + drug + ".pIC50.csv", sep="\t")
-test_table  = pd.read_csv(IN_FOLDER + "TEST." + drug + ".pIC50.csv", sep="\t")
+train_table = pd.read_csv(IN_FOLDER + "/TRAIN." + drug + ".pIC50.csv", sep="\t")
+valid_table = pd.read_csv(IN_FOLDER + "/VALID." + drug + ".pIC50.csv", sep="\t")
+test_table  = pd.read_csv(IN_FOLDER + "/TEST." + drug + ".pIC50.csv", sep="\t")
 
 train_drug_x, train_drug_y=shared_drug_dataset_IC50(train_table, integers=False)
 valid_drug_x, valid_drug_y=shared_drug_dataset_IC50(valid_table, integers=False)
