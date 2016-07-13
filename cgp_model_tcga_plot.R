@@ -96,11 +96,11 @@ master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1
 #Load prediction table per PCA used
 LOG_FILE <- "/home/zamalloa/Documents/FOLDER/LOG.PVAL"
 
-#for (l in seq(0.01, 0.15, 0.01)){
-#print (l)
+for (l in seq(0.01, 0.6, 0.01)){
+print (l)
 ############################################################################################################################################
 #PREDICTION PER CANCER
-sd.filter <- 0.5
+sd.filter <- l
 sample.filter <- 0
 
 for (pca in c(500, 800, 1000)){
@@ -163,8 +163,8 @@ for (pca in c(500, 800, 1000)){
     } )
   P.VALS <- data.table(CANCER = cancers, P.VAL = P.VALS)
 
-  # PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
-  # write.table(data.table(PCA=pca, FILTER=l, SCORE=PVAL_SCORE), LOG_FILE, quote=F, col.names=F, row.names=F, append=T)
+  PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
+  write.table(data.table(PCA=pca, FILTER=l, SCORE=PVAL_SCORE), LOG_FILE, quote=F, col.names=F, row.names=F, append=T)
 
   file.name <- paste0(FIGURES, target.name, pca ,"_est.classes.pdf")
   pdf(file.name, width=12, height=8)
@@ -201,7 +201,7 @@ for (pca in c(500, 800, 1000)){
   dev.off()
 
 }
-#}
+}
 
 ############################################################################################################################################
 #PREDICTION PER DRUG
