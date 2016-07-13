@@ -60,8 +60,8 @@ Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="POS"){
   outlier  <- x[ifelse(x > (median(x) + of*sd(x)), TRUE,
                        ifelse( x  < (median(x) - of*sd(x)), TRUE , FALSE  ))]
 
-  above.sd <- above.sd[!above.sd %in% outlier]
-  below.sd <- below.sd[!below.sd %in% outlier]
+  #above.sd <- above.sd[!above.sd %in% outlier]
+  #below.sd <- below.sd[!below.sd %in% outlier]
 
   if (effective=="NEG"){
 
