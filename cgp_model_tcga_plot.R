@@ -160,9 +160,10 @@ for (pca in c(200, 500, 800, 1000)){
     p.value <- wilcox.test(prediction[CANCER==x,][CASE=="EFFECTIVE",]$LIVED,
                            prediction[CANCER==x,][CASE=="NOT_EFFECTIVE",]$LIVED,
                            paired=F, alternative="greater")$p.value
+
     return(p.value)
     } )
-  P.VALS <- data.table(CANCER = cancers, P.VAL = P.VALS)
+  P.VALS <- data.table(CANCER = cancers, P.VAL = P.VALS, N = sapply(cancers, function(x) nrow(prediction[CANCER==x,])) )
 
   PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
   TARGET_SCORE = mean(P.VALS[CANCER %in% c("kirc","luad", "lusc", "Negative", "Positive", "ov"),]$P.VAL < 0.2)
@@ -177,8 +178,8 @@ for (pca in c(200, 500, 800, 1000)){
   pdf(file.name, width=12, height=8)
 
   print( ggplot(prediction, aes(CANCER, LIVED)) + geom_boxplot(aes(fill=factor(CASE))) +
-    geom_jitter(colour="steelblue4", size=0.2) +
-    geom_text(data=P.VALS, aes(x=CANCER, y=4000, label=paste0("P-val=", round(P.VAL,3)) )) +
+    geom_jitter(colour="steelblue4", size=0.3) +
+    geom_text(data=P.VALS, aes(x=CANCER, y=4000, label=paste0("P-val=", round(P.VAL,3)), "\n", "N=",N)) +
     scale_fill_brewer(palette="Set1") + theme_bw() )
 
   dev.off()
