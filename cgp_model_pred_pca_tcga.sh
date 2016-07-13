@@ -2,7 +2,7 @@
 #cgp.cor.AUC_class_pred.sh
 #Bash to predict and produce plot for cgp.cor.AUC based on the nci60 based model
 
-for p in 500 800 1000
+for p in 200 500 800 1000 1500
 do
   python /home/zamalloa/Documents/FOLDER/GIT/cgp_model_pred_pca_tcga.py \
   /home/zamalloa/Documents/FOLDER/CGP_FILES/cgp_all_feat \

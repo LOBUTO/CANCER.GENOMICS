@@ -81,7 +81,7 @@ Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="POS"){
 
 ################################################################################################################################
 
-target.name <- "cgp_based_model_for_tcga_pcas_rescaled_"
+target.name <- "cgp_based_model_for_tcga_pcas_"
 
 IN_FOLDER <- "/tigress/zamalloa/RESULTS/TCGA.TRAINING/" #For tigress
 IN_FOLDER <- "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/" #For Lab
@@ -101,9 +101,9 @@ print (l)
 ############################################################################################################################################
 #PREDICTION PER CANCER
 sd.filter <- l
-sample.filter <- 100
+sample.filter <- 0
 
-for (pca in c(500, 800, 1000)){
+for (pca in c(200, 500, 800, 1000, 1500)){
   print(pca)
 
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
@@ -210,7 +210,7 @@ for (pca in c(500, 800, 1000)){
 
 ############################################################################################################################################
 #PREDICTION PER DRUG
-# for (pca in c(500, 800, 1000)){
+# for (pca in c(200, 500, 800, 1000, 1500)){
 #   print(pca)
 #
 #   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_drug_", pca), header=T)

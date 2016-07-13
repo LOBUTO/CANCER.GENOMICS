@@ -379,7 +379,12 @@ with open(PCA_FILE, "rb") as md:
 
 cancer_samples = pd.read_csv(SAMPLES_FILE, sep="\t")
 
-MODEL_FILE = "/home/zamalloa/Documents/FOLDER/CGP_FILES/" + ("TCGA_cgp_pca%i_class_model_%i.%i.pkl")%(n_pcas,n_pcas,n_pcas)
+if n_pcas in [500, 800, 1000]:
+    MODEL_FILE = "/home/zamalloa/Documents/FOLDER/CGP_FILES/" + ("TCGA_cgp_pca%i_class_model_%i.%i.pkl")%(n_pcas,n_pcas,n_pcas)
+elif n_pcas==200:
+    MODEL_FILE = "/home/zamalloa/Documents/FOLDER/CGP_FILES/" + ("TCGA_cgp_pca%i_class_model_%i.%i.%i.pkl")%(n_pcas,n_pcas,n_pcas,n_pcas)
+elif n_pcas==1500:
+    MODEL_FILE = "/home/zamalloa/Documents/FOLDER/CGP_FILES/" + ("TCGA_cgp_pca%i_class_model_%i.%i.pkl")%(n_pcas,1000,1000)
 
 ########################################################################################################
 #EXECUTE
