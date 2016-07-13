@@ -96,12 +96,12 @@ master.clinical$STATUS <- ifelse(master.clinical$DEATH=="[Not Applicable]", 0, 1
 #Load prediction table per PCA used
 LOG_FILE <- "/home/zamalloa/Documents/FOLDER/LOG.PVAL"
 
-for (l in seq(0.01, 0.6, 0.01)){
+for (l in seq(0.01, 0.55, 0.01)){
 print (l)
 ############################################################################################################################################
 #PREDICTION PER CANCER
 sd.filter <- l
-sample.filter <- 0
+sample.filter <- 50
 
 for (pca in c(500, 800, 1000)){
   print(pca)
@@ -166,151 +166,151 @@ for (pca in c(500, 800, 1000)){
   PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
   write.table(data.table(PCA=pca, FILTER=l, SCORE=PVAL_SCORE), LOG_FILE, quote=F, col.names=F, row.names=F, append=T)
 
-  file.name <- paste0(FIGURES, target.name, pca ,"_est.classes.pdf")
-  pdf(file.name, width=12, height=8)
-
-  print( ggplot(prediction, aes(CANCER, LIVED)) + geom_boxplot(aes(fill=factor(CASE))) +
-    geom_jitter(colour="steelblue4", size=0.2) +
-    geom_text(data=P.VALS, aes(x=CANCER, y=4000, label=paste0("P-val=", round(P.VAL,3)) )) +
-    scale_fill_brewer(palette="Set1") + theme_bw() )
-
-  dev.off()
-
-  #SURVIVAL PLOTS
-  surv.plots <- lapply(cancers, function(cancer) {
-
-    cancer.clinical <- prediction[CANCER==cancer,]
-
-    test.survival<-survfit(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
-    SURV.DIFF <- survdiff(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
-
-    P.VAL <- pchisq(SURV.DIFF$chisq, length(SURV.DIFF$n)-1, lower.tail = FALSE)
-
-    temp.plot <- ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
-                  theme_classic() + ggtitle(paste0(cancer, " - P-val: ", round(P.VAL,3))) #+
-
-    return(temp.plot)
-
-  })
-
-  file.name <- paste0(FIGURES, target.name, pca,  "." , ".survival.pdf")
-  pdf(file.name, width=12, height=8)
-
-  multiplot(plotlist = surv.plots, cols=3)
-
-  dev.off()
+  # file.name <- paste0(FIGURES, target.name, pca ,"_est.classes.pdf")
+  # pdf(file.name, width=12, height=8)
+  #
+  # print( ggplot(prediction, aes(CANCER, LIVED)) + geom_boxplot(aes(fill=factor(CASE))) +
+  #   geom_jitter(colour="steelblue4", size=0.2) +
+  #   geom_text(data=P.VALS, aes(x=CANCER, y=4000, label=paste0("P-val=", round(P.VAL,3)) )) +
+  #   scale_fill_brewer(palette="Set1") + theme_bw() )
+  #
+  # dev.off()
+  #
+  # #SURVIVAL PLOTS
+  # surv.plots <- lapply(cancers, function(cancer) {
+  #
+  #   cancer.clinical <- prediction[CANCER==cancer,]
+  #
+  #   test.survival<-survfit(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
+  #   SURV.DIFF <- survdiff(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
+  #
+  #   P.VAL <- pchisq(SURV.DIFF$chisq, length(SURV.DIFF$n)-1, lower.tail = FALSE)
+  #
+  #   temp.plot <- ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
+  #                 theme_classic() + ggtitle(paste0(cancer, " - P-val: ", round(P.VAL,3))) #+
+  #
+  #   return(temp.plot)
+  #
+  # })
+  #
+  # file.name <- paste0(FIGURES, target.name, pca,  "." , ".survival.pdf")
+  # pdf(file.name, width=12, height=8)
+  #
+  # multiplot(plotlist = surv.plots, cols=3)
+  #
+  # dev.off()
 
 }
 }
 
 ############################################################################################################################################
 #PREDICTION PER DRUG
-for (pca in c(500, 800, 1000)){
-  print(pca)
-
-  prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_drug_", pca), header=T)
-
-  #Do we need to filter based on minimum stay in trial?
-  prediction <- prediction[ACTUAL>sample.filter, ]
-
-  #Do we need to filter based on number of samples per drug
-  prediction[,COUNT:=length(SAMPLE), by="DRUG"]
-  print(unique(prediction[,c("DRUG", "COUNT"),with=F]))
-  prediction <- prediction[COUNT>40,]
-  prediction$COUNT <- NULL
-
-  #Execute
-  drugs <- unique(prediction$DRUG)
-  prediction <- merge(prediction, master.clinical[,c("SAMPLE", "LIVED", "STATUS"),with=F] , by ="SAMPLE")
-
-  drug.cors <- sapply(drugs, function(x) {
-
-    y <- cor(prediction[DRUG==x,]$ACTUAL,
-             prediction[DRUG==x,]$PREDICTED,
-            method="pearson")
-    return(y)
-
-    })
-  drug.cors <- data.table(DRUG = drugs, COR = drug.cors)
-
-  #REGRESSION PLOT
-  file.name <- paste0(FIGURES, target.name, pca ,"_drug_regression.pdf")
-  pdf(file.name, width=12, height=8)
-
-  print(prediction)
-  print(ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_point(colour="steelblue4", size=0.2) +
-    geom_text(data=drug.cors, aes(x=1000, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
-    scale_fill_brewer(palette="Set1") + theme_bw() + geom_smooth(method="lm", se=T, color = "black", size=0.3) +
-    facet_wrap(~DRUG, scales="free"))
-  dev.off()
-
-  #DEFINED CLASSES PLOT
-  drugs <- unique(prediction$DRUG)
-
-  pred.classes <- lapply(drugs, function(x) {
-
-    pred.temp <- prediction[DRUG==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=sd.filter, effective="POS")
-
-    pred.temp <- pred.temp[CASE!="NO_CLASS",]
-
-    return(pred.temp)
-    } )
-  prediction <- do.call(rbind, pred.classes)
-  print (prediction)
-  print (prediction[,list(COUNT=length(SAMPLE),
-                          PRED_COUNT = sum(CASE=="EFFECTIVE")), by="DRUG"])
-
-  drugs <- unique(prediction$DRUG)
-  P.VALS <- sapply(drugs, function(x) {
-    print(x)
-    p.value <- wilcox.test(prediction[DRUG==x,][CASE=="EFFECTIVE",]$LIVED,
-                           prediction[DRUG==x,][CASE=="NOT_EFFECTIVE",]$LIVED,
-                           paired=F, alternative="greater")$p.value
-    return(p.value)
-    } )
-
-  P.VALS <- data.table(DRUG = drugs, P.VAL = as.vector(P.VALS))
-
-  # PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
-  # write.table(data.table(PCA=pca, FILTER=l, SCORE=PVAL_SCORE), LOG_FILE, quote=F, col.names=F, row.names=F, append=T)
-
-  file.name <- paste0(FIGURES, target.name, pca ,"_drug_est.classes.pdf")
-  pdf(file.name, width=12, height=8)
-
-  print( ggplot(prediction, aes(DRUG, LIVED)) + geom_boxplot(aes(fill=factor(CASE))) +
-    geom_jitter(colour="steelblue4", size=0.2) +
-    geom_text(data=P.VALS, aes(x=DRUG, y=4000, label=paste0("P-val=", round(P.VAL,3)) )) +
-    scale_fill_brewer(palette="Set1") + theme_bw() )
-
-  dev.off()
-
-  #SURVIVAL PLOTS
-  surv.plots <- lapply(drugs, function(drug) {
-
-    cancer.clinical <- prediction[DRUG==drug,]
-
-    test.survival<-survfit(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
-    SURV.DIFF <- survdiff(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
-
-    P.VAL <- pchisq(SURV.DIFF$chisq, length(SURV.DIFF$n)-1, lower.tail = FALSE)
-
-    temp.plot <- ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
-                  theme_classic() + ggtitle(paste0(drug, " - P-val: ", round(P.VAL,3))) #+
-
-    return(temp.plot)
-
-  })
-
-  file.name <- paste0(FIGURES, target.name, pca,  ".drug." , ".survival.pdf")
-  pdf(file.name, width=12, height=8)
-
-  multiplot(plotlist = surv.plots, cols=2)
-
-  dev.off()
-
-}
-
+# for (pca in c(500, 800, 1000)){
+#   print(pca)
+#
+#   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_drug_", pca), header=T)
+#
+#   #Do we need to filter based on minimum stay in trial?
+#   prediction <- prediction[ACTUAL>sample.filter, ]
+#
+#   #Do we need to filter based on number of samples per drug
+#   prediction[,COUNT:=length(SAMPLE), by="DRUG"]
+#   print(unique(prediction[,c("DRUG", "COUNT"),with=F]))
+#   prediction <- prediction[COUNT>40,]
+#   prediction$COUNT <- NULL
+#
+#   #Execute
+#   drugs <- unique(prediction$DRUG)
+#   prediction <- merge(prediction, master.clinical[,c("SAMPLE", "LIVED", "STATUS"),with=F] , by ="SAMPLE")
+#
+#   drug.cors <- sapply(drugs, function(x) {
+#
+#     y <- cor(prediction[DRUG==x,]$ACTUAL,
+#              prediction[DRUG==x,]$PREDICTED,
+#             method="pearson")
+#     return(y)
+#
+#     })
+#   drug.cors <- data.table(DRUG = drugs, COR = drug.cors)
+#
+#   #REGRESSION PLOT
+#   file.name <- paste0(FIGURES, target.name, pca ,"_drug_regression.pdf")
+#   pdf(file.name, width=12, height=8)
+#
+#   print(prediction)
+#   print(ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_point(colour="steelblue4", size=0.2) +
+#     geom_text(data=drug.cors, aes(x=1000, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
+#     scale_fill_brewer(palette="Set1") + theme_bw() + geom_smooth(method="lm", se=T, color = "black", size=0.3) +
+#     facet_wrap(~DRUG, scales="free"))
+#   dev.off()
+#
+#   #DEFINED CLASSES PLOT
+#   drugs <- unique(prediction$DRUG)
+#
+#   pred.classes <- lapply(drugs, function(x) {
+#
+#     pred.temp <- prediction[DRUG==x,]
+#     pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=sd.filter, effective="POS")
+#
+#     pred.temp <- pred.temp[CASE!="NO_CLASS",]
+#
+#     return(pred.temp)
+#     } )
+#   prediction <- do.call(rbind, pred.classes)
+#   print (prediction)
+#   print (prediction[,list(COUNT=length(SAMPLE),
+#                           PRED_COUNT = sum(CASE=="EFFECTIVE")), by="DRUG"])
+#
+#   drugs <- unique(prediction$DRUG)
+#   P.VALS <- sapply(drugs, function(x) {
+#     print(x)
+#     p.value <- wilcox.test(prediction[DRUG==x,][CASE=="EFFECTIVE",]$LIVED,
+#                            prediction[DRUG==x,][CASE=="NOT_EFFECTIVE",]$LIVED,
+#                            paired=F, alternative="greater")$p.value
+#     return(p.value)
+#     } )
+#
+#   P.VALS <- data.table(DRUG = drugs, P.VAL = as.vector(P.VALS))
+#
+#   # PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
+#   # write.table(data.table(PCA=pca, FILTER=l, SCORE=PVAL_SCORE), LOG_FILE, quote=F, col.names=F, row.names=F, append=T)
+#
+#   file.name <- paste0(FIGURES, target.name, pca ,"_drug_est.classes.pdf")
+#   pdf(file.name, width=12, height=8)
+#
+#   print( ggplot(prediction, aes(DRUG, LIVED)) + geom_boxplot(aes(fill=factor(CASE))) +
+#     geom_jitter(colour="steelblue4", size=0.2) +
+#     geom_text(data=P.VALS, aes(x=DRUG, y=4000, label=paste0("P-val=", round(P.VAL,3)) )) +
+#     scale_fill_brewer(palette="Set1") + theme_bw() )
+#
+#   dev.off()
+#
+#   #SURVIVAL PLOTS
+#   surv.plots <- lapply(drugs, function(drug) {
+#
+#     cancer.clinical <- prediction[DRUG==drug,]
+#
+#     test.survival<-survfit(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
+#     SURV.DIFF <- survdiff(Surv(LIVED, STATUS)~CASE, data=cancer.clinical)
+#
+#     P.VAL <- pchisq(SURV.DIFF$chisq, length(SURV.DIFF$n)-1, lower.tail = FALSE)
+#
+#     temp.plot <- ggsurv(test.survival, surv.col=c("black", "darkviolet")) + theme(legend.position="bottom") +
+#                   theme_classic() + ggtitle(paste0(drug, " - P-val: ", round(P.VAL,3))) #+
+#
+#     return(temp.plot)
+#
+#   })
+#
+#   file.name <- paste0(FIGURES, target.name, pca,  ".drug." , ".survival.pdf")
+#   pdf(file.name, width=12, height=8)
+#
+#   multiplot(plotlist = surv.plots, cols=2)
+#
+#   dev.off()
+#
+# }
+#
 
 #DONE
 print ("Done plotting!!")
