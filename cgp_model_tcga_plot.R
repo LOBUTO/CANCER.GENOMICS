@@ -101,9 +101,9 @@ print (l)
 ############################################################################################################################################
 #PREDICTION PER CANCER
 sd.filter <- l
-sample.filter <- 100
+sample.filter <- 0
 
-for (pca in c(200, 500, 800, 1000, 1500)){
+for (pca in c(200, 500, 800, 1000)){
   print(pca)
 
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
@@ -210,7 +210,7 @@ for (pca in c(200, 500, 800, 1000, 1500)){
 
 ############################################################################################################################################
 #PREDICTION PER DRUG
-# for (pca in c(200, 500, 800, 1000, 1500)){
+# for (pca in c(200, 500, 800, 1000)){
 #   print(pca)
 #
 #   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_drug_", pca), header=T)
