@@ -100,13 +100,16 @@ LOG_FILE <- "/home/zamalloa/Documents/FOLDER/LOG.PVAL"
 #print (l)
 ############################################################################################################################################
 #PREDICTION PER CANCER
+sd.filter <- 0.3
+sample.filter <- 100
+
 for (pca in c(500, 800, 1000)){
   print(pca)
 
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
 
   #Do we need to filter?
-  prediction <- prediction[ACTUAL>100, ]
+  prediction <- prediction[ACTUAL>sample.filter, ]
 
   prediction[,COUNT:=length(SAMPLE), by="CANCER"]
   prediction <- prediction[COUNT>40,]
@@ -143,7 +146,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(cancers, function(x) {
 
     pred.temp <- prediction[CANCER==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.5, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=sd.filter, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
@@ -208,7 +211,7 @@ for (pca in c(500, 800, 1000)){
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_drug_", pca), header=T)
 
   #Do we need to filter based on minimum stay in trial?
-  prediction <- prediction[ACTUAL>100, ]
+  prediction <- prediction[ACTUAL>sample.filter, ]
 
   #Do we need to filter based on number of samples per drug
   prediction[,COUNT:=length(SAMPLE), by="DRUG"]
@@ -247,7 +250,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(drugs, function(x) {
 
     pred.temp <- prediction[DRUG==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.5, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=sd.filter, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
