@@ -51,8 +51,8 @@ Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="POS"){
 
   # sd.factor <- sd(x) * sd.multiplier
   # sd.mean <- mean(x)
-  sd.mean <- 0
-  sd.factor <- sd.multiplier
+  # sd.mean <- 0
+  # sd.factor <- sd.multiplier
   of <- 2
 
   above.sd <- x[x > (sd.mean + sd.factor)]
