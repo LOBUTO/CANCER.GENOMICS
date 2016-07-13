@@ -107,7 +107,7 @@ for (pca in c(200, 500, 800, 1000)){
   print(pca)
 
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_", pca), header=T)
-  prediction <- prediction[CANCER!="gbm",]
+  prediction <- prediction[CANCER!="gbm",] #Corrupted GBM
 
   #Do we need to filter?
   prediction <- prediction[ACTUAL>sample.filter, ]
@@ -216,6 +216,7 @@ for (pca in c(200, 500, 800, 1000)){
   print(pca)
 
   prediction <- fread(paste0(IN_FOLDER, "cgp_auc_tcga_prediction_drug_", pca), header=T)
+  prediction <- prediction[DRUG!="Temozolomide",] #Corrupted GBM
 
   #Do we need to filter based on minimum stay in trial?
   prediction <- prediction[ACTUAL>sample.filter, ]
