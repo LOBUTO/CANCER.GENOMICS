@@ -720,7 +720,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
 
 import pandas as pd
-def shared_drug_dataset_IC50(drug_data, integers=True):
+def shared_drug_dataset_IC50(drug_data, integers=True, target="pIC50"):
 
     data_x=drug_data.iloc[:,3:]
 
@@ -767,9 +767,9 @@ train_table = pd.read_csv(IN_FOLDER + "/TRAIN." + drug + ".pIC50.csv", sep="\t")
 valid_table = pd.read_csv(IN_FOLDER + "/VALID." + drug + ".pIC50.csv", sep="\t")
 test_table  = pd.read_csv(IN_FOLDER + "/TEST." + drug + ".pIC50.csv", sep="\t")
 
-train_drug_x, train_drug_y=shared_drug_dataset_IC50(train_table, integers=False)
-valid_drug_x, valid_drug_y=shared_drug_dataset_IC50(valid_table, integers=False)
-test_drug_x, test_drug_y=shared_drug_dataset_IC50(test_table, integers=False)
+train_drug_x, train_drug_y=shared_drug_dataset_IC50(train_table, integers=False, target="pIC50")
+valid_drug_x, valid_drug_y=shared_drug_dataset_IC50(valid_table, integers=False, target="pIC50")
+test_drug_x, test_drug_y=shared_drug_dataset_IC50(test_table, integers=False, target="pIC50")
 
 drugval= [(train_drug_x, train_drug_y), (valid_drug_x, valid_drug_y),(test_drug_x, test_drug_y)]
 
