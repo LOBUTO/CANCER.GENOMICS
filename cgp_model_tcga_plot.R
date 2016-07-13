@@ -100,8 +100,8 @@ LOG_FILE <- "/home/zamalloa/Documents/FOLDER/LOG.PVAL"
 #print (l)
 ############################################################################################################################################
 #PREDICTION PER CANCER
-sd.filter <- 0.3
-sample.filter <- 100
+sd.filter <- 0.5
+sample.filter <- 0
 
 for (pca in c(500, 800, 1000)){
   print(pca)
