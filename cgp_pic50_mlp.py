@@ -590,15 +590,18 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     FILE_OUT_val.write("EPOCH" +"\t" + "ACTUAL" +"\t"+"PREDICTED")
     FILE_OUT_val.close()
 
-    log = "momentum: " + str(momentum.get_value()) + "; learning_rate: " + str(learning_rate.get_value())
     with open(OUT_FOLDER + "/log." + drug_name + ".txt", "w") as logfile:
-        logfile.write(log + "\n")
+        logfile.write()
 
     EPOCH_SIZE = n_train_batches
     while (epoch < n_epochs) and (not done_looping):
         epoch = epoch + 1
         # print "momentum: ", momentum.get_value()
         # print "learning rate: ", learning_rate.get_value()
+
+        log = "momentum: " + str(momentum.get_value()) + "; learning_rate: " + str(learning_rate.get_value())
+        with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
+            logfile.write(log + "\n")
 
         # if LR_COUNT==1000:
         #     new_learning_rate = learning_rate.get_value() * 0.2
