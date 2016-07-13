@@ -49,10 +49,10 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="POS"){
   #Will classify outliers as "OUTLIER"
 
-  sd.factor <- sd(x) * sd.multiplier
-  sd.mean <- mean(x)
-  # sd.mean <- 0
-  # sd.factor <- sd.multiplier
+  # sd.factor <- sd(x) * sd.multiplier
+  # sd.mean <- mean(x)
+  sd.mean <- 0
+  sd.factor <- sd.multiplier
   of <- 2
 
   above.sd <- x[x > (sd.mean + sd.factor)]
@@ -133,7 +133,7 @@ for (pca in c(500, 800, 1000)){
   file.name <- paste0(FIGURES, target.name, pca ,"_regression.pdf")
   pdf(file.name, width=12, height=8)
 
-  print(prediction)
+  #print(prediction)
   print(ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_point(colour="steelblue4", size=0.2) +
     geom_text(data=cancer.cors, aes(x=1000, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
     scale_fill_brewer(palette="Set1") + theme_bw() + geom_smooth(method="lm", se=T, color = "black", size=0.3) +
