@@ -101,7 +101,7 @@ print (l)
 ############################################################################################################################################
 #PREDICTION PER CANCER
 sd.filter <- l
-sample.filter <- 100
+sample.filter <- 0
 
 for (pca in c(500, 800, 1000)){
   print(pca)
@@ -131,15 +131,15 @@ for (pca in c(500, 800, 1000)){
   cancer.cors <- data.table(CANCER = cancers, COR = cancer.cors)
 
   #REGRESSION PLOT
-  file.name <- paste0(FIGURES, target.name, pca ,"_regression.pdf")
-  pdf(file.name, width=12, height=8)
-
-  #print(prediction)
-  print(ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_point(colour="steelblue4", size=0.2) +
-    geom_text(data=cancer.cors, aes(x=1000, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
-    scale_fill_brewer(palette="Set1") + theme_bw() + geom_smooth(method="lm", se=T, color = "black", size=0.3) +
-    facet_wrap(~CANCER, scales="free"))
-  dev.off()
+  # file.name <- paste0(FIGURES, target.name, pca ,"_regression.pdf")
+  # pdf(file.name, width=12, height=8)
+  #
+  # #print(prediction)
+  # print(ggplot(prediction, aes(ACTUAL, PREDICTED)) + geom_point(colour="steelblue4", size=0.2) +
+  #   geom_text(data=cancer.cors, aes(x=1000, y=0.5, label=paste0("Cor=", round(COR,3)) )) +
+  #   scale_fill_brewer(palette="Set1") + theme_bw() + geom_smooth(method="lm", se=T, color = "black", size=0.3) +
+  #   facet_wrap(~CANCER, scales="free"))
+  # dev.off()
 
   #DEFINED CLASSES PLOT
   cancers <- unique(prediction$CANCER)
@@ -165,8 +165,10 @@ for (pca in c(500, 800, 1000)){
   P.VALS <- data.table(CANCER = cancers, P.VAL = P.VALS)
 
   PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
-  TARGET_SCORE = mean(P.VALS[CANCER %in% c("luad", "lusc", "Negative", "Positive", "ov", "ucec"),]$P.VAL < 0.2)
-  write.table(data.table(PCA=pca, FILTER=l, SAMPLE.FILTER = sample.filter ,SCORE=PVAL_SCORE, TARGET_SCORE = TARGET_SCORE),
+  TARGET_SCORE = mean(P.VALS[CANCER %in% c("kirc","luad", "lusc", "Negative", "Positive", "ov"),]$P.VAL < 0.2)
+  TARGET_SUM = sum(P.VALS$P.VAL)
+  write.table(data.table(PCA=pca, FILTER=l, SAMPLE.FILTER = sample.filter ,
+                         SCORE=PVAL_SCORE, TARGET_SCORE = TARGET_SCORE, TARGET_SUM=TARGET_SUM),
               LOG_FILE, quote=F, col.names=F, row.names=F, append=T)
 
   # file.name <- paste0(FIGURES, target.name, pca ,"_est.classes.pdf")
