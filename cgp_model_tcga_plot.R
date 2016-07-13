@@ -164,7 +164,7 @@ for (pca in c(200, 500, 800, 1000)){
     return(p.value)
     } )
   P.VALS <- data.table(CANCER = cancers, P.VAL = P.VALS, N = sapply(cancers, function(x) nrow(prediction[CANCER==x,])) )
-
+  print(P.VALS)
   PVAL_SCORE = mean(P.VALS$P.VAL < 0.2)
   TARGET_SCORE = mean(P.VALS[CANCER %in% c("kirc","luad", "lusc", "Negative", "Positive", "ov"),]$P.VAL < 0.2)
   TARGET_SUM = sum(P.VALS$P.VAL)
