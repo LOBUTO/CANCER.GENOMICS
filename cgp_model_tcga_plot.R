@@ -168,7 +168,7 @@ for (pca in c(500, 800, 1000)){
   TARGET_SCORE = mean(P.VALS[CANCER %in% c("kirc","luad", "lusc", "Negative", "Positive", "ov"),]$P.VAL < 0.2)
   TARGET_SUM = sum(P.VALS$P.VAL)
   write.table(data.table(PCA=pca, FILTER=l, SAMPLE.FILTER = sample.filter ,
-                         SCORE=PVAL_SCORE, TARGET_SCORE = TARGET_SCORE, TARGET_SUM=TARGET_SUM),
+                         SCORE=round(PVAL_SCORE,3), TARGET_SCORE = round(TARGET_SCORE,3), TARGET_SUM=round(TARGET_SUM,3)),
               LOG_FILE, quote=F, col.names=F, row.names=F, append=T)
 
   # file.name <- paste0(FIGURES, target.name, pca ,"_est.classes.pdf")
