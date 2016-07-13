@@ -442,12 +442,13 @@ FILE_OUT_val.write("DRUG" + "\t" + "SAMPLE" + "\t" + "ACTUAL" + "\t" + "PREDICTE
 
 
 #Pre-scale whole data
-pre_meta = pd.DataFrame({"SAMPLE": list(all_tcga.SAMPLE) ,
-                         "LIVED":  list(all_tcga.LIVED),
-                         "DRUG":   list(all_tcga.DRUG)    })
-pre_table = pd.DataFrame(scale(all_tcga[used_feat]))
-pre_table.columns = used_feat
-pre_table = pd.concat([pre_meta , pre_table], axis=1)
+# pre_meta = pd.DataFrame({"SAMPLE": list(all_tcga.SAMPLE) ,
+#                          "LIVED":  list(all_tcga.LIVED),
+#                          "DRUG":   list(all_tcga.DRUG)    })
+# pre_table = pd.DataFrame(scale(all_tcga[used_feat]))
+# pre_table.columns = used_feat
+# pre_table = pd.concat([pre_meta , pre_table], axis=1)
+pre_table = all_tcga
 
 #Execute on whole pre-scaled data
 for drug in filt_drugs:

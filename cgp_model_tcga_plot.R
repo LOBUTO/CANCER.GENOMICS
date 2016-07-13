@@ -81,7 +81,7 @@ Function.classify.lived.pred <- function(x, sd.multiplier=1, effective="POS"){
 
 ################################################################################################################################
 
-target.name <- "cgp_based_model_for_tcga_pcas_"
+target.name <- "cgp_based_model_for_tcga_pcas_rescaled_"
 
 IN_FOLDER <- "/tigress/zamalloa/RESULTS/TCGA.TRAINING/" #For tigress
 IN_FOLDER <- "/home/zamalloa/Documents/FOLDER/RESULTS/TCGA.TRAINING/" #For Lab
@@ -143,7 +143,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(cancers, function(x) {
 
     pred.temp <- prediction[CANCER==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.6, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.3, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
@@ -248,7 +248,7 @@ for (pca in c(500, 800, 1000)){
   pred.classes <- lapply(drugs, function(x) {
 
     pred.temp <- prediction[DRUG==x,]
-    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.2, effective="POS")
+    pred.temp$CASE <- Function.classify.lived.pred(pred.temp$PREDICTED, sd.multiplier=0.3, effective="POS")
 
     pred.temp <- pred.temp[CASE!="NO_CLASS",]
 
