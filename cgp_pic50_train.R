@@ -7,16 +7,26 @@ args <- commandArgs(trailingOnly = TRUE)
 
 #Load files and parameteres
 main.table <- readRDS("~/Documents/FOLDER/CGP_FILES/cgp_cor_pIC50.rds")
-target_drug <- args[1] #For testing
-splits = 0.8
+nci.data   <- readRDS("~/Documents/FOLDER/CGP_FILES/nci60_cgpfeat_cancerlist.rds")
 
-#Split tables
+target_drug <- args[1] #For testing
+target_cancers <- c("Non-Small Cell Lung") #EXAMPLE for cells related to Erlotinib (nscl)
+splits <- 0.8
+nci_boost <- T
+
+#Introduce tables
 test_table <- main.table[Compound==target_drug,]
 target_cells <- unique(test_table$cell_name)
 
 main.table <- main.table[Compound!=target_drug,]
 main.table <- main.table[cell_name %in% target_cells,]
 
+if(nci_boost==T){
+  nci.table <- do.call(rbind, lapply(target_cancers, function(x) nci.data[[x]]))
+  main.table <- rbind(main.table, nci.table)
+}
+
+#Split tables
 all_rows <- 1:nrow(main.table)
 train_rows <- sample(all_rows, length(all_rows)*0.8)
 valid_rows <- setdiff(all_rows, train_rows)
