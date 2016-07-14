@@ -48,10 +48,14 @@ Function.build.nci60.feat <- function(nci60.exp, nci.gi50, nci60.cgp.drugs, cgp.
   #cgp.cor.AUC (or cgp.cor.pIC50)
 
   #Build co-expression table
+  print (length(intersect(colnames(cgp.exp.matrix), colnames(cgp.cor.AUC))))
   cgp.exp.matrix <- cgp.exp.matrix[, intersect(colnames(cgp.exp.matrix), colnames(cgp.cor.AUC))]
+  print(dim(cgp.exp.matrix))
   common.genes <- intersect(rownames(cgp.exp.matrix), rownames(nci60.exp))
+  print(length(common.genes))
   main.exp <- cbind(cgp.exp.matrix[common.genes,], nci60.exp[common.genes,])
   main.exp <- cor(main.exp, method = "pearson")
+  print(dim(main.exp))
 
   main.exp <- main.exp[colnames(nci60.exp), colnames(cgp.exp.matrix)]
   main.exp <- data.table(main.exp, keep.rownames = T)
