@@ -2,8 +2,12 @@
 library(data.table)
 library(reshape2)
 
+options(echo=TRUE) # if you want see commands in output file
+args <- commandArgs(trailingOnly = TRUE)
+
+#Load files and parameteres
 main.table <- readRDS("~/Documents/FOLDER/CGP_FILES/cgp_cor_pIC50.rds")
-target_drug <- "Erlotinib" #For testing
+target_drug <- args[1] #For testing
 splits = 0.8
 
 #Split tables
