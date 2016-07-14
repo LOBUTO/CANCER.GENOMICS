@@ -17,26 +17,33 @@ Function.nci60.hmdb.table <- function(nci.file, hmdb, pre.table=data.table()){
   nci60[,SD:=sd(TC), by="DRUG"]
   nci60 <- nci60[SD!=0,]
 
-  hmdb <- hmdb[METABOLITE %in% mets,]
+  #If any of the drugs are variable
+  if (nrow(nci60)>2){
 
-  met.matrix <- cbind(acast(nci60, METABOLITE~DRUG, value.var="TC")[mets, ],
-                      acast(hmdb,  METABOLITE~DRUG, value.var="TC")[mets, ])
-  print (dim(met.matrix))
-  nci.drugs <- unique(nci60$DRUG)
-  cgp.drugs <- unique(hmdb$DRUG)
+    hmdb <- hmdb[METABOLITE %in% mets,]
 
-  main.table <- data.table()
-  for (i in nci.drugs){
-    print(i)
-    cors <- sapply(cgp.drugs, function(x) cor(met.matrix[,i], met.matrix[,x]) )
-    cors.table <- data.table(NSC=i, CGP=cgp.drugs, COR=cors)
+    met.matrix <- cbind(acast(nci60, METABOLITE~DRUG, value.var="TC")[mets, ],
+                        acast(hmdb,  METABOLITE~DRUG, value.var="TC")[mets, ])
+    print (dim(met.matrix))
+    nci.drugs <- unique(nci60$DRUG)
+    cgp.drugs <- unique(hmdb$DRUG)
 
-    main.table <- rbind(main.table, cors.table)
-  }
+    main.table <- data.table()
+    for (i in nci.drugs){
+      print(i)
+      cors <- sapply(cgp.drugs, function(x) cor(met.matrix[,i], met.matrix[,x]) )
+      cors.table <- data.table(NSC=i, CGP=cgp.drugs, COR=cors)
 
-  #Clean up and return
-  if (nrow(pre.table)>0){
-    main.table <- rbind(main.table, pre.table)
+      main.table <- rbind(main.table, cors.table)
+    }
+
+    #Clean up and return
+    if (nrow(pre.table)>0){
+      main.table <- rbind(main.table, pre.table)
+    }
+
+  } else {
+    main.table <- pre.table
   }
 
   return(main.table)
@@ -48,14 +55,10 @@ Function.build.nci60.feat <- function(nci60.exp, nci.gi50, nci60.cgp.drugs, cgp.
   #cgp.cor.AUC (or cgp.cor.pIC50)
 
   #Build co-expression table
-  print (length(intersect(colnames(cgp.exp.matrix), colnames(cgp.cor.AUC))))
   cgp.exp.matrix <- cgp.exp.matrix[, intersect(colnames(cgp.exp.matrix), colnames(cgp.cor.AUC))]
-  print(dim(cgp.exp.matrix))
   common.genes <- intersect(rownames(cgp.exp.matrix), rownames(nci60.exp))
-  print(length(common.genes))
   main.exp <- cbind(cgp.exp.matrix[common.genes,], nci60.exp[common.genes,])
   main.exp <- cor(main.exp, method = "pearson")
-  print(dim(main.exp))
 
   main.exp <- main.exp[colnames(nci60.exp), colnames(cgp.exp.matrix)]
   main.exp <- data.table(main.exp, keep.rownames = T)
