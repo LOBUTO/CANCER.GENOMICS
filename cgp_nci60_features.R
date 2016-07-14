@@ -134,3 +134,8 @@ names(main.list) <- cancers
 #Write and end
 saveRDS(main.list, paste0(CGP_FILES, "nci60_cgpfeat_cancerlist.rds"))
 print("Done")
+
+write.table(nci.cgp.feat, paste0(CGP_FILES, "nci60_cgpfeat_cancertable.csv"), quote=F, sep="\t",
+            col.names=T, row.names=F)
+write.table(nci_stats, paste0(CGP_FILES, "nci60_stats.csv"), quote=F, sep="\t",
+            col.names=T, row.names=F)
