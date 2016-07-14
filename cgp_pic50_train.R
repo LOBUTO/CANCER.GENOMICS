@@ -2,7 +2,7 @@
 library(data.table)
 library(reshape2)
 
-options(echo=TRUE) # if you want see commands in output file
+#options(echo=TRUE) # if you want see commands in output file
 args <- commandArgs(trailingOnly = TRUE)
 
 #Load files and parameteres
@@ -12,7 +12,10 @@ splits = 0.8
 
 #Split tables
 test_table <- main.table[Compound==target_drug,]
+target_cells <- unique(test_table$cell_name)
+
 main.table <- main.table[Compound!=target_drug,]
+main.table <- main.table[cell_name %in% target_cells,]
 
 all_rows <- 1:nrow(main.table)
 train_rows <- sample(all_rows, length(all_rows)*0.8)
