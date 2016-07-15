@@ -73,12 +73,12 @@ print(valid_scaled.shape)
 print(test_scaled.shape)
 
 with open(TRAIN_TABLES + "TRAIN." + target_drug + ".pIC50.pkl", "wb") as tr:
-    cPickle.dump(train_scaled.as_matrix(), tr)
+    cPickle.dump(train_scaled, tr)
 
 with open(TRAIN_TABLES + "VALID." + target_drug + ".pIC50.pkl", "wb") as vd:
-    cPickle.dump(valid_scaled.as_matrix(), vd)
+    cPickle.dump(valid_scaled, vd)
 
 with open(TRAIN_TABLES + "TEST." + target_drug + ".pIC50.pkl", "wb") as tc:
-    cPickle.dump(test_scaled.as_matrix(), tc)
+    cPickle.dump(test_scaled, tc)
 
 print("DONE!")
