@@ -58,10 +58,18 @@ gc.collect()
 print("Done splitting tables")
 
 #Apply scaling
-std_scale = StandardScaler().fit(train_table)
-train_scaled = std_scale.transform(train_table)
-valid_scaled = std_scale.transform(valid_table)
-test_scaled = std_scale.transform(test_table)
+train_labels = train_table[:,0:1]
+valid_labels = valid_table[:,0:1]
+test_labels  = test_table[:,0:1]
+
+std_scale = StandardScaler().fit(train_table[:,1:])
+train_scaled = std_scale.transform(train_table[:,1:])
+valid_scaled = std_scale.transform(valid_table[:,1:])
+test_scaled = std_scale.transform(test_table[:,1:])
+
+train_scaled = np.concatenate((train_labels, train_scaled), axis=1)
+valid_scaled = np.concatenate((valid_labels, valid_scaled), axis=1)
+test_scaled  = np.concatenate((test_labels, test_scaled), axis=1)
 
 gc.collect()
 
