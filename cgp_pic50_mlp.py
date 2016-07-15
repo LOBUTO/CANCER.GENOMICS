@@ -723,22 +723,24 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
 
 import pandas as pd
-def shared_drug_dataset_IC50(drug_data, integers=True, target="pIC50"):
+def shared_drug_dataset_IC50(drug_data, integers=True):
 
-    data_x=drug_data.iloc[:,3:]
+    data_x=drug_data.iloc[:,1:]
 
-    if target=="AUC":
-        data_y=list(drug_data.NORM_AUC)
-    elif target=="pIC50":
-        data_y=list(drug_data.NORM_pIC50)
-    elif target=="IC50":
-        data_y=list(drug_data.NORM_IC50)
-    elif target=="LIVED":
-        data_y=list(drug_data.LIVED)
-    elif target=="CLASS":
-        data_y=list(drug_data.CLASS)
-    elif target=="PCA":
-        data_y=list(drug_data.PCA)
+    # if target=="AUC":
+    #     data_y=list(drug_data.NORM_AUC)
+    # elif target=="pIC50":
+    #     data_y=list(drug_data.NORM_pIC50)
+    # elif target=="IC50":
+    #     data_y=list(drug_data.NORM_IC50)
+    # elif target=="LIVED":
+    #     data_y=list(drug_data.LIVED)
+    # elif target=="CLASS":
+    #     data_y=list(drug_data.CLASS)
+    # elif target=="PCA":
+    #     data_y=list(drug_data.PCA)
+
+    data_y = list(drug_data[0])
 
     shared_x = theano.shared(np.asarray(data_x, dtype=theano.config.floatX), borrow=True)
     shared_y = theano.shared(np.asarray(data_y, dtype=theano.config.floatX), borrow=True )
@@ -767,13 +769,21 @@ OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_RESULTS"
 IN_FOLDER = "/tigress/zamalloa/CGP_FILES/CGP_TRAIN_TABLES" #For tigress
 IN_FOLDER = "/home/zamalloa/Documents/FOLDER/TABLES/CGP.TRAINING"
 
-train_table = pd.read_csv(IN_FOLDER + "/TRAIN." + drug + ".pIC50.csv", sep="\t")
-valid_table = pd.read_csv(IN_FOLDER + "/VALID." + drug + ".pIC50.csv", sep="\t")
-test_table  = pd.read_csv(IN_FOLDER + "/TEST." + drug + ".pIC50.csv", sep="\t")
+with open(IN_FOLDER + "/TRAIN." + drug + ".pIC50.pkl" , "rb") as tr:
+    train_table = cPickle.load(tr)
+    train_table = pd.DataFrame(train_table)
 
-train_drug_x, train_drug_y=shared_drug_dataset_IC50(train_table, integers=False, target="pIC50")
-valid_drug_x, valid_drug_y=shared_drug_dataset_IC50(valid_table, integers=False, target="pIC50")
-test_drug_x, test_drug_y=shared_drug_dataset_IC50(test_table, integers=False, target="pIC50")
+with open(IN_FOLDER + "/VALID." + drug + ".pIC50.pkl" , "rb") as tr:
+    valid_table = cPickle.load(tr)
+    valid_table = pd.DataFrame(valid_table)
+
+with open(IN_FOLDER + "/TEST." + drug + ".pIC50.pkl" , "rb") as tr:
+    test_table = cPickle.load(tr)
+    test_table = pd.DataFrame(test_table)
+
+train_drug_x, train_drug_y=shared_drug_dataset_IC50(train_table, integers=False)
+valid_drug_x, valid_drug_y=shared_drug_dataset_IC50(valid_table, integers=False)
+test_drug_x, test_drug_y=shared_drug_dataset_IC50(test_table, integers=False)
 
 drugval= [(train_drug_x, train_drug_y), (valid_drug_x, valid_drug_y),(test_drug_x, test_drug_y)]
 
