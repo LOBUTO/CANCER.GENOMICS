@@ -21,7 +21,7 @@ nci_stats   = pd.read_csv(CGP_FILES + "nci60_stats.csv", sep="\t")
 target_drug = sys.argv[1] #For testing
 #target_cancers = ["Non-Small Cell Lung"] #EXAMPLE for cells related to Erlotinib (nscl)
 #target_cancers = ["Leukemia"] #EXAMPLE for cells related to Bosutinib
-target_cancers = ["Leukemia", "Non-Small Cell Lung"] #EXAMPLE for cells related to Bosutinib
+target_cancers = ["Leukemia", "Non-Small Cell Lung"] #EXAMPLE for cells related to A-443654
 splits = 0.8
 nci_boost = True
 
