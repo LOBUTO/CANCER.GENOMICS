@@ -9,9 +9,9 @@ CGP_FILES <- "~/Documents/FOLDER/CGP_FILES/"
 x <- readRDS(paste0(CGP_FILES, "nci60_cgpfeat_cancerlist.rds"))
 
 main.table <- data.table()
-for (names(cancer) in x){
+for (cancer in names(x)){
 
-  print(x)
+  print(cancer)
 
   if (nrow(x[[cancer]])>1){
 
