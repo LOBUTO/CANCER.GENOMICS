@@ -475,16 +475,16 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         on_unused_input='warn',
     )
 
-    test_nrmse = theano.function(
-        inputs=[index],
-        outputs=classifier.NRMSE(y),
-        givens={
-            x: test_set_x[index * test_batch_size:(index + 1) * test_batch_size],
-            y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
-            is_train: np.cast['int32'](0)
-        },
-        on_unused_input='warn',
-    )
+    # test_nrmse = theano.function(
+    #     inputs=[index],
+    #     outputs=classifier.NRMSE(y),
+    #     givens={
+    #         x: test_set_x[index * test_batch_size:(index + 1) * test_batch_size],
+    #         y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
+    #         is_train: np.cast['int32'](0)
+    #     },
+    #     on_unused_input='warn',
+    # )
 
     test_pred = theano.function(
         inputs=[index],
@@ -644,7 +644,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
                 with open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "a") as FILE_OUT:
                     FILE_OUT.write("\n"+ str(epoch) + "\t" + str(this_train_error) + "\t"+ str(this_validation_loss) \
-                                   +"\t" +str(test_pear) + "\t" + str(test_loss))
+                                   +"\t" +str(test_pear) )# + "\t" + str(test_loss))
 
                 # if we got the best validation score until now
                 if this_validation_loss < best_validation_loss:
@@ -661,15 +661,15 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
                     best_iter = iter
 
                     # test it on the test set
-                    test_losses = [test_nrmse(i) for i in xrange(n_test_batches)]
-                    test_loss = np.mean(test_losses)
+                    # test_losses = [test_nrmse(i) for i in xrange(n_test_batches)]
+                    # test_loss = np.mean(test_losses)
 
                     test_pears = [test_cor(i) for i in xrange(n_test_batches)]
                     test_pear = np.mean(test_pears)
 
                     log = ((' epoch %i, minibatch %i/%i, test error of '
-                        'best nrmse and pear %f,%f %%') %
-                        (epoch, minibatch_index + 1, EPOCH_SIZE, test_loss, test_pear))
+                        'best nrmse and pear %f %%') %
+                        (epoch, minibatch_index + 1, EPOCH_SIZE, test_pear))
                     # print(log)
                     with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
                         logfile.write(log + "\n")
