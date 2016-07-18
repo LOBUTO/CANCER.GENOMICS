@@ -17,11 +17,12 @@ TRAIN_TABLES = "/home/zamalloa/Documents/FOLDER/TABLES/CGP.TRAINING/"
 main_table = pd.read_csv(CGP_FILES + "cgp_cor_pIC50.csv", sep="\t")
 nci_table = pd.read_csv(CGP_FILES + "nci60_cgpfeat_cancertable.csv", sep="\t")
 nci_stats   = pd.read_csv(CGP_FILES + "nci60_stats.csv", sep="\t")
+nci_cgp_dict = pd.read_csv(CGP_FILES + "cgp_to_nci_cell_exp", sep="\t")
 
 target_drug = sys.argv[1] #For testing
 #target_cancers = ["Non-Small Cell Lung"] #EXAMPLE for cells related to Erlotinib (nscl)
 #target_cancers = ["Leukemia"] #EXAMPLE for cells related to Bosutinib
-target_cancers = ["Leukemia", "Non-Small Cell Lung", "Central Nervous System"] #EXAMPLE for cells related to A-443654
+#target_cancers = ["Leukemia", "Non-Small Cell Lung", "Central Nervous System"] #EXAMPLE for cells related to A-443654
 splits = 0.8
 nci_boost = True
 
@@ -36,7 +37,8 @@ main_table = main_table[main_table.cell_name.isin(target_cells)]
 
 if nci_boost==True:
 
-  nci_cells = list(nci_stats[nci_stats.cancer.isin(target_cancers)]["cell.name"])
+  #nci_cells = list(nci_stats[nci_stats.cancer.isin(target_cancers)]["cell.name"])
+  nci_cells = nci_cgp_dict[nci_cgp_dict.Compound==target_drug]["cell_name"]
   nci_table = nci_table[nci_table.cell_name.isin(nci_cells)]
 
   main_table = main_table.append(nci_table, ignore_index=True)
