@@ -25,6 +25,8 @@ nci_cgp_dict = pd.read_csv(CGP_FILES + "cgp_to_nci_cell_exp", sep="\t")
 target_drug = sys.argv[1] #For testing
 nci_boost = bool(sys.argv[2]) #True/False
 target_filter = bool(sys.argv[3]) #True/False
+print(nci_boost)
+print(target_filter)
 
 #target_cancers = ["Non-Small Cell Lung"] #EXAMPLE for cells related to Erlotinib (nscl)
 #target_cancers = ["Leukemia"] #EXAMPLE for cells related to Bosutinib
@@ -43,13 +45,12 @@ if target_filter==True:
     main_table = main_table[main_table.cell_name.isin(target_cells)]
 
 if nci_boost==True:
+    #nci_cells = list(nci_stats[nci_stats.cancer.isin(target_cancers)]["cell.name"])
+    nci_cells = nci_cgp_dict[nci_cgp_dict.Compound==target_drug]["cell_name"]
+    nci_table = nci_table[nci_table.cell_name.isin(nci_cells)]
 
-  #nci_cells = list(nci_stats[nci_stats.cancer.isin(target_cancers)]["cell.name"])
-  nci_cells = nci_cgp_dict[nci_cgp_dict.Compound==target_drug]["cell_name"]
-  nci_table = nci_table[nci_table.cell_name.isin(nci_cells)]
-
-  main_table = main_table.append(nci_table, ignore_index=True)
-  main_table.reset_index(drop=True)
+    main_table = main_table.append(nci_table, ignore_index=True)
+    main_table.reset_index(drop=True)
 
 gc.collect()
 print("Done combining tables")
