@@ -764,11 +764,11 @@ print(input_layers)
 drug = sys.argv[2]
 input_name = ".".join([str(c) for c in input_layers])
 
-OUT_FOLDER = "/tigress/zamalloa/CGP_FILES/CGP_RESULTS" #For tigress
 OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_RESULTS"
+OUT_FOLDER = "/tigress/zamalloa/CGP_FILES/CGP_RESULTS" #For tigress
 
-IN_FOLDER = "/tigress/zamalloa/CGP_FILES/CGP_TRAIN_TABLES" #For tigress
 IN_FOLDER = "/home/zamalloa/Documents/FOLDER/TABLES/CGP.TRAINING"
+IN_FOLDER = "/tigress/zamalloa/CGP_FILES/CGP_TRAIN_TABLES" #For tigress
 
 with open(IN_FOLDER + "/TRAIN." + drug + ".pIC50.pkl" , "rb") as tr:
     train_table = cPickle.load(tr)

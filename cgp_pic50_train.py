@@ -14,6 +14,9 @@ import gc
 CGP_FILES = "/home/zamalloa/Documents/FOLDER/CGP_FILES/"
 TRAIN_TABLES = "/home/zamalloa/Documents/FOLDER/TABLES/CGP.TRAINING/"
 
+CGP_FILES = "/tigress/zamalloa/CGP_FILES/"
+TRAIN_TABLES = "/tigress/zamalloa/CGP_FILES/CGP_TRAIN_TABLES/"
+
 main_table = pd.read_csv(CGP_FILES + "cgp_cor_pIC50.csv", sep="\t")
 nci_table = pd.read_csv(CGP_FILES + "nci60_cgpfeat_cancertable.csv", sep="\t")
 nci_stats   = pd.read_csv(CGP_FILES + "nci60_stats.csv", sep="\t")
