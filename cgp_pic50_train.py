@@ -23,12 +23,13 @@ nci_stats   = pd.read_csv(CGP_FILES + "nci60_stats.csv", sep="\t")
 nci_cgp_dict = pd.read_csv(CGP_FILES + "cgp_to_nci_cell_exp", sep="\t")
 
 target_drug = sys.argv[1] #For testing
+nci_boost = bool(sys.argv[2]) #True/False
+target_filter = bool(sys.argv[3]) #True/False
+
 #target_cancers = ["Non-Small Cell Lung"] #EXAMPLE for cells related to Erlotinib (nscl)
 #target_cancers = ["Leukemia"] #EXAMPLE for cells related to Bosutinib
 #target_cancers = ["Leukemia", "Non-Small Cell Lung", "Central Nervous System"] #EXAMPLE for cells related to A-443654
 splits = 0.8
-nci_boost = False
-target_filter = False
 
 print("Done loading files")
 ########################################################################################################
