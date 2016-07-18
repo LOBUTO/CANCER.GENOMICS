@@ -12,7 +12,7 @@ nci.data   <- readRDS("~/Documents/FOLDER/CGP_FILES/nci60_cgpfeat_cancerlist.rds
 target_drug <- args[1] #For testing
 target_cancers <- c("Non-Small Cell Lung") #EXAMPLE for cells related to Erlotinib (nscl)
 splits <- 0.8
-nci_boost <- T
+nci_boost <- F
 
 #Introduce tables
 test_table <- main.table[Compound==target_drug,]
