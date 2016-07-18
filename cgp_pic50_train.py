@@ -38,7 +38,7 @@ target_cells = list(set(test_table.cell_name))
 main_table = main_table[main_table.Compound!=target_drug]
 main_table = main_table[main_table.cell_name.isin(target_cells)]
 
-if nci_boost==True:
+if nci_boost==False:
 
   #nci_cells = list(nci_stats[nci_stats.cancer.isin(target_cancers)]["cell.name"])
   nci_cells = nci_cgp_dict[nci_cgp_dict.Compound==target_drug]["cell_name"]
