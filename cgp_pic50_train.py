@@ -27,7 +27,8 @@ target_drug = sys.argv[1] #For testing
 #target_cancers = ["Leukemia"] #EXAMPLE for cells related to Bosutinib
 #target_cancers = ["Leukemia", "Non-Small Cell Lung", "Central Nervous System"] #EXAMPLE for cells related to A-443654
 splits = 0.8
-nci_boost = True
+nci_boost = False
+target_filter = False
 
 print("Done loading files")
 ########################################################################################################
@@ -36,9 +37,11 @@ test_table = main_table[main_table.Compound==target_drug]
 target_cells = list(set(test_table.cell_name))
 
 main_table = main_table[main_table.Compound!=target_drug]
-main_table = main_table[main_table.cell_name.isin(target_cells)]
 
-if nci_boost==False:
+if target_filter==True:
+    main_table = main_table[main_table.cell_name.isin(target_cells)]
+
+if nci_boost==True:
 
   #nci_cells = list(nci_stats[nci_stats.cancer.isin(target_cancers)]["cell.name"])
   nci_cells = nci_cgp_dict[nci_cgp_dict.Compound==target_drug]["cell_name"]
