@@ -365,6 +365,7 @@ def model_prediction(MODEL_FILE, test_drug_x):
 #LOAD FILES
 IN_FILE = sys.argv[1] #Like CGP_FILES/nci60_cgp_cor.csv
 MODEL_FILE = sys.argv[2] #Like CGP_FILES/CGP_RESULTS/Erlotinib_cgp_pIC50.200.200.pkl
+print(MODEL_FILE)
 STANDARD_FILE = sys.argv[3] #Like CGP_FILES/CGP_TRAIN_TABLES/STD_SCALER.Erlotinib.pIC50.pkl
 NCI_FILE = sys.argv[4] #Like CGP_FILES/nci60_cgpfeat_cancertable.csv
 MODEL_DRUG = sys.argv[5] #Like Erlotinib
