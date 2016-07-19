@@ -324,7 +324,7 @@ class MLP(object):
         self.pred = self.linearRegressionLayer.pred
 
         self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
-
+        
 def shared_drug_dataset_pred(drug_data, integers=True, target="AUC"):
 
     data_x=drug_data.iloc[:,1:]
