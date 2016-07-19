@@ -101,4 +101,8 @@ with open(TRAIN_TABLES + "VALID." + target_drug + ".pIC50.pkl", "wb") as vd:
 with open(TRAIN_TABLES + "TEST." + target_drug + ".pIC50.pkl", "wb") as tc:
     cPickle.dump(test_scaled, tc)
 
+std_dict = {"mean" : std_scale.mean_, "std" : std_scale.std_}
+with open(TRAIN_TABLES + "STD_SCALER." + target_drug + ".pIC50.pkl", "wb") as sc:
+    cPickle.dump(std_dict, sc)
+
 print("DONE!")
