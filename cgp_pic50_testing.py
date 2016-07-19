@@ -162,7 +162,7 @@ class LinearRegression(object):
 
 def drop(input, rng, p=0.5):
     """
-    :type input: numpy.array
+    :type input: np.array
     :param input: layer or weight matrix on which dropout resp. dropconnect is applied
 
     :type p: float or double between 0. and 1.
@@ -174,6 +174,9 @@ def drop(input, rng, p=0.5):
     mask = srng.binomial(n=1, p=1.-p, size=input.shape)
     return input * T.cast(mask, theano.config.floatX) / (1.-p)
 
+def relu(x):
+    return theano.tensor.switch(x<0, 0, x)
+
 def prelu(x, alpha):
     return theano.tensor.switch(x<0, alpha*x, x)
 
@@ -184,10 +187,10 @@ class HiddenLayer(object):
         self.input = input
 
         if W is None:
-            W_values = numpy.asarray(
+            W_values = np.asarray(
                 rng.uniform(
-                    low=-numpy.sqrt(6. / (n_in + n_out)),
-                    high=numpy.sqrt(6. / (n_in + n_out)),
+                    low=-np.sqrt(6. / (n_in + n_out)),
+                    high=np.sqrt(6. / (n_in + n_out)),
                     size=(n_in, n_out)
                 ),
                 dtype=theano.config.floatX
@@ -199,11 +202,11 @@ class HiddenLayer(object):
             W = theano.shared(value=W_values, name='W', borrow=True)
 
         if b is None:
-            b_values = numpy.zeros((n_out,), dtype=theano.config.floatX)
+            b_values = np.zeros((n_out,), dtype=theano.config.floatX)
             b = theano.shared(value=b_values, name='b', borrow=True)
 
         if alpha is None:
-            alpha_value = numpy.full((n_out), .1,  dtype=theano.config.floatX)
+            alpha_value = np.full((n_out), .1,  dtype=theano.config.floatX)
             alpha = theano.shared(value=alpha_value, name='alpha', borrow=True)
 
         self.W = W
@@ -225,6 +228,14 @@ class HiddenLayer(object):
 
         # parameters of the model
         self.params = [self.W, self.b, self.alpha]
+
+def rescale_weights(params, incoming_max):
+    incoming_max = np.cast[theano.config.floatX](incoming_max)
+    for p in params:
+        w = p.get_value()
+        w_sum = (w**2).sum(axis=0)
+        w[:, w_sum>incoming_max] = w[:, w_sum>incoming_max] * np.sqrt(incoming_max) / w_sum[w_sum>incoming_max]
+        p.set_value(w)
 
 class MLP(object):
     def __init__(self, rng, input, is_train, n_in, n_hidden, n_out, p=0.5, dropout=False, input_p=0.1): #, batch_size=20):
