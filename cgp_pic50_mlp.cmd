@@ -15,4 +15,5 @@ module load cudatoolkit
 module load python
 
 #THEANO_FLAGS='device=gpu' python GIT/cgp_pic50_mlp.py 200_200 Erlotinib
-THEANO_FLAGS='device=gpu' python GIT/cgp_test.py
+#THEANO_FLAGS='device=gpu' python GIT/cgp_test.py
+THEANO_FLAGS='device=gpu' python GIT/cgp_pic50_testing.py CGP_FILES/nci60_cgp_cor.csv CGP_FILES/CGP_RESULTS/Erlotinib_cgp_pIC50.200.200.pkl CGP_FILES/CGP_TRAIN_TABLES/STD_SCALER.Erlotinib.pIC50.pkl CGP_FILES/nci60_cgpfeat_cancertable.csv Erlotinib 0.7
