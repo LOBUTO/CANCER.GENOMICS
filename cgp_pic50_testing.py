@@ -324,7 +324,7 @@ class MLP(object):
         self.pred = self.linearRegressionLayer.pred
 
         self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
-        
+
 def shared_drug_dataset_pred(drug_data, integers=True, target="AUC"):
 
     data_x=drug_data.iloc[:,1:]
@@ -376,6 +376,7 @@ def model_prediction(MODEL_FILE, test_drug_x):
 #LOAD FILES
 IN_FILE = sys.argv[1] #Like CGP_FILES/nci60_cgp_cor.csv
 MODEL_FILE = sys.argv[2] #Like CGP_FILES/CGP_RESULTS/Erlotinib_cgp_pIC50.200.200.pkl
+MODEL_FILE = "CGP_FILES/CGP_RESULTS/Erlotinib_cgp_pIC50.200.200.pkl"
 print(MODEL_FILE)
 STANDARD_FILE = sys.argv[3] #Like CGP_FILES/CGP_TRAIN_TABLES/STD_SCALER.Erlotinib.pIC50.pkl
 NCI_FILE = sys.argv[4] #Like CGP_FILES/nci60_cgpfeat_cancertable.csv
