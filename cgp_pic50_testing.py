@@ -389,6 +389,8 @@ FILE_OUT_val.write("MODEL_DRUG" + "\t" + "NSC" + "\t" + "ACTUAL" + "\t" + "PREDI
 nsc_cgp_table = nsc_cgp_table[nsc_cgp_table.COR > SIM_THR]
 nscs = list(set(nsc_cgp_table.NSC))
 
+COUNT = 0.0
+TOTAL = len(nscs)
 for nsc in nscs:
 
     print(nsc)
@@ -413,6 +415,8 @@ for nsc in nscs:
         FILE_OUT_val.write("\n" + MODEL_DRUG + "\t" + nsc  + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
 
     gc.collect()
+    COUNT = COUNT + 1
+    print(COUNT/TOTAL)
 
 FILE_OUT_val.close()
 print("Done predicting!!")
