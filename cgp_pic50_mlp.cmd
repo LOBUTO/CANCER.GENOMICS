@@ -14,4 +14,5 @@
 module load cudatoolkit
 module load python
 
-THEANO_FLAGS='device=gpu' python GIT/cgp_pic50_mlp.py 200_200 Erlotinib
+#THEANO_FLAGS='device=gpu' python GIT/cgp_pic50_mlp.py 200_200 Erlotinib
+THEANO_FLAGS='device=gpu' python GIT/cgp_test.py
