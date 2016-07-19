@@ -23,8 +23,8 @@ nci_stats   = pd.read_csv(CGP_FILES + "nci60_stats.csv", sep="\t")
 nci_cgp_dict = pd.read_csv(CGP_FILES + "cgp_to_nci_cell_exp", sep="\t")
 
 target_drug = sys.argv[1] #For testing
-nci_boost = bool(sys.argv[2]) #True/False
-target_filter = bool(sys.argv[3]) #True/False
+nci_boost = sys.argv[2] #True/False
+target_filter = sys.argv[3] #True/False
 print(nci_boost)
 print(target_filter)
 
@@ -41,10 +41,10 @@ target_cells = list(set(test_table.cell_name))
 
 main_table = main_table[main_table.Compound!=target_drug]
 
-if target_filter==True:
+if target_filter=="True":
     main_table = main_table[main_table.cell_name.isin(target_cells)]
 
-if nci_boost==True:
+if nci_boost=="True":
     #nci_cells = list(nci_stats[nci_stats.cancer.isin(target_cancers)]["cell.name"])
     nci_cells = nci_cgp_dict[nci_cgp_dict.Compound==target_drug]["cell_name"]
     nci_table = nci_table[nci_table.cell_name.isin(nci_cells)]
