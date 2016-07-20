@@ -426,7 +426,12 @@ def model_prediction(MODEL_FILE):  #, test_drug_x):
 
     model_obj = []
 
-    for l in  cPickle.load(open(MODEL_FILE, "rb")):
+    with open(MODEL_FILE, "rb") as dd:
+        a,b,c,d,e = cPickle.load(dd)
+
+    print("half_done")
+
+    for l in cPickle.load(open(MODEL_FILE, "rb")):
         model_obj = model_obj + [l]
 
     #Perform prediction
