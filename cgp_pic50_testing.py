@@ -17,12 +17,6 @@ from scipy.stats import pearsonr
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import scale
 
-def pear (x, y):
-
-    #Calculate the pearson correlation between 2 vectors
-    pear = pear = ( T.sum(x*y) - (T.sum(x)*T.sum(y))/x.shape[0] )  / (T.sqrt(  ( T.sum(T.sqr(x)) - (T.sqr(T.sum(x)))/x.shape[0] ) * ( T.sum(T.sqr(y)) - (T.sqr(T.sum(y)))/y.shape[0]  ) ))
-    return pear
-
 class LinearRegression(object):
 
     def __init__(self, input, n_in, n_out, rng, W=None, b=None):
@@ -166,77 +160,9 @@ class LinearRegression(object):
         else:
             raise NotImplementedError()
 
-
-class LogisticRegression(object):
-
-    def __init__(self, input, n_in, n_out, rng, W=None, b=None):
-
-        if W is None:
-            W_values = np.asarray(
-                    rng.uniform(
-                        low=-np.sqrt(6. / (n_in + n_out)),
-                        high=np.sqrt(6. / (n_in + n_out)),
-                        size=(n_in, n_out)
-                    ),
-                    dtype=theano.config.floatX
-                )
-            W = theano.shared(value=W_values, name='W', borrow=True)
-
-        if b is None :
-            b = theano.shared(
-                value=np.zeros(
-                    (n_out,),
-                    dtype=theano.config.floatX
-                ),
-                name='b',
-                borrow=True
-            )
-
-        self.W = W
-        self.b = b
-
-        self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W) + self.b)
-
-        self.y_pred = T.argmax(self.p_y_given_x, axis=1)
-
-        self.params = [self.W, self.b]
-
-        #self.input = input
-
-    def pred(self, y):
-        """Returns prediction only
-        """
-        return(self.y_pred)
-
-    def negative_log_likelihood(self, y):
-
-        #return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
-        return T.nnet.categorical_crossentropy(self.p_y_given_x, y).mean()
-
-    def errors(self, y):
-
-        if y.ndim != self.y_pred.ndim:
-            raise TypeError(
-                'y should have the same shape as self.y_pred',
-                ('y', y.type, 'y_pred', self.y_pred.type)
-            )
-        # check if y is of the correct datatype
-
-        return T.mean(T.neq(self.y_pred, y))
-        # if y.dtype.startswith('int'):
-        #     # the T.neq operator returns a vector of 0s and 1s, where 1
-        #     # represents a mistake in prediction
-        #     return T.mean(T.neq(self.y_pred, y))
-        # else:
-        #     raise NotImplementedError()
-
-    def diff(self, y):
-        setdiff = self.y_pred - y
-        return T.mean(abs(setdiff))
-
 def drop(input, rng, p=0.5):
     """
-    :type input: np.array
+    :type input: numpy.array
     :param input: layer or weight matrix on which dropout resp. dropconnect is applied
 
     :type p: float or double between 0. and 1.
@@ -248,9 +174,6 @@ def drop(input, rng, p=0.5):
     mask = srng.binomial(n=1, p=1.-p, size=input.shape)
     return input * T.cast(mask, theano.config.floatX) / (1.-p)
 
-def relu(x):
-    return theano.tensor.switch(x<0, 0, x)
-
 def prelu(x, alpha):
     return theano.tensor.switch(x<0, alpha*x, x)
 
@@ -261,10 +184,10 @@ class HiddenLayer(object):
         self.input = input
 
         if W is None:
-            W_values = np.asarray(
+            W_values = numpy.asarray(
                 rng.uniform(
-                    low=-np.sqrt(6. / (n_in + n_out)),
-                    high=np.sqrt(6. / (n_in + n_out)),
+                    low=-numpy.sqrt(6. / (n_in + n_out)),
+                    high=numpy.sqrt(6. / (n_in + n_out)),
                     size=(n_in, n_out)
                 ),
                 dtype=theano.config.floatX
@@ -276,11 +199,11 @@ class HiddenLayer(object):
             W = theano.shared(value=W_values, name='W', borrow=True)
 
         if b is None:
-            b_values = np.zeros((n_out,), dtype=theano.config.floatX)
+            b_values = numpy.zeros((n_out,), dtype=theano.config.floatX)
             b = theano.shared(value=b_values, name='b', borrow=True)
 
         if alpha is None:
-            alpha_value = np.full((n_out), .1,  dtype=theano.config.floatX)
+            alpha_value = numpy.full((n_out), .1,  dtype=theano.config.floatX)
             alpha = theano.shared(value=alpha_value, name='alpha', borrow=True)
 
         self.W = W
@@ -302,14 +225,6 @@ class HiddenLayer(object):
 
         # parameters of the model
         self.params = [self.W, self.b, self.alpha]
-
-def rescale_weights(params, incoming_max):
-    incoming_max = np.cast[theano.config.floatX](incoming_max)
-    for p in params:
-        w = p.get_value()
-        w_sum = (w**2).sum(axis=0)
-        w[:, w_sum>incoming_max] = w[:, w_sum>incoming_max] * np.sqrt(incoming_max) / w_sum[w_sum>incoming_max]
-        p.set_value(w)
 
 class MLP(object):
     def __init__(self, rng, input, is_train, n_in, n_hidden, n_out, p=0.5, dropout=False, input_p=0.1): #, batch_size=20):
