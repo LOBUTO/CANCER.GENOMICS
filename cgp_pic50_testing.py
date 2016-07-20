@@ -341,91 +341,82 @@ def model_prediction(MODEL_FILE):  #, test_drug_x):
 
     model_obj = []
 
-    with open(MODEL_FILE, "rb") as dd:
-        a,b,c,d,e = cPickle.load(dd)
+    for l in cPickle.load(open(MODEL_FILE, "rb")):
+        model_obj = model_obj + [l]
 
-    print("half_done")
+    Perform prediction
+    n_layers = len(model_obj)-2 #minus loglayer and rng
 
-    # for l in cPickle.load(open(MODEL_FILE, "rb")):
-    #     model_obj = model_obj + [l]
+    input = test_drug_x
+    for l in xrange(1, n_layers+1):
 
-    #Perform prediction
-    # n_layers = len(model_obj)-2 #minus loglayer and rng
-    #
-    # input = test_drug_x
-    # for l in xrange(1, n_layers+1):
-    #
-    #     input = prelu(
-    #                     T.dot(input, model_obj[l].W) + model_obj[l].b ,
-    #                     model_obj[l].alpha
-    #                   )
-    #
-    # p_y_given_x = T.dot(input, model_obj[0].W) + model_obj[0].b
-    #
-    # prediction = p_y_given_x[:,0]
-    #
-    # return prediction.eval()
+        input = prelu(
+                        T.dot(input, model_obj[l].W) + model_obj[l].b ,
+                        model_obj[l].alpha
+                      )
+
+    p_y_given_x = T.dot(input, model_obj[0].W) + model_obj[0].b
+
+    prediction = p_y_given_x[:,0]
+
+    return prediction.eval()
 
 ##################################################################################################################
 #LOAD FILES
 IN_FILE = sys.argv[1] #Like CGP_FILES/nci60_cgp_cor.csv
 MODEL_FILE = sys.argv[2] #Like CGP_FILES/CGP_RESULTS/Erlotinib_cgp_pIC50.200.200.pkl from mlp
-print(MODEL_FILE)
 STANDARD_FILE = sys.argv[3] #Like CGP_FILES/CGP_TRAIN_TABLES/STD_SCALER.Erlotinib.pIC50.pkl from building train tables
 NCI_FILE = sys.argv[4] #Like CGP_FILES/nci60_cgpfeat_cancertable.csv from features building
 MODEL_DRUG = sys.argv[5] #Like Erlotinib
 SIM_THR = float(sys.argv[6]) #e.g 0.7
 
-# nsc_cgp_table = pd.read_csv(IN_FILE, sep="\t", converters={"NSC":str, "CGP":str, "COR":float}) #Make sure Drug is str()
-#
-# with open(STANDARD_FILE, "rb") as g:
-#     std_model = cPickle.load(g)
-#
-# nci_cgp_feat = pd.read_csv(NCI_FILE, sep="\t")
-# nci_cgp_feat["Compound"] = nci_cgp_feat["Compound"].astype("str") #Make sure Drug is str()
-#
-# ########################################################################################################
-# #EXECUTE
-# OUT_FOLDER = "/tigress/zamalloa/CGP_FILES/NCI_RESULTS/" #For tigress
-#
-# FILE_OUT_val = open(OUT_FOLDER + "nci60_prediction_" + MODEL_DRUG + "TH_" + str(SIM_THR) , "w")
-# FILE_OUT_val.write("MODEL_DRUG" + "\t" + "NSC" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
-#
-# #Obtain predictions per NSC type based on threshold
-# nsc_cgp_table = nsc_cgp_table[nsc_cgp_table.COR > SIM_THR]
-# nscs = list(set(nsc_cgp_table.NSC))
-#
-# COUNT = 0.0
-# TOTAL = len(nscs)
-# for nsc in nscs:
-#
-#     print(nsc)
-#
-#     #Select table per nsc
-#     target_table = nci_cgp_feat[nci_cgp_feat.Compound == nsc]
-#     target_labels = pd.DataFrame({"NORM_pIC50" : list(target_table.NORM_pIC50)})
-#     target_table = target_table.iloc[:,3:].as_matrix()
-#
-#     #Standarize table with model parameters
-#     target_table = (target_table - std_model["mean"]) / std_model["std"]
-#
-#     #Apply model
-#     target_table = pd.DataFrame(target_table)
-#     target_table = pd.concat([target_labels, target_table], axis=1)
-#
-#     test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=False, target="pIC50")
-#     prediction = model_prediction(MODEL_FILE, test_drug_x)
-#     actual = test_drug_y.get_value()
-#
-#     for n in xrange(len(actual)):
-#         FILE_OUT_val.write("\n" + MODEL_DRUG + "\t" + nsc  + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
-#
-#     gc.collect()
-#     COUNT = COUNT + 1
-#     print(COUNT/TOTAL)
-#
-# FILE_OUT_val.close()
-# print("Done predicting!!")
+nsc_cgp_table = pd.read_csv(IN_FILE, sep="\t", converters={"NSC":str, "CGP":str, "COR":float}) #Make sure Drug is str()
 
-model_prediction(MODEL_FILE)
-print("Done")
+with open(STANDARD_FILE, "rb") as g:
+    std_model = cPickle.load(g)
+
+nci_cgp_feat = pd.read_csv(NCI_FILE, sep="\t")
+nci_cgp_feat["Compound"] = nci_cgp_feat["Compound"].astype("str") #Make sure Drug is str()
+
+########################################################################################################
+#EXECUTE
+OUT_FOLDER = "/tigress/zamalloa/CGP_FILES/NCI_RESULTS/" #For tigress
+
+FILE_OUT_val = open(OUT_FOLDER + "nci60_prediction_" + MODEL_DRUG + "TH_" + str(SIM_THR) , "w")
+FILE_OUT_val.write("MODEL_DRUG" + "\t" + "NSC" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
+
+#Obtain predictions per NSC type based on threshold
+nsc_cgp_table = nsc_cgp_table[nsc_cgp_table.COR > SIM_THR]
+nscs = list(set(nsc_cgp_table.NSC))
+
+COUNT = 0.0
+TOTAL = len(nscs)
+for nsc in nscs:
+
+    print(nsc)
+
+    #Select table per nsc
+    target_table = nci_cgp_feat[nci_cgp_feat.Compound == nsc]
+    target_labels = pd.DataFrame({"NORM_pIC50" : list(target_table.NORM_pIC50)})
+    target_table = target_table.iloc[:,3:].as_matrix()
+
+    #Standarize table with model parameters
+    target_table = (target_table - std_model["mean"]) / std_model["std"]
+
+    #Apply model
+    target_table = pd.DataFrame(target_table)
+    target_table = pd.concat([target_labels, target_table], axis=1)
+
+    test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=False, target="pIC50")
+    prediction = model_prediction(MODEL_FILE, test_drug_x)
+    actual = test_drug_y.get_value()
+
+    for n in xrange(len(actual)):
+        FILE_OUT_val.write("\n" + MODEL_DRUG + "\t" + nsc  + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+
+    gc.collect()
+    COUNT = COUNT + 1
+    print(COUNT/TOTAL)
+
+FILE_OUT_val.close()
+print("Done predicting!!")
