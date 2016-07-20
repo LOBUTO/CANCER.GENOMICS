@@ -344,7 +344,7 @@ def model_prediction(MODEL_FILE):  #, test_drug_x):
     for l in cPickle.load(open(MODEL_FILE, "rb")):
         model_obj = model_obj + [l]
 
-    Perform prediction
+    #Perform prediction
     n_layers = len(model_obj)-2 #minus loglayer and rng
 
     input = test_drug_x
