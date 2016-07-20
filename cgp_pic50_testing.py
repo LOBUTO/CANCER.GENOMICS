@@ -337,7 +337,7 @@ def shared_drug_dataset_pred(drug_data, integers=True, target="AUC"):
     else:
         return shared_x, shared_y
 
-def model_prediction(MODEL_FILE):  #, test_drug_x):
+def model_prediction(MODEL_FILE, test_drug_x):
 
     model_obj = []
 
