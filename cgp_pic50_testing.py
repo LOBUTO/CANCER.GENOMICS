@@ -17,6 +17,12 @@ from scipy.stats import pearsonr
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import scale
 
+def pear (x, y):
+
+    #Calculate the pearson correlation between 2 vectors
+    pear = pear = ( T.sum(x*y) - (T.sum(x)*T.sum(y))/x.shape[0] )  / (T.sqrt(  ( T.sum(T.sqr(x)) - (T.sqr(T.sum(x)))/x.shape[0] ) * ( T.sum(T.sqr(y)) - (T.sqr(T.sum(y)))/y.shape[0]  ) ))
+    return pear
+
 class LinearRegression(object):
 
     def __init__(self, input, n_in, n_out, rng, W=None, b=None):
@@ -159,6 +165,74 @@ class LinearRegression(object):
 
         else:
             raise NotImplementedError()
+
+
+class LogisticRegression(object):
+
+    def __init__(self, input, n_in, n_out, rng, W=None, b=None):
+
+        if W is None:
+            W_values = np.asarray(
+                    rng.uniform(
+                        low=-np.sqrt(6. / (n_in + n_out)),
+                        high=np.sqrt(6. / (n_in + n_out)),
+                        size=(n_in, n_out)
+                    ),
+                    dtype=theano.config.floatX
+                )
+            W = theano.shared(value=W_values, name='W', borrow=True)
+
+        if b is None :
+            b = theano.shared(
+                value=np.zeros(
+                    (n_out,),
+                    dtype=theano.config.floatX
+                ),
+                name='b',
+                borrow=True
+            )
+
+        self.W = W
+        self.b = b
+
+        self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W) + self.b)
+
+        self.y_pred = T.argmax(self.p_y_given_x, axis=1)
+
+        self.params = [self.W, self.b]
+
+        #self.input = input
+
+    def pred(self, y):
+        """Returns prediction only
+        """
+        return(self.y_pred)
+
+    def negative_log_likelihood(self, y):
+
+        #return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
+        return T.nnet.categorical_crossentropy(self.p_y_given_x, y).mean()
+
+    def errors(self, y):
+
+        if y.ndim != self.y_pred.ndim:
+            raise TypeError(
+                'y should have the same shape as self.y_pred',
+                ('y', y.type, 'y_pred', self.y_pred.type)
+            )
+        # check if y is of the correct datatype
+
+        return T.mean(T.neq(self.y_pred, y))
+        # if y.dtype.startswith('int'):
+        #     # the T.neq operator returns a vector of 0s and 1s, where 1
+        #     # represents a mistake in prediction
+        #     return T.mean(T.neq(self.y_pred, y))
+        # else:
+        #     raise NotImplementedError()
+
+    def diff(self, y):
+        setdiff = self.y_pred - y
+        return T.mean(abs(setdiff))
 
 def drop(input, rng, p=0.5):
     """
