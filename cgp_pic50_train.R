@@ -78,7 +78,7 @@ cgp.cor.pIC50 <- readRDS(paste0(CGP_FILES, "cgp_cor_pIC50.rds"))
 ################################################################################
 #EXECUTE
 cgp_anal1 <- Function.cgp.all.data.cor(cgp.cor.pIC50, target_drug = target_drug)
-cgp_anal1 <- cgp_anal1[,c("cell_name.y", "Compound.y"),with=F]
+cgp_anal1 <- unique(cgp_anal1[,c("cell_name.y", "Compound.y"),with=F])
 cgp_anal1 <- cgp_anal1[Compound.y != target_drug, ]
 
 
