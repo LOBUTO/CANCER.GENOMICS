@@ -73,7 +73,7 @@ TRAIN_TABLES <- "/tigress/zamalloa/CGP_FILES/CGP_TRAIN_TABLES/"
 args         <- commandArgs(trailingOnly = TRUE)
 target_drug  <- args[1]
 
-cgp.cor.pIC50 <- readRDS(paste0(CGP_FILES, "cgp_cor_pIC50.rds "))
+cgp.cor.pIC50 <- readRDS(paste0(CGP_FILES, "cgp_cor_pIC50.rds"))
 
 ################################################################################
 #EXECUTE
