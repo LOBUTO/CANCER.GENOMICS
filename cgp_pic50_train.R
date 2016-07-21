@@ -1,64 +1,97 @@
-#Function to prep cgp pIC50 train tables
-library(data.table)
+#cgp_pic50_train.R
+#Function to obtain suited training tables for each drug
+
 library(reshape2)
+library(data.table)
 
-#options(echo=TRUE) # if you want see commands in output file
-args <- commandArgs(trailingOnly = TRUE)
+Function.cgp.all.data.cor <- function(cgp.table, target_drug) {
 
-#Load files and parameteres
-main.table <- readRDS("~/Documents/FOLDER/CGP_FILES/cgp_cor_pIC50.rds")
-nci.data   <- readRDS("~/Documents/FOLDER/CGP_FILES/nci60_cgpfeat_cancerlist.rds")
+  non_target_drugs <- unique(cgp.table[Compound!=target_drug,]$Compound)
 
-target_drug <- args[1] #For testing
-target_cancers <- c("Non-Small Cell Lung") #EXAMPLE for cells related to Erlotinib (nscl)
-splits <- 0.8
-nci_boost <- F
+  count    <- 1
+  total    <- length(non_target_drugs)
+  cgp_list <- lapply(non_target_drugs, function(x)  {
 
-#Introduce tables
-test_table <- main.table[Compound==target_drug,]
-target_cells <- unique(test_table$cell_name)
+    print(c(x, count/total))
 
-main.table <- main.table[Compound!=target_drug,]
-main.table <- main.table[cell_name %in% target_cells,]
+    target_table <- cgp.table[Compound %in% c(target_drug,x),]
+    cgp_labels   <- paste0(target_table$Compound, "_", 1:nrow(target_table))
+    cgp_ident    <- target_table[,c("cell_name", "Compound", "NORM_pIC50"),with=F]
+    cgp_ident$LABELS <- cgp_labels
 
-if(nci_boost==T){
-  nci.table <- do.call(rbind, lapply(target_cancers, function(x) nci.data[[x]]))
-  main.table <- rbind(main.table, nci.table)
+    cgp_calc     <- as.matrix(target_table[,4:ncol(target_table), with=F])
+    rownames(cgp_calc) <- cgp_labels
+    cgp_calc     <- cor(t(cgp_calc))
+
+    cgp_calc     <- data.table(melt(cgp_calc))
+    cgp_calc     <- cgp_calc[Var1!=Var2,]
+    cgp_calc     <- merge(cgp_calc, cgp_ident, by.x="Var1", by.y="LABELS")
+    cgp_calc     <- merge(cgp_calc, cgp_ident, by.x="Var2", by.y="LABELS")
+
+    #Cut at threshold
+    cgp_calc     <- cgp_calc[Compound.x==target_drug,] #Table of all distances from each target_drug-cell pair to all others
+    print(dim(cgp_calc))
+
+    cgp_min      <- cgp_calc[Compound.y==target_drug,]
+    cgp_min[ , min_value := min(value), by = "cell_name.x"] #Minimun distance of each cell in target_drug set to all other cells within drug set
+    cgp_min      <- cgp_min[ , c("cell_name.x" , "Compound.x", "min_value"),with=F]
+    setkey(cgp_min)
+    cgp_min      <- unique(cgp_min)
+
+    cgp_calc     <- merge(cgp_calc, cgp_min, by=c("cell_name.x", "Compound.x"), allow.cartesian=TRUE)
+    cgp_calc     <- cgp_calc[value >= min_value,]
+      # That means we are only keeping those drug-cell pairs that are similar enough as a within set drug-pair
+    print(dim(cgp_calc))
+
+    #Clean up and return
+    cgp_calc$target_abs_diff <- abs(cgp_calc$NORM_pIC50.x - cgp_calc$NORM_pIC50.y)
+    cgp_calc     <- cgp_calc[,c("cell_name.x", "Compound.x", "NORM_pIC50.x",
+                                "cell_name.y", "Compound.y", "NORM_pIC50.y",
+                                "value", "target_abs_diff"),with=F]
+
+    count <<- count + 1
+    return(cgp_calc)
+
+  })
+
+  #Clean up and return all
+  main_table <- do.call(rbind, cgp_list)
+  setkey(main_table)
+  main_table <- unique(main_table)
+
+  return(main_table)
 }
 
-#Split tables
-all_rows <- 1:nrow(main.table)
-train_rows <- sample(all_rows, length(all_rows)*0.8)
-valid_rows <- setdiff(all_rows, train_rows)
+################################################################################
+#LOAD FILES
+CGP_FILES    <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/"
+TRAIN_TABLES <- "/home/zamalloa/Documents/FOLDER/TABLES/CGP.TRAINING/"
 
-train_table <- main.table[train_rows,]
-valid_table <- main.table[valid_rows,]
+CGP_FILES    <- "/tigress/zamalloa/CGP_FILES/"
+TRAIN_TABLES <- "/tigress/zamalloa/CGP_FILES/CGP_TRAIN_TABLES/"
 
-#Normalizing data with train scales
-cols = ncol(train_table)
-train_mean <- apply(train_table[,4:cols,with=F], 2, mean)
-train_sd   <- apply(train_table[,4:cols,with=F], 2, sd)
+args         <- commandArgs(trailingOnly = TRUE)
+target_drug  <- args[1]
 
-train_table <- cbind(train_table[,1:3,with=F],
-                     sweep(sweep(train_table[,4:cols,with=F], 2, train_mean, "-"), 2, train_sd, "/")
-                     )
+cgp.cor.pIC50 <- readRDS(paste0(CGP_FILES, "cgp_cor_pIC50.rds "))
 
-valid_table <- cbind(valid_table[,1:3,with=F],
-                    sweep(sweep(valid_table[,4:cols,with=F], 2, train_mean, "-"), 2, train_sd, "/")
-                    )
+################################################################################
+#EXECUTE
+cgp_anal1 <- Function.cgp.all.data.cor(cgp.cor.pIC50, target_drug = target_drug)
+cgp_anal1 <- cgp_anal1[,c("cell_name.y", "Compound.y"),with=F]
+cgp_anal1 <- cgp_anal1[Compound.y != target_drug, ]
 
-test_table  <- cbind(test_table[,1:3,with=F],
-                    sweep(sweep(test_table[,4:cols,with=F], 2, train_mean, "-"), 2, train_sd, "/")
-                    )
 
-#Write table
-write.table(train_table, paste0("~/Documents/FOLDER/TABLES/CGP.TRAINING/TRAIN.", target_drug, ".pIC50.csv"),
-            sep="\t", quote=F, row.names=F, col.names=T)
+sim_table <- merge(cgp.cor.pIC50, cgp_anal1,
+              by.x=c("cell_name", "Compound"), by.y=c("cell_name.y", "Compound.y"))
 
-write.table(valid_table, paste0("~/Documents/FOLDER/TABLES/CGP.TRAINING/VALID.", target_drug, ".pIC50.csv"),
-            sep="\t", quote=F, row.names=F, col.names=T)
+target_table <- cgp.cor.pIC50[Compound == target_drug,]
 
-write.table(test_table, paste0("~/Documents/FOLDER/TABLES/CGP.TRAINING/TEST.", target_drug, ".pIC50.csv"),
-            sep="\t", quote=F, row.names=F, col.names=T)
+target_table <- rbind(target_table, sim_table)
 
-print("Done writing tables")
+################################################################################
+#STORE
+write.table(target_table, paste0(TRAIN_TABLES, "pre_train_",target_drug),
+            quote=F, sep="\t", row.names=F, col.names=T)
+
+print("Done pre-treatment")
