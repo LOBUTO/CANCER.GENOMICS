@@ -16,7 +16,7 @@ print("Done loading files")
 
 #####################################################################################################################
 #EXECUTE
-main_table[,SD=sd(ACTUAL), by=c("MODEL_DRUG", "NSC")]
+main_table[,SD:=sd(ACTUAL), by=c("MODEL_DRUG", "NSC")]
 main_table  <- main_table[SD!=0,]
 main_table  <- main_table[,list(PRED_COR=cor(ACTUAL, PREDICTED)), by=c("MODEL_DRUG", "NSC")]
 print(warnings())
