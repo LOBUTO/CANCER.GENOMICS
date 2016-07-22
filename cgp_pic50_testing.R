@@ -23,16 +23,19 @@ main_table  <- merge(main_table, nci_cgp_cor, by ="NSC")
 
 #Plot accuracy versus similarity
 main_table  <- main_table[order(-PRED_COR),]
-
+all_cor     <- cor(main_table$COR, main_table$PRED_COR)
 
 pdf(file_out, width=12, height=8)
 
-print(ggplot(main_table, aes(factor(COR), PRED_COR)) + geom_bar(position="dodge", stat="identity" ) +
-          theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12))
+print(ggplot(main_table, aes(reorder(factor(COR), -PRED_COR), PRED_COR)) + geom_bar(position="dodge", stat="identity" ) +
+          theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12)) +
+          xlab("Similarity to modeled drug compound") + ylab("Prediction accuracy in terms of correlation")
       )
 
-print(ggplot(main_table, aes(COR, PRED_COR)) + geom_point(size=0.5) +
-          theme_classic()
+print(ggplot(main_table, aes(COR, PRED_COR)) + geom_point(size=0.5) + geom_smooth(method="lm") +
+          theme_classic() +
+          xlab("Similarity to modeled drug compound") + ylab("Prediction accuracy in terms of correlation") +
+          ggtitle(paste0(target_drug, " - Estimated linear correlation: ", round(all_cor,3) ))
       )
 
 dev.off()
