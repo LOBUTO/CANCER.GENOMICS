@@ -388,6 +388,7 @@ FILE_OUT_val.write("MODEL_DRUG" + "\t" + "NSC" + "\t" + "ACTUAL" + "\t" + "PREDI
 FILE_OUT_val.close()
 
 #Obtain predictions per NSC type based on threshold
+nsc_cgp_table = nsc_cgp_table[nsc_cgp_table.CGP == MODEL_DRUG]
 nsc_cgp_table = nsc_cgp_table[nsc_cgp_table.COR > SIM_THR]
 nscs = list(set(nsc_cgp_table.NSC))
 
