@@ -415,7 +415,7 @@ for nsc in nscs:
 
     for n in xrange(len(actual)):
         with open(FILE_NAME, "a") as dd:
-            dd.write(MODEL_DRUG + "\t" + nsc  + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+            dd.write("\n" + MODEL_DRUG + "\t" + nsc  + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
 
     gc.collect()
     COUNT = COUNT + 1
