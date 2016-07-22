@@ -12,10 +12,11 @@ target_drug <- args[3]
 nci_thr <- args[4]
 
 file_out <- paste0("FIGURES/CGP.NCI/", target_drug, "_", nci_thr, ".pdf")
+print("Done loading files")
 
 #####################################################################################################################
 #EXECUTE
-main_table <- main_table[,list(PRED_COR=cor(ACTUAL, PREDICT)), by=c("MODEL_DRUG", "NSC")]
+main_table <- main_table[,list(PRED_COR=cor(ACTUAL, PREDICTED)), by=c("MODEL_DRUG", "NSC")]
 main_table <- merge(main_table, nci_cgp_cor, by ="NSC")
 
 #Plot accuracy versus similarity
@@ -33,3 +34,5 @@ print(ggplot(main_table, aes(COR, PRED_COR)) + geom_point(size=0.5) +
       )
 
 dev.off()
+
+print("Done plotting")
