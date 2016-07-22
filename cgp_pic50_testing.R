@@ -16,11 +16,13 @@ print("Done loading files")
 
 #####################################################################################################################
 #EXECUTE
-main_table <- main_table[,list(PRED_COR=cor(ACTUAL, PREDICTED)), by=c("MODEL_DRUG", "NSC")]
-main_table <- merge(main_table, nci_cgp_cor, by ="NSC")
+main_table  <- main_table[,list(PRED_COR=cor(ACTUAL, PREDICTED)), by=c("MODEL_DRUG", "NSC")]
+print(use warnings())
+nci_cgp_cor <- nci_cgp_cor[CGP %in% c(unique(main_table$MODEL_DRUG)),]
+main_table  <- merge(main_table, nci_cgp_cor, by ="NSC")
 
 #Plot accuracy versus similarity
-main_table <- main_table[order(-PRED_COR),]
+main_table  <- main_table[order(-PRED_COR),]
 
 
 pdf(file_out, width=12, height=8)
