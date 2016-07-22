@@ -17,7 +17,7 @@ print("Done loading files")
 #####################################################################################################################
 #EXECUTE
 main_table  <- main_table[,list(PRED_COR=cor(ACTUAL, PREDICTED)), by=c("MODEL_DRUG", "NSC")]
-print(use warnings())
+print(warnings())
 nci_cgp_cor <- nci_cgp_cor[CGP %in% c(unique(main_table$MODEL_DRUG)),]
 main_table  <- merge(main_table, nci_cgp_cor, by ="NSC")
 
