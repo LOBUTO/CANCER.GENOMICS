@@ -382,8 +382,10 @@ nci_cgp_feat["Compound"] = nci_cgp_feat["Compound"].astype("str") #Make sure Dru
 #EXECUTE
 OUT_FOLDER = "/tigress/zamalloa/CGP_FILES/NCI_RESULTS/" #For tigress
 
-FILE_OUT_val = open(OUT_FOLDER + "nci60_prediction_" + MODEL_DRUG + "TH_" + str(SIM_THR) , "w")
+FILE_NAME = OUT_FOLDER + "nci60_prediction_" + MODEL_DRUG + "TH_" + str(SIM_THR)
+FILE_OUT_val = open(FILE_NAME , "w")
 FILE_OUT_val.write("MODEL_DRUG" + "\t" + "NSC" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
+FILE_OUT_val.close()
 
 #Obtain predictions per NSC type based on threshold
 nsc_cgp_table = nsc_cgp_table[nsc_cgp_table.COR > SIM_THR]
@@ -412,7 +414,8 @@ for nsc in nscs:
     actual = test_drug_y.get_value()
 
     for n in xrange(len(actual)):
-        FILE_OUT_val.write("\n" + MODEL_DRUG + "\t" + nsc  + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+        with open(FILE_NAME, "a") as dd:
+            dd.write(MODEL_DRUG + "\t" + nsc  + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
 
     gc.collect()
     COUNT = COUNT + 1
