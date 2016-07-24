@@ -56,3 +56,4 @@ print (ggplot(main_list, aes(factor(Layers), NRMSE, colour=Layers)) + geom_boxpl
       )
 
 dev.off()
+print("Done plotting")
