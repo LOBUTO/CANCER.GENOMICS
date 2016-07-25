@@ -45,7 +45,7 @@ Function.cgp.all.data.cor <- function(cgp.table, nci.table, target_drug) {
     cgp_calc     <- cgp_calc[value >= min_value,]
       # That means we are only keeping those drug-cell pairs that are similar enough as a within set drug-pair
     print(dim(cgp_calc))
-    print(unique(cgp_calc[,c("cell_name.y","Compound.y", "value", "min_value"),with=F]))
+    print(unique(cgp_calc[,c("cell_name.y","Compound.y", "value", "min_value"),with=F][order(value),]))
 
     #Clean up and return
     cgp_calc$target_abs_diff <- abs(cgp_calc$NORM_pIC50.x - cgp_calc$NORM_pIC50.y)
