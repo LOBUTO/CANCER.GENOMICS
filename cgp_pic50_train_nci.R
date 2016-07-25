@@ -16,8 +16,8 @@ Function.cgp.all.data.cor <- function(cgp.table, nci.table, target_drug) {
 
     target_table <- rbind(nci_target_table,
                           cgp.table[Compound==x,])
-    print(cgp.table[Compound==x,])
-    print(target_table)
+    print(dim(cgp.table[Compound==x,]))
+    print(dim(target_table))
 
     cgp_labels   <- paste0(target_table$Compound, "_", 1:nrow(target_table))
     cgp_ident    <- target_table[,c("cell_name", "Compound", "NORM_pIC50"),with=F]
@@ -31,7 +31,7 @@ Function.cgp.all.data.cor <- function(cgp.table, nci.table, target_drug) {
     cgp_calc     <- cgp_calc[Var1!=Var2,]
     cgp_calc     <- merge(cgp_calc, cgp_ident, by.x="Var1", by.y="LABELS")
     cgp_calc     <- merge(cgp_calc, cgp_ident, by.x="Var2", by.y="LABELS")
-    print(cgp_calc)
+    print(dim(cgp_calc))
 
     #Cut at threshold
     cgp_calc     <- cgp_calc[Compound.x==target_drug,] #Table of all distances from each target_drug-cell pair to all others
