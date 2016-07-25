@@ -17,25 +17,35 @@ file_out <- paste0("FIGURES/CGP.MLP/", as.character(Sys.Date()), ".pdf")
 
 ########################################################################################
 #EXECUTE
+all_cgp_drugs <- c("A-443654", "A-770041", "AMG-706", "Axitinib", "AZD-0530", "BIBW2992",
+                   "BMS-536924", "Bosutinib", "Erlotinib", "FTI-277", "Imatinib", "Lapatinib",
+                   "NVP-TAE684", "OSI-906", "Pazopanib", "PD-173074", "PF-02341066")
+
 main_list <- lapply(all_files, function(y)  {
 
                     drug_name  <- strsplit(strsplit(y, "D_values.")[[1]][2],
                                           "_cgp_pIC50")[[1]][1]
 
-                    layers     <- strsplit(strsplit(y, "cgp_pIC50.")[[1]][2],
-                                          ".txt")[[1]][1]
+                    if (drug_name %in% all_cgp_drugs){
 
-                    drug_table <- fread(y, sep="\t")
-                    max_epoch  <- max(drug_table$EPOCH)
-                    drug_table <- drug_table[EPOCH == max_epoch,]
+                      layers     <- strsplit(strsplit(y, "cgp_pIC50.")[[1]][2],
+                                            ".txt")[[1]][1]
 
-                    drug_cor   <- cor(drug_table$ACTUAL, drug_table$PREDICTED, method="pearson")
-                    drug_nrmse <- Function.NRMSE(drug_table$PREDICTED, drug_table$ACTUAL)
+                      drug_table <- fread(y, sep="\t")
+                      max_epoch  <- max(drug_table$EPOCH)
+                      drug_table <- drug_table[EPOCH == max_epoch,]
 
-                    drug_table <- data.table(Drug = drug_name,
-                                             Layers = layers,
-                                             Cor = drug_cor,
-                                             NRMSE = drug_nrmse)
+                      drug_cor   <- cor(drug_table$ACTUAL, drug_table$PREDICTED, method="pearson")
+                      drug_nrmse <- Function.NRMSE(drug_table$PREDICTED, drug_table$ACTUAL)
+
+                      drug_table <- data.table(Drug = drug_name,
+                                               Layers = layers,
+                                               Cor = drug_cor,
+                                               NRMSE = drug_nrmse)
+
+                    } else {
+                      drug_table <- data.table()
+                    }
 
                     return(drug_table)
   })
