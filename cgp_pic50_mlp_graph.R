@@ -17,7 +17,7 @@ file_out <- paste0("FIGURES/CGP.MLP/", as.character(Sys.Date()), ".pdf")
 
 ########################################################################################
 #EXECUTE
-all_cgp_drugs <- c("A-443654", "A-770041", "AMG-706", "Axitinib", "AZD-0530", "BIBW2992",
+all_cgp_drugs <- c("A-770041", "AMG-706", "Axitinib", "AZD-0530", "BIBW2992",
                    "BMS-536924", "Bosutinib", "Erlotinib", "FTI-277", "Imatinib", "Lapatinib",
                    "NVP-TAE684", "OSI-906", "Pazopanib", "PD-173074", "PF-02341066")
 
