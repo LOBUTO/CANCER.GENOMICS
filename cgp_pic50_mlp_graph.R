@@ -28,6 +28,8 @@ main_list <- lapply(all_files, function(y)  {
 
                     if (drug_name %in% all_cgp_drugs){
 
+                      print(drug_name)
+
                       layers     <- strsplit(strsplit(y, "cgp_pIC50.")[[1]][2],
                                             ".txt")[[1]][1]
 
