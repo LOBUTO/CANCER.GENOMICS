@@ -16,8 +16,6 @@ Function.cgp.all.data.cor <- function(cgp.table, nci.table, target_drug) {
 
     target_table <- rbind(nci_target_table,
                           cgp.table[Compound==x,])
-    print(dim(cgp.table[Compound==x,]))
-    print(dim(target_table))
 
     cgp_labels   <- paste0(target_table$Compound, "_", 1:nrow(target_table))
     cgp_ident    <- target_table[,c("cell_name", "Compound", "NORM_pIC50"),with=F]
