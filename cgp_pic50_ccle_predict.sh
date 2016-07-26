@@ -12,6 +12,6 @@ for drug in 17-AAG AEW541 AZD0530 AZD6244 Erlotinib Irinotecan L-685458 \
 do
 
   echo $drug
-  python cgp_pic50_ccle_predict.py $drug
+  python /tigress/zamalloa/GIT/cgp_pic50_ccle_predict.py $drug
 
 done
