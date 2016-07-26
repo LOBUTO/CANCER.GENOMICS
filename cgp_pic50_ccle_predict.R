@@ -6,7 +6,8 @@ library(ggplot2)
 
 ####################################################################################
 # LOAD FILES
-main_table <- fread("CGP_FILES/CCLE_RESULTS/ccle_specific_cgp_based_prediction.csv")
+main_table <- fread("CGP_FILES/CCLE_RESULTS/ccle_specific_cgp_based_prediction.csv", sep ="\t",
+                    colClasses=c("character", "character", "character", "numeric", "numeric"))
 
 file_out <- paste0("FIGURES/CGP.MLP/", as.character(Sys.Date()), "_on_ccle.pdf")
 
@@ -22,7 +23,7 @@ main_table$layers <- factor(main_table$layers, levels = c("50.50", "100.100", "2
 pdf(file_out, width=12, height=8)
 
 print (ggplot(main_table, aes(layers, Cor, fill=layers)) + geom_boxplot() + geom_jitter(size=0.5) +
-        facet_grid(ccle~based_model) + theme_classic() + scale_fill_brewer(palette="Set1") +
+        facet_wrap(ccle~based_model) + theme_classic() + scale_fill_brewer(palette="Set1") +
         theme(axis.text.x = element_text(angle = 45, hjust = 1, size=8)) +
         ggtitle("Prediction on ccle drugs using cgp based model") +
         xlab("MLP architecture") + ylab("Predicted/Actual correlation")
