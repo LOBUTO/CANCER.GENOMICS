@@ -715,7 +715,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
     print(('Optimization complete. Best validation score of %f %% '
             'obtained at iteration %i, with test performance %f %%') %
-            (best_validation_loss, best_iter + 1, test_pear ))
+            (best_validation_loss, best_iter, test_pear ))
 
     print >> sys.stderr, ('The code for file ' +
                                 os.path.split("__file__")[1] +
