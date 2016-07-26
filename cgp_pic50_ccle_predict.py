@@ -372,8 +372,8 @@ cgp_drugs  = ["A-770041", "AMG-706", "Axitinib", "AZD-0530", "BIBW2992",
                    "WH-4-023", "A-443654", "BX-795", "GDC0941", "JW-7-52-1", "Midostaurin",
                    "Rapamycin", "Temsirolimus"]
 
-target_table  = pd.read_csv(ccle_file, sep="\t")
-target_table  = target_table[target_table.Compound==ccle_drug]
+ccle_table  = pd.read_csv(ccle_file, sep="\t")
+ccle_table  = ccle_table[ccle_table.Compound==ccle_drug]
 
 print("Loading files")
 
@@ -396,8 +396,8 @@ for drug in cgp_drugs:
             print(drug, layer)
 
             # Set up ccle data
-            target_labels = pd.DataFrame({"NORM_pIC50" : list(target_table.NORM_pIC50)})
-            target_table  = target_table.iloc[:,3:].as_matrix()
+            target_labels = pd.DataFrame({"NORM_pIC50" : list(ccle_table.NORM_pIC50)})
+            target_table  = ccle_table.iloc[:,3:].as_matrix()
 
             # Load standarizer
             # Each cgp drug model is supposed to have its own standarizer
