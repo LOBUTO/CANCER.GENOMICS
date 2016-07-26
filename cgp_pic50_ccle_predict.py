@@ -1,5 +1,5 @@
 #cgp_pic50_ccle_predict.py
-#Function to predict ccle drug sets using all available cgp drug models (for comparisson)
+#Function to predict ccle drug activities using all available cgp drug models (for comparisson)
 
 ##################################################################################################################
 
@@ -363,17 +363,24 @@ def model_prediction(MODEL_FILE, test_drug_x):
 
 ##################################################################################################################
 # LOAD DATA
-ccle_drug  = sys.argv[1] #Drug of interest in ccle
-ccle_file  = "CGP_FILES/ccle_cor_cgp_pIC50.csv"
-cgp_drugs  = ["A-770041", "AMG-706", "Axitinib", "AZD-0530", "BIBW2992",
+ccle_drugs  = ["17-AAG", "AEW541", "AZD0530", "AZD6244", "Erlotinib", "Irinotecan",
+              "L-685458", "LBW242", "Lapatinib", "Nilotinib", "Nutlin-3",
+              "PD-0325901", "PD-0332991", "PF2341066", "PHA-665752", "PLX4720",
+              "Paclitaxel", "Panobinostat", "RAF265", "Sorafenib", "TAE684", "TKI258",
+              "Topotecan", "ZD-6474"]
+
+ccle_file   = "CGP_FILES/ccle_cor_cgp_pIC50.csv"
+
+cgp_drugs   = ["A-770041", "AMG-706", "Axitinib", "AZD-0530", "BIBW2992",
                    "BMS-536924", "Bosutinib", "Erlotinib", "FTI-277", "Imatinib", "Lapatinib",
                    "NVP-TAE684", "OSI-906", "Pazopanib", "PD-173074", "PF-02341066",
                    "PHA-665752", "PLX4720", "SB590885", "Sorafenib","Sunitinib",
                    "WH-4-023", "A-443654", "BX-795", "GDC0941", "JW-7-52-1", "Midostaurin",
                    "Rapamycin", "Temsirolimus"]
 
+layers      = ["50.50", "100.100", "200.200", "400.400", "500.500"]
+
 ccle_table  = pd.read_csv(ccle_file, sep="\t")
-ccle_table  = ccle_table[ccle_table.Compound==ccle_drug]
 
 print("Loading files")
 
@@ -388,42 +395,46 @@ FILE_OUT_val.close()
 
 #Obtain predictions per ccle drug using each cgp model for comparisson
 COUNT = 0.0
-TOTAL = len(cgp_drugs)
-for drug in cgp_drugs:
+TOTAL = len(cgp_drugs) * len(ccle_drugs) * len(layers)
 
-    for layer in ["50.50", "100.100", "200.200", "400.400", "500.500"]:
+for ccle_drug in ccle_drugs:
 
-            print(drug, layer)
+    for drug in cgp_drugs:
 
-            # Set up ccle data
-            target_labels = pd.DataFrame({"NORM_pIC50" : list(ccle_table.NORM_pIC50)})
-            target_table  = ccle_table.iloc[:,3:].as_matrix()
+        for layer in layers:
 
-            # Load standarizer
-            # Each cgp drug model is supposed to have its own standarizer
-            std_scaler   = "CGP_FILES/CGP_TRAIN_TABLES/STD_SCALER." + drug + ".pIC50.pkl"
-            with open(std_scaler, "rb") as g:
-               std_model = cPickle.load(g)
+                print(ccle_drug, drug, layer)
 
-            # Standarize table with model parameters
-            target_table = (target_table - std_model["mean"]) / std_model["std"]
+                # Set up ccle data
+                target_table  = ccle_table[ccle_table.Compound==ccle_drug]
+                target_labels = pd.DataFrame({"NORM_pIC50" : list(target_table.NORM_pIC50)})
+                target_table  = target_table.iloc[:,3:].as_matrix()
 
-            # Apply model
-            target_table = pd.DataFrame(target_table)
-            target_table = pd.concat([target_labels, target_table], axis=1)
+                # Load standarizer
+                # Each cgp drug model is supposed to have its own standarizer
+                std_scaler   = "CGP_FILES/CGP_TRAIN_TABLES/STD_SCALER." + drug + ".pIC50.pkl"
+                with open(std_scaler, "rb") as g:
+                   std_model = cPickle.load(g)
 
-            model_file   = "CGP_FILES/CGP_RESULTS/" + drug + "_cgp_pIC50." + layer + ".pkl"
+                # Standarize table with model parameters
+                target_table = (target_table - std_model["mean"]) / std_model["std"]
 
-            test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=False, target="pIC50")
-            prediction   = model_prediction(model_file, test_drug_x)
-            actual       = test_drug_y.get_value()
+                # Apply model
+                target_table = pd.DataFrame(target_table)
+                target_table = pd.concat([target_labels, target_table], axis=1)
 
-            for n in xrange(len(actual)):
-                with open(FILE_NAME, "a") as dd:
-                    dd.write("\n" + drug + "\t" + layer + "\t" + ccle_drug + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+                model_file   = "CGP_FILES/CGP_RESULTS/" + drug + "_cgp_pIC50." + layer + ".pkl"
 
-            gc.collect()
-            COUNT = COUNT + 1
-            print(COUNT/TOTAL)
+                test_drug_x, test_drug_y = shared_drug_dataset_pred(target_table, integers=False, target="pIC50")
+                prediction   = model_prediction(model_file, test_drug_x)
+                actual       = test_drug_y.get_value()
+
+                for n in xrange(len(actual)):
+                    with open(FILE_NAME, "a") as dd:
+                        dd.write("\n" + drug + "\t" + layer + "\t" + ccle_drug + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+
+                gc.collect()
+                COUNT = COUNT + 1
+                print(COUNT/TOTAL)
 
 print("Done predicting!!")
