@@ -59,15 +59,17 @@ main_list <- lapply(all_files, function(y)  {
 main_list <- do.call(rbind, main_list)
 
 #Plot
+main_list$Layers <- factor(main_list$Layers, levels = c("50.50", "100.100", "200.200", "400.400", "500.500"), ordered=T)
+
 pdf(file_out, width=12, height=8)
 
-print (ggplot(main_list, aes(factor(Layers), Cor, colour=Layers)) + geom_boxplot() + geom_jitter(size=0.5) +
-        theme_classic() + scale_colour_brewer(palette="Set1") +
+print (ggplot(main_list, aes(factor(Layers), Cor, fill=Layers)) + geom_boxplot() + geom_jitter(size=0.5) +
+        theme_classic() + scale_fill_brewer(palette="Set1") +
         ggtitle("Prediciton Correlation Comparisson") + xlab("MLP architecture") + ylab("Predicted/Actual correlation")
       )
 
-print (ggplot(main_list, aes(factor(Layers), NRMSE, colour=Layers)) + geom_boxplot() + geom_jitter(size=0.5) +
-        theme_classic() + scale_colour_brewer(palette="Set1") +
+print (ggplot(main_list, aes(factor(Layers), NRMSE, fill=Layers)) + geom_boxplot() + geom_jitter(size=0.5) +
+        theme_classic() + scale_fill_brewer(palette="Set1") +
         ggtitle("Prediciton NRMSE Comparisson") + xlab("MLP architecture") + ylab("Predicted/Actual NRMSE")
       )
 
