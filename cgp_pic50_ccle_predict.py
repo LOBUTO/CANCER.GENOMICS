@@ -401,7 +401,7 @@ for drug in cgp_drugs:
 
             # Load standarizer
             # Each cgp drug model is supposed to have its own standarizer
-            std_scaler   = "STD_SCALER." + drug + ".pIC50.pkl"
+            std_scaler   = "CGP_FILES/CGP_TRAIN_TABLES/STD_SCALER." + drug + ".pIC50.pkl"
             with open(std_scaler, "rb") as g:
                std_model = cPickle.load(g)
 
