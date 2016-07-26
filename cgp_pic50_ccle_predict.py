@@ -388,7 +388,7 @@ print("Loading files")
 # EXECUTE
 OUT_FOLDER = "/tigress/zamalloa/CGP_FILES/CCLE_RESULTS/" #For tigress
 
-FILE_NAME  = OUT_FOLDER + "ccle_specific_cgp_based_prediction_" + ccle_drug
+FILE_NAME  = OUT_FOLDER + "ccle_specific_cgp_based_prediction.csv"
 FILE_OUT_val = open(FILE_NAME , "w")
 FILE_OUT_val.write("cgp_base" + "\t" + "layers" + "\t" + "ccle" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
 FILE_OUT_val.close()
