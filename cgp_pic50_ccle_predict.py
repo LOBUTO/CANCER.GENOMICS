@@ -371,12 +371,13 @@ ccle_drugs  = ["17-AAG", "AEW541", "AZD0530", "AZD6244", "Erlotinib", "Irinoteca
 
 ccle_file   = "CGP_FILES/ccle_cor_cgp_pIC50.csv"
 
-cgp_drugs   = ["A-770041", "AMG-706", "Axitinib", "AZD-0530", "BIBW2992",
-                   "BMS-536924", "Bosutinib", "Erlotinib", "FTI-277", "Imatinib", "Lapatinib",
-                   "NVP-TAE684", "OSI-906", "Pazopanib", "PD-173074", "PF-02341066",
-                   "PHA-665752", "PLX4720", "SB590885", "Sorafenib","Sunitinib",
-                   "WH-4-023", "A-443654", "BX-795", "GDC0941", "JW-7-52-1", "Midostaurin",
-                   "Rapamycin", "Temsirolimus"]
+# cgp_drugs   = ["A-770041", "AMG-706", "Axitinib", "AZD-0530", "BIBW2992",
+#                    "BMS-536924", "Bosutinib", "Erlotinib", "FTI-277", "Imatinib", "Lapatinib",
+#                    "NVP-TAE684", "OSI-906", "Pazopanib", "PD-173074", "PF-02341066",
+#                    "PHA-665752", "PLX4720", "SB590885", "Sorafenib","Sunitinib",
+#                    "WH-4-023", "A-443654", "BX-795", "GDC0941", "JW-7-52-1", "Midostaurin",
+#                    "Rapamycin", "Temsirolimus"]
+cgp_drugs = ["17-AAG", "AZD6244", "Nilotinib", "PD-0325901", "PD-0332991", "Paclitaxel"]
 
 layers      = ["50.50", "100.100", "200.200", "400.400", "500.500"]
 
@@ -389,9 +390,9 @@ print("Loading files")
 OUT_FOLDER = "/tigress/zamalloa/CGP_FILES/CCLE_RESULTS/" #For tigress
 
 FILE_NAME  = OUT_FOLDER + "ccle_specific_cgp_based_prediction.csv"
-FILE_OUT_val = open(FILE_NAME , "w")
-FILE_OUT_val.write("cgp_base" + "\t" + "layers" + "\t" + "ccle" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
-FILE_OUT_val.close()
+# FILE_OUT_val = open(FILE_NAME , "w")
+# FILE_OUT_val.write("cgp_base" + "\t" + "layers" + "\t" + "ccle" + "\t" + "ACTUAL" + "\t" + "PREDICTED")
+# FILE_OUT_val.close()
 
 #Obtain predictions per ccle drug using each cgp model for comparisson
 COUNT = 0.0
