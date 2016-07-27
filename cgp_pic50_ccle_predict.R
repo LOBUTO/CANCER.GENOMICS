@@ -53,7 +53,7 @@ print (ggplot(main_table[layers=="400.400",], aes(layers, Cor, fill=based_model)
         xlab("MLP architecture") + ylab("Predicted/Actual correlation")
         )
 
-print (ggplot(main_ccle[layers=="400.400",], aes(layers, Cor, fill=based_model)) + geom_boxplot() + geom_jitter(size=0.5) +
+print (ggplot(main_ccle[layers=="400.400",], aes(layers, Cor, fill=based_model)) + geom_boxplot() + #geom_jitter(size=0.5) +
         facet_wrap(~ccle) + theme_classic() + scale_fill_brewer(palette="Set1") +
         theme(axis.text.x = element_text(angle = 45, hjust = 1, size=8)) +
         ggtitle("Prediction on ccle drugs using cgp based model") +
