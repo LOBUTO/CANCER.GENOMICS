@@ -616,7 +616,7 @@ for drop_out in [0.5]:
     for l in [2]:
         test_mlp(learning_rate=4.0, L1_reg=0, L2_reg=0.0000000, n_epochs=3000, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
-                     n_hidden=NEURONS*l, p=drop_out, dropout=True,
+                     n_hidden=[NEURONS]*l, p=drop_out, dropout=True,
                      drug_name="new_cgp_pca_class_model_" + drug + "_" + g_pcas + "_" + m_pcas ,
                      OUT_FOLDER = OUT_FOLDER)
 
