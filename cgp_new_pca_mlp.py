@@ -581,26 +581,24 @@ def shared_drug_dataset_IC50(drug_data, integers=True):
 ####################################################################################################################################################################################################
 
 #OBTAIN FILES
-#input_layers = [int(l) for l in sys.argv[1:]]
-input_layers = sys.argv[1].split("f")[0].split("_")
-input_layers = [int(l) for l in input_layers]
-print(input_layers)
+# input_layers = sys.argv[1].split("f")[0].split("_")
+# input_layers = [int(l) for l in input_layers]
+# print(input_layers)
+#input_name = ".".join([str(c) for c in input_layers])
 
-input_name = ".".join([str(c) for c in input_layers])
-drug = sys.argv[2]
-
-pcas = sys.argv[1].split("f")[1]
-pcas = str(pcas)
+drug   = sys.argv[1]
+m_pcas = sys.argv[2]
+g_pcas = sys.argv[3]
 
 OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_RESULTS" #For tigress
-OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_RESULTS/" #For Lab
+OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/" #For Lab
 
 IN_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_TRAIN_TABLES" #For tigress
 IN_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/" #For Lab
 
-train_table = pd.read_csv(IN_FOLDER + "TRAIN_PCA." +  drug, sep="\t")
-valid_table = pd.read_csv(IN_FOLDER + "VALID_PCA." +  drug, sep="\t")
-test_table  = pd.read_csv(IN_FOLDER + "TEST_PCA." +  drug, sep="\t")
+train_table = pd.read_csv(IN_FOLDER + "TRAIN_CGP_PCA." +  drug + "_" + m_pcas + "_" + g_pcas, sep="\t")
+valid_table = pd.read_csv(IN_FOLDER + "VALID_CGP_PCA." +  drug + "_" + m_pcas + "_" + g_pcas, sep="\t")
+test_table  = pd.read_csv(IN_FOLDER + "TEST_CGP_PCA."  +  drug + "_" + m_pcas + "_" + g_pcas, sep="\t")
 
 train_drug_x, train_drug_y = shared_drug_dataset_IC50(train_table, integers=True)
 valid_drug_x, valid_drug_y = shared_drug_dataset_IC50(valid_table, integers=True)
@@ -616,10 +614,10 @@ print NEURONS
 for drop_out in [0.5]:
 
     for l in [2]:
-        test_mlp(learning_rate=2.0, L1_reg=0, L2_reg=0.0000000, n_epochs=10000, initial_momentum=0.5, input_p=0.2,
+        test_mlp(learning_rate=4.0, L1_reg=0, L2_reg=0.0000000, n_epochs=3000, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
-                     n_hidden=input_layers, p=drop_out, dropout=True,
-                     drug_name=drug +"new_cgp_pca" + pcas +"_class_model_" + input_name ,
+                     n_hidden=NEURONS*l, p=drop_out, dropout=True,
+                     drug_name="new_cgp_pca_class_model_" + drug + "_" + g_pcas + "_" + m_pcas ,
                      OUT_FOLDER = OUT_FOLDER)
 
 print "DONE"
