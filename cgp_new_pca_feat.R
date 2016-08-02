@@ -25,8 +25,8 @@ valid_table <- temp_table[valid_rows, ]
 # WRITE
 write.table(train_table, paste0(out_table, "TRAIN_PCA.", target_drug), quote=F, sep="\t", row.names=F, col.names=T)
 
-write.table(valid_table, paste0(out_table, "VALID_PCA", target_drug), quote=F, sep="\t", row.names=F, col.names=T)
+write.table(valid_table, paste0(out_table, "VALID_PCA.", target_drug), quote=F, sep="\t", row.names=F, col.names=T)
 
-write.table(test_table,  paste0(out_table, "TEST_PCA", target_drug), quote=F, sep="\t", row.names=F, col.names=T)
+write.table(test_table,  paste0(out_table, "TEST_PCA.", target_drug), quote=F, sep="\t", row.names=F, col.names=T)
 
 print("Done writing pca tables")
