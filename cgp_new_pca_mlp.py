@@ -271,7 +271,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     index = T.lscalar("i") # index to a [mini]batch
     vector = T.vector("v", dtype='int32')
     x = T.matrix('x')
-    y = T.vector('y')
+    y = T.ivector('y')
 
     is_train = T.iscalar('is_train') # pseudo boolean for switching between training and prediction
 
