@@ -307,7 +307,7 @@ ccle_data      = pd.read_csv(file_to_model, sep="\t")
 
 ccle_x, ccle_y = shared_drug_dataset_IC50(ccle_data, integers = True)
 
-predictions    = model_prediction(file_to_model, ccle_x)
+predictions    = model_prediction(model_file, ccle_x)
 
 actual         = ccle_y.eval()
 
