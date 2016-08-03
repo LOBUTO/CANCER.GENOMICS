@@ -35,7 +35,7 @@ ccle_met_pca   <- data.table(ccle_met_pca, keep.rownames = T)
 setnames(ccle_met_pca, c("Compound", colnames(ccle_met_pca)[2:ncol(ccle_met_pca)]))
 
 # Build PCA feature table for specific drug
-feat_pca_table <- ccle_data[["main_table"]][,c("cell_name", "Compound", "pic50_class"), with=F]
+feat_pca_table <- ccle_data[["main_table"]][,c("cell_name", "Compound", "pic50_CLASS"), with=F]
 feat_pca_table <- feat_table[pic50_class!=2,]
 feat_pca_table <- merge(feat_pca_table, ccle_exp_pca, by = "cell_name")
 feat_pca_table <- merge(feat_pca_table, ccle_met_pca, by = "Compound")
