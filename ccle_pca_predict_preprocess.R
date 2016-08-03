@@ -25,12 +25,14 @@ genes_used     <- pca_data[["exp_pcas"]][["cgp_feat_order"]]
 ccle_exp_pca   <- ccle_data[["exp_table"]]
 ccle_exp_pca   <- ccle_exp_pca[genes_used, ]
 ccle_exp_pca   <- scale(t(ccle_exp_pca)) %*% pca_data[["exp_pcas"]][["cgp"]]$rotation
+colnames(ccle_exp_pca) <- sapply(colnames(ccle_exp_pca), function(x) paste0(x, ".E"))
 ccle_exp_pca   <- data.table(ccle_exp_pca, keep.rownames = T)
 setnames(ccle_exp_pca, c("cell_name", colnames(ccle_exp_pca)[2:ncol(ccle_exp_pca)]))
 
 mets_used      <- pca_data[["drug_pcas"]][["cgp_feat_order"]]
 ccle_met_pca   <- ccle_data[["met_table"]][METABOLITE %in% mets_used,]
 ccle_met_pca   <- scale(acast(ccle_met_pca, DRUG~METABOLITE, value.var="TC")) %*% pca_data[["drug_pcas"]][["cgp"]]$rotation
+colnames(ccle_met_pca) <- sapply(colnames(ccle_met_pca), function(x) paste0(x, ".M"))
 ccle_met_pca   <- data.table(ccle_met_pca, keep.rownames = T)
 setnames(ccle_met_pca, c("Compound", colnames(ccle_met_pca)[2:ncol(ccle_met_pca)]))
 
@@ -40,8 +42,6 @@ setnames(feat_pca_table, c("cell_name", "Compound", "pic50_class"))
 feat_pca_table <- feat_pca_table[pic50_class!=2,]
 feat_pca_table <- merge(feat_pca_table, ccle_exp_pca, by = "cell_name")
 feat_pca_table <- merge(feat_pca_table, ccle_met_pca, by = "Compound")
-
-print(colnames(feat_pca_table))
 
 # Filter based on given features and target drug
 m_features     <- sapply(1:m_pca, function(x)  paste0("PC", x, ".M"))
