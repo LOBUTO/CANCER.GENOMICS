@@ -318,7 +318,7 @@ file_out.write("M_PCA" + "\t" + "G_PCA" + "\t" + "DRUG" + "\t" + "ACTUAL" + "\t"
 
 for n in xrange(len(actual)):
 
-    file_out.write("\n" + m_pca + "\t" + g_pca + "\t" + drug + "\t" + actual[n] + "\t" + predictions[n])
+    file_out.write("\n" + m_pca + "\t" + g_pca + "\t" + drug + "\t" + str(actual[n]) + "\t" + str(predictions[n]))
 
 file_out.close()
 
