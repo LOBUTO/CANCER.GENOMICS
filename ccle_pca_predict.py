@@ -298,7 +298,7 @@ drug  = sys.argv[1]
 m_pca = sys.argv[2]
 g_pca = sys.argv[3]
 
-file_to_model = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/" + "PRE_CCLE_PCA." + drug + "_", m_pca + "_" + g_pca
+file_to_model = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/" + "PRE_CCLE_PCA." + drug + "_" + m_pca + "_" + g_pca
 
 ####################################################################################################################################################################################################
 # EXECUTE
