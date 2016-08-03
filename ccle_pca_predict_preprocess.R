@@ -30,7 +30,7 @@ setnames(ccle_exp_pca, c("cell_name", colnames(ccle_exp_pca)[2:ncol(ccle_exp_pca
 
 mets_used      <- pca_data[["drug_pcas"]][["cgp_feat_order"]]
 ccle_met_pca   <- ccle_data[["met_table"]][METABOLITE %in% mets_used,]
-ccle_met_pca   <- scale(t(acast(ccle_met_pca))) %*% pca_data[["drug_pcas"]][["cgp"]]$rotation
+ccle_met_pca   <- scale(acast(ccle_met_pca, DRUG~METABOLITE, value.var="TC")) %*% pca_data[["drug_pcas"]][["cgp"]]$rotation
 ccle_met_pca   <- data.table(ccle_met_pca, keep.rownames = T)
 setnames(ccle_met_pca, c("Compound", colnames(ccle_met_pca)[2:ncol(ccle_met_pca)]))
 
