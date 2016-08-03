@@ -299,7 +299,7 @@ m_pca = sys.argv[2]
 g_pca = sys.argv[3]
 
 file_to_model = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/" + "PRE_CCLE_PCA." + drug + "_" + m_pca + "_" + g_pca
-
+model_file    = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/new_cgp_pca_class_model_" + drug + "_" + g_pca + "_" + m_pca + ".pkl"
 ####################################################################################################################################################################################################
 # EXECUTE
 
