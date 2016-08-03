@@ -41,6 +41,8 @@ feat_pca_table <- feat_pca_table[pic50_class!=2,]
 feat_pca_table <- merge(feat_pca_table, ccle_exp_pca, by = "cell_name")
 feat_pca_table <- merge(feat_pca_table, ccle_met_pca, by = "Compound")
 
+print(colnames(feat_pca_table))
+
 # Filter based on given features and target drug
 m_features     <- sapply(1:m_pca, function(x)  paste0("PC", x, ".M"))
 g_features     <- sapply(1:g_pca, function(x)  paste0("PC", x, ".E"))
