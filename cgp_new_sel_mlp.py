@@ -12,10 +12,33 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 #from theano.tensor.shared_randomstreams import RandomStreams
 #from theano.sandbox.cuda.rng_curand import CURAND_RandomStreams as RandomStreams
 
-class LogisticRegression(object):
+def pear (x, y):
+
+    #Calculate the pearson correlation between 2 vectors
+    pear = pear = ( T.sum(x*y) - (T.sum(x)*T.sum(y))/x.shape[0] )  / (T.sqrt(  ( T.sum(T.sqr(x)) - (T.sqr(T.sum(x)))/x.shape[0] ) * ( T.sum(T.sqr(y)) - (T.sqr(T.sum(y)))/y.shape[0]  ) ))
+    return pear
+
+class LinearRegression(object):
 
     def __init__(self, input, n_in, n_out, rng, W=None, b=None):
+        """ Initialize the parameters of the logistic regression
 
+        :type input: theano.tensor.TensorType
+        :param input: symbolic variable that describes the input of the
+                      architecture (one minibatch)
+
+        :type n_in: int
+        :param n_in: number of input units, the dimension of the space in
+                     which the datapoints lie
+
+        :type n_out: int
+        :param n_out: number of output units, the dimension of the space in
+                      which the labels lie
+
+        """
+        # start-snippet-1
+        # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
+        #rng = np.random.RandomState(23455)
         if W is None:
             W_values = np.asarray(
                     rng.uniform(
@@ -40,40 +63,104 @@ class LogisticRegression(object):
         self.W = W
         self.b = b
 
-        self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W) + self.b)
 
-        self.y_pred = T.argmax(self.p_y_given_x, axis=1)
+        self.p_y_given_x = T.dot(input, self.W) + self.b
 
+        # symbolic description of how to compute prediction as class whose
+        # probability is maximal
+        #self.y_pred = T.argmax(self.p_y_given_x, axis=1)
+        self.y_pred = self.p_y_given_x[:,0]
+        # end-snippet-1
+
+        # parameters of the model
         self.params = [self.W, self.b]
 
-        #self.input = input
+        #self.batch_size = batch_size #Only for purposes of calculating error
 
     def pred(self, y):
         """Returns prediction only
         """
         return(self.y_pred)
 
-    def negative_log_likelihood(self, y):
-
-        #return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
-        return T.nnet.categorical_crossentropy(self.p_y_given_x, y).mean()
-
     def errors(self, y):
+        """Return a float representing the number of errors in the minibatch
+        over the total number of examples of the minibatch ; zero one
+        loss over the size of the minibatch
 
+        :type y: theano.tensor.TensorType
+        :param y: corresponds to a vector that gives for each example the
+                  correct label
+        """
+
+        # check if y has same dimension of y_pred
         if y.ndim != self.y_pred.ndim:
             raise TypeError(
                 'y should have the same shape as self.y_pred',
                 ('y', y.type, 'y_pred', self.y_pred.type)
             )
         # check if y is of the correct datatype
+        if y.dtype.startswith('flo'): #CHANGED!!!!!
+            # the T.neq operator returns a vector of 0s and 1s, where 1
+            # represents a mistake in prediction
 
-        return T.mean(T.neq(self.y_pred, y))
-        # if y.dtype.startswith('int'):
-        #     # the T.neq operator returns a vector of 0s and 1s, where 1
-        #     # represents a mistake in prediction
-        #     return T.mean(T.neq(self.y_pred, y))
-        # else:
-        #     raise NotImplementedError()
+            return T.sqrt(T.mean(T.sqr(y-self.y_pred))) #/ (T.max(y) - T.min(y)) #NRMSE
+            #return (1/ (2. * batch_size ) ) * T.sum(T.sqr(y-self.y_pred))
+
+        else:
+            raise NotImplementedError()
+
+    def loss(self, y):
+        """Return a float representing the number of errors in the minibatch
+        over the total number of examples of the minibatch ; zero one
+        loss over the size of the minibatch
+
+        :type y: theano.tensor.TensorType
+        :param y: corresponds to a vector that gives for each example the
+                  correct label
+        """
+
+        # check if y has same dimension of y_pred
+        if y.ndim != self.y_pred.ndim:
+            raise TypeError(
+                'y should have the same shape as self.y_pred',
+                ('y', y.type, 'y_pred', self.y_pred.type)
+            )
+        # check if y is of the correct datatype
+        if y.dtype.startswith('flo'): #CHANGED!!!!!
+            # the T.neq operator returns a vector of 0s and 1s, where 1
+            # represents a mistake in prediction
+
+            #return T.sqrt(T.mean(T.sqr(y-self.y_pred))) / (T.max(y) - T.min(y)) #NRMSE
+            return pear(y, self.y_pred)
+        else:
+            raise NotImplementedError()
+
+    def NRMSE(self, y):
+        """Return a float representing the number of errors in the minibatch
+        over the total number of examples of the minibatch ; zero one
+        loss over the size of the minibatch
+
+        :type y: theano.tensor.TensorType
+        :param y: corresponds to a vector that gives for each example the
+                  correct label
+        """
+
+        # check if y has same dimension of y_pred
+        if y.ndim != self.y_pred.ndim:
+            raise TypeError(
+                'y should have the same shape as self.y_pred',
+                ('y', y.type, 'y_pred', self.y_pred.type)
+            )
+        # check if y is of the correct datatype
+        if y.dtype.startswith('flo'): #CHANGED!!!!!
+            # the T.neq operator returns a vector of 0s and 1s, where 1
+            # represents a mistake in prediction
+
+            return T.sqrt(T.mean(T.sqr(y-self.y_pred))) / (T.max(y) - T.min(y)) #NRMSE
+
+        else:
+            raise NotImplementedError()
+
 
 def drop(input, rng, p=0.5):
     """
@@ -207,35 +294,35 @@ class MLP(object):
         # The logistic regression layer gets as input the hidden units
         # of the hidden layer
 
-        self.logRegressionLayer = LogisticRegression(
+        self.linearRegressionLayer = LinearRegression(
             input=getattr(self, "layer_" + str(layer_number-1)).output,
             n_in=n_hidden[layer_number-1],
             n_out=n_out,
-            rng=rng
+            rng=rng #,batch_size=batch_size
         )
-        self.params = self.params + self.logRegressionLayer.params
+        self.params = self.params + self.linearRegressionLayer.params
 
         #L1 and L2 regularization
         self.L1 = (
-            abs(self.layer_0.W).sum() + abs(self.logRegressionLayer.W).sum()
+            abs(self.layer_0.W).sum() + abs(self.linearRegressionLayer.W).sum()
         )
 
         self.L2_sqr = (
-            (self.layer_0.W ** 2).sum() + (self.logRegressionLayer.W ** 2).sum()
+            (self.layer_0.W ** 2).sum() + (self.linearRegressionLayer.W ** 2).sum()
         )
 
-        self.negative_log_likelihood = (
-            self.logRegressionLayer.negative_log_likelihood
-        )
-
-        self.errors = self.logRegressionLayer.errors
-        self.pred = self.logRegressionLayer.pred
+        # self.negative_log_likelihood = (
+        #     self.logRegressionLayer.negative_log_likelihood
+        # )
+        #
+        # self.errors = self.logRegressionLayer.errors
+        # self.pred = self.logRegressionLayer.pred
         self.param_to_scale = param_to_scale
         # self.diff = self.logRegressionLayer.diff
-        # self.errors = self.linearRegressionLayer.errors
-        # self.loss = self.linearRegressionLayer.loss
-        # self.NRMSE = self.linearRegressionLayer.NRMSE
-        # self.pred = self.linearRegressionLayer.pred
+        self.errors = self.linearRegressionLayer.errors
+        self.loss = self.linearRegressionLayer.loss
+        self.NRMSE = self.linearRegressionLayer.NRMSE
+        self.pred = self.linearRegressionLayer.pred
 
         self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
 
@@ -271,7 +358,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     index = T.lscalar("i") # index to a [mini]batch
     vector = T.vector("v", dtype='int32')
     x = T.matrix('x')
-    y = T.ivector('y')
+    y = T.vector('y')
 
     is_train = T.iscalar('is_train') # pseudo boolean for switching between training and prediction
 
@@ -285,7 +372,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         input=x,
         n_in=N_IN,   #FIXED !!!!!!
         n_hidden=n_hidden,
-        n_out=2,
+        n_out=1,
         p=p,
         dropout=dropout,
         input_p=input_p #, batch_size=batch_size
@@ -293,7 +380,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
     #classifier.negative_log_likelihood(y)
     cost = (
-        classifier.negative_log_likelihood(y)
+        classifier.errors(y)
         + L1_reg * classifier.L1
         + L2_reg * classifier.L2_sqr
     )
@@ -309,9 +396,20 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         on_unused_input='warn',
     )
 
-    test_model = theano.function(
+    test_cor = theano.function(
         inputs=[index],
-        outputs=classifier.errors(y),
+        outputs=classifier.loss(y),
+        givens={
+            x: test_set_x[index * test_batch_size:(index + 1) * test_batch_size],
+            y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
+            is_train: np.cast['int32'](0)
+        },
+        on_unused_input='warn',
+    )
+
+    test_nrmse = theano.function(
+        inputs=[index],
+        outputs=classifier.NRMSE(y),
         givens={
             x: test_set_x[index * test_batch_size:(index + 1) * test_batch_size],
             y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
@@ -405,6 +503,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     epoch = 0
     done_looping = False
     test_loss = 1
+    test_pear = 0
     LR_COUNT = 1
 
     # STORE_FILE="_LR"+str(learning_rate)+"_EPOCHS"+str(n_epochs) + "_BATCH_SIZE"+str(train_batch_size) + \
@@ -416,7 +515,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     #                     "EPOCH_N"+"\t"+"BATCH_TYPE" + "\t" +"LOSS")
 
     FILE_OUT =  open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "w")
-    FILE_OUT.write("EPOCH" + "\t" + "TRAIN"+ "\t"+"VALID.ERROR" + "\t" + "TEST.ERROR")
+    FILE_OUT.write("EPOCH" + "\t" + "TRAIN"+ "\t"+"VALID.ERROR" + "\t" + "TEST.COR" + "\t" + "TEST.NRMSE")
     FILE_OUT.close()
 
     FILE_OUT_val = open(OUT_FOLDER + "/combined_D_values." + drug_name + ".txt", "w")
@@ -473,7 +572,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
                 with open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "a") as FILE_OUT:
                     FILE_OUT.write("\n"+ str(epoch) + "\t" + str(this_train_error) + "\t"+ str(this_validation_loss) \
-                                   +"\t" +str(test_loss))
+                                   +"\t" +str(test_pear) + "\t" + str(test_loss))
 
                 # if we got the best validation score until now
                 if this_validation_loss < best_validation_loss:
@@ -487,21 +586,24 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
                     #     patience = max(patience, iter * patience_increase)
 
                     best_validation_loss = this_validation_loss
-                    #best_iter = iter
+                    best_iter = iter
 
                     # test it on the test set
-                    test_losses = [test_model(i) for i in xrange(n_test_batches)]
+                    test_losses = [test_nrmse(i) for i in xrange(n_test_batches)]
                     test_loss = np.mean(test_losses)
 
+                    test_pears = [test_cor(i) for i in xrange(n_test_batches)]
+                    test_pear = np.mean(test_pears)
+
                     log = ((' epoch %i, minibatch %i/%i, test error of '
-                        'best loss %f %%') %
-                        (epoch, minibatch_index + 1, EPOCH_SIZE, test_loss))
+                        'best nrmse and pear %f,%f %%') %
+                        (epoch, minibatch_index + 1, EPOCH_SIZE, test_loss, test_pear))
                     # print(log)
                     with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
                         logfile.write(log + "\n")
 
                     #ONLY SAVE MODEL if validation improves
-                    MODEL = [classifier.logRegressionLayer]
+                    MODEL = [classifier.linearRegressionLayer]
                     for e in xrange(len(n_hidden)):
                         MODEL = MODEL + [getattr(classifier, "layer_" + str(e))]
                     MODEL = MODEL + [rng]
@@ -509,7 +611,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
                         cPickle.dump(MODEL, f)
 
                     #Only write if validation improvement
-                    ACTUAL = test_set_y.eval()
+                    ACTUAL = test_set_y.get_value()
                     PREDICTED = [test_pred(i) for i in xrange(n_test_batches)][0]
 
                     with open(OUT_FOLDER + "/combined_D_values." + drug_name + ".txt", "a") as FILE_OUT_val:
@@ -566,7 +668,7 @@ def shared_drug_dataset_IC50(drug_data, integers=True):
     # elif target=="PCA":
     #     data_y=list(drug_data.PCA)
 
-    data_y = list(drug_data.pic50_class)
+    data_y = list(drug_data.NORM.pIC50)
 
     shared_x = theano.shared(np.asarray(data_x, dtype=theano.config.floatX), borrow=True)
     shared_y = theano.shared(np.asarray(data_y, dtype=theano.config.floatX), borrow=True )
@@ -598,9 +700,9 @@ train_table = pd.read_csv(IN_FOLDER + "TRAIN_CGP_SEL." +  drug, sep="\t")
 valid_table = pd.read_csv(IN_FOLDER + "VALID_CGP_SEL." +  drug, sep="\t")
 test_table  = pd.read_csv(IN_FOLDER + "TEST_CGP_SEL."  +  drug, sep="\t")
 
-train_drug_x, train_drug_y = shared_drug_dataset_IC50(train_table, integers=True)
-valid_drug_x, valid_drug_y = shared_drug_dataset_IC50(valid_table, integers=True)
-test_drug_x, test_drug_y   = shared_drug_dataset_IC50(test_table,  integers=True)
+train_drug_x, train_drug_y = shared_drug_dataset_IC50(train_table, integers=False)
+valid_drug_x, valid_drug_y = shared_drug_dataset_IC50(valid_table, integers=False)
+test_drug_x, test_drug_y   = shared_drug_dataset_IC50(test_table,  integers=False)
 
 drugval= [(train_drug_x, train_drug_y), (valid_drug_x, valid_drug_y),(test_drug_x, test_drug_y)]
 
