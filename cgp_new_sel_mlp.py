@@ -668,7 +668,7 @@ def shared_drug_dataset_IC50(drug_data, integers=True):
     # elif target=="PCA":
     #     data_y=list(drug_data.PCA)
 
-    data_y = list(drug_data.NORM.pIC50)
+    data_y = list(drug_data.NORM_pIC50)
 
     shared_x = theano.shared(np.asarray(data_x, dtype=theano.config.floatX), borrow=True)
     shared_y = theano.shared(np.asarray(data_y, dtype=theano.config.floatX), borrow=True )
