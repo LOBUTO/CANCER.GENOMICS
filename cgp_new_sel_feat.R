@@ -38,4 +38,4 @@ write.table(valid_table, paste0(out_table, "VALID_CGP_SEL.", target_drug),
 write.table(test_table,  paste0(out_table, "TEST_CGP_SEL.",  target_drug),
             quote=F, sep="\t", row.names=F, col.names=T)
 
-print("Done writing pca tables")
+print("Done writing sel tables")
