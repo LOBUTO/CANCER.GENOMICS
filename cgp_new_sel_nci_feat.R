@@ -30,7 +30,7 @@ drug_hmdb    <- drug_hmdb[DRUG==target_nsc,]
 drug_hmdb$DRUG <- target_drug
 common_met   <- intersect(unique(drug_hmdb$METABOLITE), unique(MET.PROFILE$METABOLITE))
 drug_table   <- rbind(drug_hmdb[METABOLITE %in% common_met,],
-                    MET.PROFILE[METABOLITE %in% common_met,])
+                    MET.PROFILE[METABOLITE %in% common_met,][!DRUG %in% target_drug,])
 
 drug_table   <- cor( acast(drug_table, METABOLITE~DRUG, value.var = "TC")  , method="spearman")
 drug_table   <- drug_table[target_drug, unique(MET.PROFILE$DRUG)]
