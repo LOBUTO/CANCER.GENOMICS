@@ -40,15 +40,13 @@ drug_table   <- data.table(drug_table, keep.rownames=T)
 setnames(drug_table, c("Compound", colnames(drug_table)[2:ncol(drug_table)]))
 
 # Then expression table
-#nci60.exp    <- t(scale(t(nci60.exp)))
-#cgp_exp      <- t(scale(t(cgp_exp)))
+nci60.exp    <- t(scale(t(nci60.exp)))
+cgp_exp      <- t(scale(t(cgp_exp)))
 
 common_genes <- intersect(rownames(nci60.exp), rownames(cgp_exp))
 
 colnames(nci60.exp) <- as.vector(sapply(colnames(nci60.exp), function(x) paste0(x, ".nci")))
 colnames(cgp_exp)   <- as.vector(sapply(colnames(cgp_exp),   function(x) paste0(x, ".cgp")))
-# common_cells <- intersect(colnames(nci60.exp), colnames(cgp_exp))
-# nci60_cells  <- setdiff(colnames(nci60.exp), common_cells)
 
 cell_table   <- cbind(nci60.exp[common_genes, ],
                       cgp_exp[common_genes,])
