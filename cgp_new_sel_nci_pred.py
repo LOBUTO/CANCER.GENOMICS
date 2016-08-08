@@ -403,7 +403,7 @@ with open(file_out, "w") as f:
 
 for n in xrange(len(actual)):
     with open(file_out, "a") as dd:
-        dd.write("\n" + drug + "\t" + target_table.cell_name[n] + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+        dd.write("\n" + drug_target + "\t" + target_table.cell_name[n] + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
 
 ####################################################################################################################################################################################################
 # Done
