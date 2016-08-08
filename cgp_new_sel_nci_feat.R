@@ -33,10 +33,8 @@ drug_table   <- rbind(drug_hmdb[METABOLITE %in% common_met,],
                     MET.PROFILE[METABOLITE %in% common_met,][!DRUG %in% target_drug,])
 
 drug_table   <- cor( acast(drug_table, METABOLITE~DRUG, value.var = "TC")  , method="spearman")
-drug_table   <- drug_table[target_drug, unique(MET.PROFILE$DRUG)]
-print(drug_table)
+drug_table   <- drug_table[target_drug, unique(MET.PROFILE$DRUG), drop=F]
 drug_table   <- data.table(drug_table, keep.rownames=T)
-print(drug_table)
 
 setnames(drug_table, c("Compound", colnames(drug_table)[2:ncol(drug_table)]))
 
