@@ -15,7 +15,7 @@ MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.DRUG.ME
 nci60.exp   <- readRDS("/home/zamalloa/Documents/FOLDER/OBJECTS/061916.NCI60.EXP.rds")
 cgp_exp     <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_exp.rds")
 nci60.gi50  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci.gi50.rds")
-nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/080716.nci60_names_to_cgp.rds")
+nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci60_names_to_cgp.rds")
 
 args        <- commandArgs(trailingOnly = TRUE)
 target_drug <- args[1]
