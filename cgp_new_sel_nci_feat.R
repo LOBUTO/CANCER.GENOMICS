@@ -62,7 +62,7 @@ setnames(cell_table, c("cell_name", colnames(cell_table)[2:ncol(cell_table)]))
 
 # Then merge it all
 main_table   <- merge(nci60.gi50, nci_to_cgp, by="NSC")
-main_table   <- main_table[ ,c("cell_name", "Compound", "SCALE.ACT"),with=F]
+main_table   <- main_table[ ,c("CELL", "Compound", "SCALE.ACT"),with=F] # To be in accordance with nci60 names
 setnames(main_table, c("cell_name", "Compound", "NORM_pIC50")) # To be in accordance with the pred.py script
 
 main_table   <- merge(main_table, drug_table, by = "Compound")
