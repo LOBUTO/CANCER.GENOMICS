@@ -27,7 +27,7 @@ out_table   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
 # Prep drug table first
 drug_hmdb    <- drug_hmdb[DRUG==target_drug,]
 common_met   <- intersect(unique(drug_hmdb$METABOLITE), unique(MET.PROFILE$METABOLITE))
-drug_table   <- rbind(drug_hmdb[METABOLITE %in% commont_met,],
+drug_table   <- rbind(drug_hmdb[METABOLITE %in% common_met,],
                     MET.PROFILE[METABOLITE %in% common_met,])
 
 drug_table   <- cor( acast(drug_table, METABOLITE~DRUG, value.var = "TC")  , method="spearman")
