@@ -4,6 +4,38 @@
 library(data.table)
 library(reshape2)
 
+Function.exp.combat <- function(exp.matrix.1, exp.matrix.2) {
+  #Function to normalize batch effects across two expression matrices
+  #INPUT: 2 expression matrices with columns as samples and rows as genes
+  #OUPOUT: 2 expression matrices, HOWEVER, genes that are not common across expression datasets will be removed
+
+  require(sva)
+  require(pamr)
+  require(limma)
+
+  common.genes <- intersect( unique(rownames(exp.matrix.1)) ,
+                             unique(rownames(exp.matrix.2)))
+
+  col.1 <- colnames(exp.matrix.1)
+  col.2 <- colnames(exp.matrix.2)
+
+  m.1 <- exp.matrix.1[common.genes,]
+  m.2 <- exp.matrix.2[common.genes,]
+  m.both <- cbind(m.1, m.2)
+
+  batch <- c( rep("m1", length(col.1)) ,
+              rep("m2", length(col.2)) )
+
+  modcombat <- model.matrix(~1, data.frame(1:length(batch)) )
+
+  combat.m <- ComBat(dat=m.both, batch=batch, mod=modcombat, par.prior = T, prior.plots = T)
+
+  exp.matrix.1 <- combat.m[,col.1]
+  exp.matrix.2 <- combat.m[,col.2]
+
+  return(list(EXP.1=exp.matrix.1 , EXP.2=exp.matrix.2))
+}
+
 ######################################################################################################
 # LOAD DATA
 
@@ -40,8 +72,11 @@ drug_table   <- data.table(drug_table, keep.rownames=T)
 setnames(drug_table, c("Compound", colnames(drug_table)[2:ncol(drug_table)]))
 
 # Then expression table
-nci60.exp    <- t(scale(t(nci60.exp)))
-cgp_exp      <- t(scale(t(cgp_exp)))
+#nci60.exp    <- t(scale(t(nci60.exp)))
+#cgp_exp      <- t(scale(t(cgp_exp)))
+main_exp     <- Function.exp.combat(cgp_exp, nci60.exp)
+cgp_exp      <- main_exp[["EXP.1"]]
+nci60.exp    <- main_exp[["EXP.2"]]
 
 common_genes <- intersect(rownames(nci60.exp), rownames(cgp_exp))
 

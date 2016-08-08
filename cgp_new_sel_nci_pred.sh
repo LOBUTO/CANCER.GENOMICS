@@ -4,6 +4,7 @@
 
 drug=$1
 model=$2
+extra=$3
 
 export PATH=/usr/local/cuda/bin:/usr/local/cuda/lib64:$PATH
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
@@ -14,5 +15,5 @@ echo "Done building training sets"
 python GIT/cgp_new_sel_nci_pred.py $drug $model
 echo "Done predicting"
 
-Rscript GIT/cgp_new_sel_nci_pred.R $drug
+Rscript GIT/cgp_new_sel_nci_pred.R $drug $extra
 echo "Done graphing"

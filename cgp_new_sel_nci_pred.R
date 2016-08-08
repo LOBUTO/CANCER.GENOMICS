@@ -20,7 +20,8 @@ nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci60_n
 
 args        <- commandArgs(trailingOnly = TRUE)
 target_drug <- args[1]
-out_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_FIGURES/"
+extra       <- args[2]
+out_folder  <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_FIGURES/"
 in_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/"
 
 date_out    <- Sys.Date()
@@ -44,7 +45,7 @@ drug_comb_pred <- drug_table_com[,list(NRMSE = Function.NRMSE(Predicted, Actual)
                                        Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
 # Plot
-pdf(paste0(out_folder, date_out, "cgp_new_modeling_nci_" , target_drug, ".pdf"), width=12, height=8)
+pdf(paste0(out_folder, date_out, "cgp_new_modeling_nci_" , target_drug, "_", extra ,".pdf"), width=12, height=8)
 
 ggplot(drug_table, aes(Actual, Predicted)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
