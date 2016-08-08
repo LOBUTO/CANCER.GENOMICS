@@ -46,15 +46,15 @@ drug_comb_pred <- drug_table_com[,list(NRMSE = Function.NRMSE(Predicted, Actual)
 # Plot
 pdf(paste0(out_folder, date_out, "cgp_new_modeling_nci_" , target_drug, ".pdf"), width=12, height=8)
 
-ggplot(drug_table, aes(Predicted, Actual)) + geom_point(size=0.4) +
+ggplot(drug_table, aes(Predicted, Actual)) + geom_point(size=2) +
   theme_bw() +
   ggtitle(paste0("CGP based prediction on NCI-60 Compound: ", target_drug ,
                  "- Cor:", drug_all_pred$Cor, "\n", "All NCI-60 Cells" ))
 
-ggplot(drug_table_com, aes(Predicted, Actual)) + geom_point(size=1) +
+ggplot(drug_table_com, aes(Predicted, Actual)) + geom_point(size=2) +
  theme_bw() +
  ggtitle(paste0("CGP based prediction on NCI-60 Compound: ", target_drug ,
-                "- Cor:", drug_all_pred$Cor, "\n", "Common CGP/NCI-60 Cells" ))
+                "- Cor:", drug_comb_pred$Cor, "\n", "Common CGP/NCI-60 Cells" ))
 
 dev.off()
 
