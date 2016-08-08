@@ -41,7 +41,7 @@ setnames(drug_table, c("Compound", colnames(drug_table)[2:ncol(drug_table)]))
 
 # Then expression table
 #nci60.exp    <- t(scale(t(nci60.exp)))
-cgp_exp      <- t(scale(t(cgp_exp)))
+#cgp_exp      <- t(scale(t(cgp_exp)))
 
 common_genes <- intersect(rownames(nci60.exp), rownames(cgp_exp))
 
