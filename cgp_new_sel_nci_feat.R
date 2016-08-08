@@ -28,6 +28,7 @@ out_table   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
 target_nsc   <- as.character(nci_to_cgp[Compound==target_drug,]$NSC)
 drug_hmdb    <- drug_hmdb[DRUG==target_nsc,]
 drug_hmdb$DRUG <- target_drug
+MET.PROFILE  <- MET.PROFILE[DRUG!="CMK",] #Necessary to avoid confusion of also "CMK" cell name later
 common_met   <- intersect(unique(drug_hmdb$METABOLITE), unique(MET.PROFILE$METABOLITE))
 drug_table   <- rbind(drug_hmdb[METABOLITE %in% common_met,],
                     MET.PROFILE[METABOLITE %in% common_met,][!DRUG %in% target_drug,])
