@@ -16,7 +16,7 @@ Function.NRMSE <- function(pred, actual){
 
 cgp_table   <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_feat.rds")
 nci60.gi50  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci.gi50.rds")
-nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/080716.nci60_names_to_cgp.rds")
+nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci60_names_to_cgp.rds")
 
 args        <- commandArgs(trailingOnly = TRUE)
 target_drug <- args[1]
