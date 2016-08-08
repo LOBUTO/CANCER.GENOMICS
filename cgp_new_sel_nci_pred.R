@@ -27,7 +27,7 @@ date_out    <- Sys.Date()
 #####################################################################################
 # EXECUTE
 
-drug_table     <- fread(paste0(in_folder, "cgp_new_modeling_nci_", drug_target))
+drug_table     <- fread(paste0(in_folder, "cgp_new_modeling_nci_", target_drug))
 
 # Predict for all
 drug_all_pred  <- drug_table[,list(NRMSE = Function.NRMSE(Predicted, Actual),
