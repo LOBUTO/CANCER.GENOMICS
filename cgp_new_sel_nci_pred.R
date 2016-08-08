@@ -20,7 +20,7 @@ nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci60_n
 
 args        <- commandArgs(trailingOnly = TRUE)
 target_drug <- args[1]
-out_table   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_FIGURES/"
+out_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_FIGURES/"
 in_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/"
 
 date_out    <- Sys.Date()
