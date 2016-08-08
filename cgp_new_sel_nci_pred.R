@@ -34,7 +34,7 @@ drug_all_pred  <- drug_table[,list(NRMSE = Function.NRMSE(Predicted, Actual),
                                    Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
 #Predict for common
-main_table     <- merge(nci.gi50, nci_to_cgp, by="NSC")
+main_table     <- merge(nci60.gi50, nci_to_cgp, by="NSC")
 main_table     <- main_table[ ,c("cell_name", "Compound", "SCALE.ACT"),with=F]
 main_table     <- merge(main_table, cgp_table, by=c("Compound", "cell_name"))
 common_cells   <- main_table$cell_name
