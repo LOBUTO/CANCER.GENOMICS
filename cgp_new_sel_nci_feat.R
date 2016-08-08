@@ -48,7 +48,7 @@ common_cells <- intersect(colnames(nci60.exp), colnames(cgp_exp))
 nci60_cells  <- setdiff(colnames(nci60.exp), common_cells)
 
 cell_table   <- cbind(nci60.exp[common_genes, nci60_cells],
-                      cgp_exp[common_genes])
+                      cgp_exp[common_genes,])
 cell_table   <- cor(cell_table, method="spearman")
 cell_table   <- cell_table[colnames(nci60.exp), colnames(cgp_exp)]
 cell_table   <- data.table(cell_table, keep.rownames = T)
