@@ -44,14 +44,19 @@ nci60.exp    <- t(scale(t(nci60.exp)))
 cgp_exp      <- t(scale(t(cgp_exp)))
 
 common_genes <- intersect(rownames(nci60.exp), rownames(cgp_exp))
-common_cells <- intersect(colnames(nci60.exp), colnames(cgp_exp))
 
-nci60_cells  <- setdiff(colnames(nci60.exp), common_cells)
+colnames(nci60.exp) <- as.vector(sapply(colnames(nci60.exp), function(x) paste0(x, ".nci")))
+colnames(cgp_exp)   <- as.vector(sapply(colnames(cgp_exp),   function(x) paste0(x, ".cgp")))
+# common_cells <- intersect(colnames(nci60.exp), colnames(cgp_exp))
+# nci60_cells  <- setdiff(colnames(nci60.exp), common_cells)
 
-cell_table   <- cbind(nci60.exp[common_genes, nci60_cells],
+cell_table   <- cbind(nci60.exp[common_genes, ],
                       cgp_exp[common_genes,])
 cell_table   <- cor(cell_table, method="spearman")
 cell_table   <- cell_table[colnames(nci60.exp), colnames(cgp_exp)]
+rownames(cell_table) <- sapply(rownames(cell_table), function(x)  strsplit(x, ".nci")[[1]][1])
+colnames(cell_table) <- sapply(colnames(cell_table), function(x)  strsplit(x, ".cgp")[[1]][1])
+
 cell_table   <- data.table(cell_table, keep.rownames = T)
 setnames(cell_table, c("cell_name", colnames(cell_table)[2:ncol(cell_table)]))
 
