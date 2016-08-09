@@ -42,7 +42,8 @@ Function.exp.combat <- function(exp.matrix.1, exp.matrix.2) {
 drug_hmdb   <- fread("TABLES/TCGA.TRAINING/NCI60.TC.HMDB.FP4",
                     header=T, colClasses=c("character", "character", "numeric"))
 
-feat_table  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_feat.rds")
+#feat_table  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_feat.rds")
+feat_table <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_cgp_new_feat_combat.rds")
 MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.DRUG.MET.PROFILE.rds")
 #nci60.exp   <- readRDS("/home/zamalloa/Documents/FOLDER/OBJECTS/061916.NCI60.EXP.rds")
 #cgp_exp     <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_exp.rds")
