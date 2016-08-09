@@ -380,6 +380,7 @@ def model_prediction(MODEL_FILE, test_drug_x):
 ####################################################################################################################################################################################################
 # Load data
 drug_target = sys.argv[1]
+drug_target = (" ").join(drug_target.split("_"))
 model_file  = sys.argv[2]
 
 in_folder   = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"

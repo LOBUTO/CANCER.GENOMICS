@@ -20,6 +20,7 @@ nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci60_n
 
 args        <- commandArgs(trailingOnly = TRUE)
 target_drug <- args[1]
+target_drug <- paste0(strsplit(target_drug, "_")[[1]], collapse = " ")
 extra       <- args[2]
 out_folder  <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_FIGURES/"
 in_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/"

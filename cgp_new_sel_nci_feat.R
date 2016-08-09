@@ -51,6 +51,7 @@ nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci60_n
 
 args        <- commandArgs(trailingOnly = TRUE)
 target_drug <- args[1]
+target_drug <- paste0(strsplit(target_drug, "_")[[1]], collapse = " ")
 out_table   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
 
 #####################################################################################################
@@ -72,11 +73,8 @@ drug_table   <- data.table(drug_table, keep.rownames=T)
 setnames(drug_table, c("Compound", colnames(drug_table)[2:ncol(drug_table)]))
 
 # Then expression table
-#nci60.exp    <- t(scale(t(nci60.exp)))
-#cgp_exp      <- t(scale(t(cgp_exp)))
-main_exp     <- Function.exp.combat(cgp_exp, nci60.exp)
-cgp_exp      <- main_exp[["EXP.1"]]
-nci60.exp    <- main_exp[["EXP.2"]]
+nci60.exp    <- t(scale(t(nci60.exp)))
+cgp_exp      <- t(scale(t(cgp_exp)))
 
 common_genes <- intersect(rownames(nci60.exp), rownames(cgp_exp))
 
