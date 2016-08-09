@@ -689,6 +689,7 @@ def shared_drug_dataset_IC50(drug_data, integers=True):
 #input_name = ".".join([str(c) for c in input_layers])
 
 drug   = sys.argv[1]
+drug   = (" ").join(drug.split("_"))
 
 OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_RESULTS" #For tigress
 OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/" #For Lab
