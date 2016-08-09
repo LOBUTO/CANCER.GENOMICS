@@ -12,6 +12,7 @@ feat_table <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_
 args        <- commandArgs(trailingOnly = TRUE)
 
 target_drug <- args[1]
+target_drug <- paste0(strsplit(target_drug, "_")[[1]], collapse = " ")
 
 out_table   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
 
