@@ -44,8 +44,10 @@ drug_hmdb   <- fread("TABLES/TCGA.TRAINING/NCI60.TC.HMDB.FP4",
 
 feat_table  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_feat.rds")
 MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.DRUG.MET.PROFILE.rds")
-nci60.exp   <- readRDS("/home/zamalloa/Documents/FOLDER/OBJECTS/061916.NCI60.EXP.rds")
-cgp_exp     <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_exp.rds")
+#nci60.exp   <- readRDS("/home/zamalloa/Documents/FOLDER/OBJECTS/061916.NCI60.EXP.rds")
+#cgp_exp     <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_exp.rds")
+nci60.exp   <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_NCI60_EXP_COMBAT.rds")
+cgp_exp     <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_CGP_EXP_COMBAT.rds")
 nci60.gi50  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci.gi50.rds")
 nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci60_names_to_cgp.rds")
 
@@ -73,8 +75,8 @@ drug_table   <- data.table(drug_table, keep.rownames=T)
 setnames(drug_table, c("Compound", colnames(drug_table)[2:ncol(drug_table)]))
 
 # Then expression table
-nci60.exp    <- t(scale(t(nci60.exp)))
-cgp_exp      <- t(scale(t(cgp_exp)))
+#nci60.exp    <- t(scale(t(nci60.exp)))
+#cgp_exp      <- t(scale(t(cgp_exp)))
 
 common_genes <- intersect(rownames(nci60.exp), rownames(cgp_exp))
 
