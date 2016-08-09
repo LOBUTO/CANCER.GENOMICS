@@ -382,6 +382,7 @@ def model_prediction(MODEL_FILE, test_drug_x):
 drug_target = sys.argv[1]
 drug_target = (" ").join(drug_target.split("_"))
 model_file  = sys.argv[2]
+model_file  = (" ").join(model_file.split("-"))
 
 in_folder   = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
 drug_file   = in_folder + "NCI_CGP_SEL_FEAT." + drug_target
