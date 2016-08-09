@@ -15,5 +15,6 @@ echo "Done building training sets"
 python GIT/cgp_new_sel_nci_pred.py $drug $model
 echo "Done predicting"
 
+echo $extra
 Rscript GIT/cgp_new_sel_nci_pred.R $drug $extra
 echo "Done graphing"
