@@ -46,9 +46,7 @@ drug_comb_pred <- drug_table_com[,list(NRMSE = Function.NRMSE(Predicted, Actual)
                                        Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
 # Plot
-print(extra)
-print(length(extra))
-if (length(extra)>1){
+if (nchar(extra)>1){
   pdf(paste0(out_folder, date_out, "cgp_new_modeling_nci_" , target_drug, "_", extra ,".pdf"), width=12, height=8)
 } else {
   pdf(paste0(out_folder, date_out, "cgp_new_modeling_nci_" , target_drug, ".pdf"), width=12, height=8)
