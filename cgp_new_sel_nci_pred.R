@@ -35,7 +35,7 @@ drug_table     <- fread(paste0(in_folder, "cgp_new_modeling_nci_", target_drug))
 drug_all_pred  <- drug_table[,list(NRMSE = Function.NRMSE(Predicted, Actual),
                                    Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
-#Predict for common
+# Predict for common
 main_table     <- merge(nci60.gi50, nci_to_cgp, by="NSC")
 main_table     <- main_table[ ,c("cell_name", "Compound", "SCALE.ACT"),with=F]
 main_table     <- merge(main_table, cgp_table, by=c("Compound", "cell_name"))
@@ -43,6 +43,11 @@ common_cells   <- main_table$cell_name
 
 drug_table_com <- drug_table[cell_name %in% common_cells,]
 drug_comb_pred <- drug_table_com[,list(NRMSE = Function.NRMSE(Predicted, Actual),
+                                       Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
+
+# Predict for uncommon
+drug_table_unc <- drug_table[!cell_name %in% common_cells,]
+drug_unc_pred  <- drug_table_unc[,list(NRMSE = Function.NRMSE(Predicted, Actual),
                                        Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
 # Plot
@@ -61,6 +66,11 @@ ggplot(drug_table_com, aes(Actual, Predicted)) + geom_point(size=1.5) +
  theme_bw() + stat_smooth(method="lm", se =F, color = "purple" ) +
  ggtitle(paste0("CGP based prediction on NCI-60 Compound: ", target_drug ,
                 "- Cor:", drug_comb_pred$Cor, "\n", "Common CGP/NCI-60 Cells" ))
+
+ggplot(drug_table_unc, aes(Actual, Predicted)) + geom_point(size=1.5) +
+ theme_bw() + stat_smooth(method="lm", se =F, color = "purple" ) +
+ ggtitle(paste0("CGP based prediction on NCI-60 Compound: ", target_drug ,
+                "- Cor:", drug_unc_pred$Cor, "\n", "Non-CGP NCI-60 Cells" ))
 
 dev.off()
 
