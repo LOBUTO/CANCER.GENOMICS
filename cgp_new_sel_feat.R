@@ -7,7 +7,7 @@ library(reshape2)
 ######################################################################################################
 # LOAD DATA
 
-feat_table <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_cgp_new_feat_combat.rds")
+feat_table <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081016_cgp_new_feat_combat.rds")
 
 args        <- commandArgs(trailingOnly = TRUE)
 
