@@ -43,12 +43,13 @@ drug_hmdb   <- fread("TABLES/TCGA.TRAINING/NCI60.TC.HMDB.FP4",
                     header=T, colClasses=c("character", "character", "numeric"))
 
 #feat_table  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_feat.rds")
-feat_table <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_cgp_new_feat_combat.rds")
+#feat_table <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_cgp_new_feat_combat.rds")
+feat_table <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081016_cgp_new_feat_combat.rds")
 MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.DRUG.MET.PROFILE.rds")
 #nci60.exp   <- readRDS("/home/zamalloa/Documents/FOLDER/OBJECTS/061916.NCI60.EXP.rds")
 #cgp_exp     <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_exp.rds")
-nci60.exp   <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_NCI60_EXP_COMBAT.rds")
-cgp_exp     <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_CGP_EXP_COMBAT.rds")
+nci60.exp   <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081016_NCI60_EXP_COMBAT.rds")
+cgp_exp     <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081016_CGP_EXP_COMBAT.rds")
 nci60.gi50  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci.gi50.rds")
 nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci60_names_to_cgp.rds")
 
@@ -69,7 +70,7 @@ common_met   <- intersect(unique(drug_hmdb$METABOLITE), unique(MET.PROFILE$METAB
 drug_table   <- rbind(drug_hmdb[METABOLITE %in% common_met,],
                     MET.PROFILE[METABOLITE %in% common_met,][!DRUG %in% target_drug,])
 
-drug_table   <- cor( acast(drug_table, METABOLITE~DRUG, value.var = "TC")  , method="spearman")
+drug_table   <- cor( acast(drug_table, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
 drug_table   <- drug_table[target_drug, unique(MET.PROFILE$DRUG), drop=F]
 drug_table   <- data.table(drug_table, keep.rownames=T)
 
@@ -86,7 +87,7 @@ colnames(cgp_exp)   <- as.vector(sapply(colnames(cgp_exp),   function(x) paste0(
 
 cell_table   <- cbind(nci60.exp[common_genes, ],
                       cgp_exp[common_genes,])
-cell_table   <- cor(cell_table, method="spearman")
+cell_table   <- cor(cell_table, method="pearson")
 cell_table   <- cell_table[colnames(nci60.exp), colnames(cgp_exp)]
 rownames(cell_table) <- sapply(rownames(cell_table), function(x)  strsplit(x, ".nci")[[1]][1])
 colnames(cell_table) <- sapply(colnames(cell_table), function(x)  strsplit(x, ".cgp")[[1]][1])
