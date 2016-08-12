@@ -411,7 +411,7 @@ for n in xrange(len(actual)):
 ####################################################################################################################################################################################################
 # Execute for self
 
-test_table  = pd.read_csv(IN_FOLDER + "TEST_CGP_SEL."  +  drug_target, sep="\t")
+test_table  = pd.read_csv(in_folder + "TEST_CGP_SEL."  +  drug_target, sep="\t")
 
 test_drug_x, test_drug_y   = shared_drug_dataset_IC50(test_table,  integers=False)
 
