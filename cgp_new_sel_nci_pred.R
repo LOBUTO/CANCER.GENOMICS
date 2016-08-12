@@ -50,12 +50,23 @@ drug_table_unc <- drug_table[!cell_name %in% common_cells,]
 drug_unc_pred  <- drug_table_unc[,list(NRMSE = Function.NRMSE(Predicted, Actual),
                                        Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
+# Predict for cgp self
+drug_table_cgp <- fread(paste0(in_folder, "cgp_new_modeling_cgp_", target_drug))
+
+drug_cgp_pred  <- drug_table_cgp[,list(NRMSE = Function.NRMSE(Predicted, Actual),
+                                   Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
+
 # Plot
 if (nchar(extra)>1){
   pdf(paste0(out_folder, date_out, "cgp_new_modeling_nci_" , target_drug, "_", extra ,".pdf"), width=12, height=8)
 } else {
   pdf(paste0(out_folder, date_out, "cgp_new_modeling_nci_" , target_drug, ".pdf"), width=12, height=8)
 }
+
+ggplot(drug_table_cgp, aes(Actual, Predicted)) + geom_point(size=1.5) +
+  theme_bw() + stat_smooth(method="lm", se=F, color = "purple") +
+  ggtitle(paste0("CGP based prediction on CGP Compound: ", target_drug,
+                 "- Cor:", drug_cgp_pred$Cor, "\n", "All CGP cells"))
 
 ggplot(drug_table, aes(Actual, Predicted)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +

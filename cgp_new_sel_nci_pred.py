@@ -389,9 +389,10 @@ drug_file   = in_folder + "NCI_CGP_SEL_FEAT." + drug_target
 
 out_folder  = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/"
 file_out    = out_folder + "cgp_new_modeling_nci_" + drug_target
+file_out_2  = out_folder + "cgp_new_modeling_cgp_" + drug_target
 
 ####################################################################################################################################################################################################
-# Execute
+# Execute for nci60
 
 target_table = pd.read_csv(drug_file, sep="\t")
 
@@ -406,6 +407,23 @@ with open(file_out, "w") as f:
 for n in xrange(len(actual)):
     with open(file_out, "a") as dd:
         dd.write("\n" + drug_target + "\t" + target_table.cell_name[n] + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+
+####################################################################################################################################################################################################
+# Execute for self
+
+test_table  = pd.read_csv(IN_FOLDER + "TEST_CGP_SEL."  +  drug_target, sep="\t")
+
+test_drug_x, test_drug_y   = shared_drug_dataset_IC50(test_table,  integers=False)
+
+prediction   = model_prediction(model_file, test_drug_x)
+actual       = test_drug_y.get_value()
+
+with open(file_out_2, "w") as f:
+    f.write("Compound" + "\t" + "cell_name" + "\t" + "Actual" + "\t" + "Predicted")
+
+for n in xrange(len(actual)):
+    with open(file_out_2, "a") as dd:
+        dd.write("\n" + drug_target + "\t" + test_table.cell_name[n] + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
 
 ####################################################################################################################################################################################################
 # Done
