@@ -27,9 +27,8 @@ date_out    <- Sys.Date()
 
 #####################################################################################
 # EXECUTE
-main_table <- data.table()
 
-for (target_drug in all_drugs){
+main_table <- lapply(all_drugs, function(target_drug) {
 
   drug_table     <- fread(paste0(in_folder, "cgp_new_modeling_nci_", target_drug))
 
@@ -59,18 +58,19 @@ for (target_drug in all_drugs){
                                     Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
   # Add to main table
-  main_table     <- rbind(main_table,
-                         data.table(Compound = target_drug,
-                                    Prediction = c(drug_all_pred$Cor, drug_comb_pred$Cor,
-                                                   drug_unc_pred$Cor, drug_cgp_pred$Cor),
-                                    Count      = c(nrow(drug_table), nrow(drug_table_com),
-                                                   nrow(drug_table_unc), nrow(drug_table_cgp)),
-                                    Type       = c("All NCI-60", "Common NCI-60/CGP",
-                                                   "Non-CGP NCI-60", "Self CGP"),
-                                    Perc_common= c(nrow(drug_table_com) / nrow(drug_table)),
-                                    cgp_pred   = drug_cgp_pred$Cor
-                                    ))
-}
+  return(data.table(Compound = target_drug,
+                    Prediction = c(drug_all_pred$Cor, drug_comb_pred$Cor,
+                                   drug_unc_pred$Cor, drug_cgp_pred$Cor),
+                    Count      = c(nrow(drug_table), nrow(drug_table_com),
+                                   nrow(drug_table_unc), nrow(drug_table_cgp)),
+                    Type       = c("All NCI-60", "Common NCI-60/CGP",
+                                   "Non-CGP NCI-60", "Self CGP"),
+                    Perc_common= c(nrow(drug_table_com) / nrow(drug_table)),
+                    cgp_pred   = drug_cgp_pred$Cor
+                    ))
+})
+
+main_table <- do.call(rbind, main_table)
 
 # Plot
 pdf(paste0(out_folder, date_out, "cgp_new_modeling_nci_all.pdf"), width=12, height=8)
