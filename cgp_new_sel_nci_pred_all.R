@@ -71,6 +71,9 @@ main_table <- lapply(all_drugs, function(target_drug) {
 })
 
 main_table <- do.call(rbind, main_table)
+main_table$Type <- factor(main_table$Type,
+                          levels=c("Self CGP", "All NCI-60", "Common NCI-60/CGP", "Non-CGP NCI-60"),
+                          ordered = TRUE)
 
 # Plot
 pdf(paste0(out_folder, date_out, "cgp_new_modeling_nci_all.pdf"), width=12, height=8)
@@ -81,22 +84,22 @@ ggplot(main_table, aes(Type, Prediction, colour=Type)) + geom_boxplot() + geom_j
     ylab("Accuracy in terms of correlation")
 
 ggplot(main_table[Type=="All NCI-60",], aes(Perc_common * 100, Prediction)) + geom_point(size=1.5) +
-  theme_bw() +
+  theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
   ggtitle("CGP-based predictions on all NCI-60 cells") +
   xlab("Percent common cell count") + ylab("Accuracy in terms of correlation")
 
 ggplot(main_table[Type=="All NCI-60",], aes(cgp_pred, Prediction)) + geom_point(size=1.5) +
-  theme_bw() +
+  theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
   ggtitle("Correlation between CGP-based model self-dataset accuracy and all NCI-60 cells") +
   xlab("CGP accuracy in terms of correlation") + ylab("NCI-60 accuracy in terms of correlation")
 
 ggplot(main_table[Type=="Common NCI-60/CGP",], aes(Perc_common * 100, Prediction)) + geom_point(size=1.5) +
-  theme_bw() +
+  theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
   ggtitle("CGP-based predictions on common cells across CGP and NCI-60 datasets") +
   xlab("Percent common cell count") + ylab("Accuracy in terms of correlation")
 
 ggplot(main_table[Type=="Common NCI-60/CGP",], aes(cgp_pred, Prediction)) + geom_point(size=1.5) +
-  theme_bw() +
+  theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
   ggtitle("Correlation between CGP-based model self-dataset accuracy and common NCI-60/CGP cells") +
   xlab("CGP accuracy in terms of correlation") + ylab("NCI-60 accuracy in terms of correlation")
 
