@@ -12,6 +12,6 @@ do
   echo "Done building training sets"
 
   export drug extra
-  sbatch GIT/cgp_new_sel_mlp_tigress.cmd $drug $extra
+  sbatch GIT/cgp_new_sel_mlp_tigress.cmd
   echo "Done sending mlp job"
 done
