@@ -29,17 +29,19 @@ date_out    <- Sys.Date()
 #####################################################################################
 # EXECUTE
 
+#Obtain comparable cgp identifiers
 drug_table     <- fread(paste0(in_folder, "cgp_new_modeling_nci_", target_drug))
+setnames(drug_table, c("Compound", "CELL", "Actual", "Predicted"))
+drug_table     <- merge(drug_table, unique(nci60.gi50[,c("CELL", "cell_name"),with=F]), by="CELL")
+drug_table$CELL<-NULL
 
 # Predict for all
 drug_all_pred  <- drug_table[,list(NRMSE = Function.NRMSE(Predicted, Actual),
                                    Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
 # Predict for common
-main_table     <- merge(nci60.gi50, nci_to_cgp, by="NSC")
-main_table     <- main_table[ ,c("cell_name", "Compound", "SCALE.ACT"),with=F]
-main_table     <- merge(main_table, cgp_table, by=c("Compound", "cell_name"))
-common_cells   <- main_table$cell_name
+common_cells   <- intersect(unique(drug_table$cell_name),
+                            unique(cgp_table[Compound==target_drug,]$cell_name))
 
 drug_table_com <- drug_table[cell_name %in% common_cells,]
 drug_comb_pred <- drug_table_com[,list(NRMSE = Function.NRMSE(Predicted, Actual),

@@ -77,9 +77,6 @@ drug_table   <- data.table(drug_table, keep.rownames=T)
 setnames(drug_table, c("Compound", colnames(drug_table)[2:ncol(drug_table)]))
 
 # Then expression table
-#nci60.exp    <- t(scale(t(nci60.exp)))
-#cgp_exp      <- t(scale(t(cgp_exp)))
-
 common_genes <- intersect(rownames(nci60.exp), rownames(cgp_exp))
 
 colnames(nci60.exp) <- as.vector(sapply(colnames(nci60.exp), function(x) paste0(x, ".nci")))
@@ -97,7 +94,7 @@ setnames(cell_table, c("cell_name", colnames(cell_table)[2:ncol(cell_table)]))
 
 # Then merge it all
 main_table   <- merge(nci60.gi50, nci_to_cgp, by="NSC")
-main_table   <- main_table[ ,c("CELL", "Compound", "SCALE.ACT"),with=F] # To be in accordance with nci60 names
+main_table   <- main_table[ ,c("CELL", "Compound", "SCALE.ACT"),with=F] # To be in accordance with nci60 names ("cell_name" is a cgp identifier)
 setnames(main_table, c("cell_name", "Compound", "NORM_pIC50")) # To be in accordance with the pred.py script
 
 main_table   <- merge(main_table, drug_table, by = "Compound")
