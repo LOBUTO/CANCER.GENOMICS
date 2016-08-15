@@ -17,6 +17,7 @@ Function.NRMSE <- function(pred, actual){
 cgp_table   <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081016_cgp_new_feat_combat.rds")
 nci60.gi50  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci.gi50.rds")
 nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci60_names_to_cgp.rds")
+plot_6      <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/plot_6.rds")
 
 out_folder  <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_FIGURES/"
 in_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/"
@@ -68,7 +69,8 @@ main_table <- lapply(all_drugs, function(target_drug) {
                     Type       = c("All NCI-60", "Common NCI-60/CGP",
                                    "Non-CGP NCI-60", "Self CGP"),
                     Perc_common= c(nrow(drug_table_com) / nrow(drug_table)),
-                    cgp_pred   = drug_cgp_pred$Cor
+                    cgp_pred   = drug_cgp_pred$Cor,
+                    cgp_nci_cor=unique(plot_6[Compound == target_drug,]$Cor)
                     ))
 })
 
@@ -92,7 +94,7 @@ ggplot(main_table[Type=="All NCI-60",], aes(Perc_common * 100, Prediction)) + ge
 
 ggplot(main_table[Type=="All NCI-60",], aes(cgp_pred, Prediction)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
-  ggtitle("Correlation between CGP-based model self-dataset accuracy and all NCI-60 cells") +
+  ggtitle("Correlation between CGP-based model self-dataset accuracy and prediction on all NCI-60 cells") +
   xlab("CGP accuracy in terms of correlation") + ylab("NCI-60 accuracy in terms of correlation")
 
 ggplot(main_table[Type=="Common NCI-60/CGP",], aes(Perc_common * 100, Prediction)) + geom_point(size=1.5) +
@@ -102,8 +104,28 @@ ggplot(main_table[Type=="Common NCI-60/CGP",], aes(Perc_common * 100, Prediction
 
 ggplot(main_table[Type=="Common NCI-60/CGP",], aes(cgp_pred, Prediction)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
-  ggtitle("Correlation between CGP-based model self-dataset accuracy and common NCI-60/CGP cells") +
+  ggtitle("Correlation between CGP-based model self-dataset accuracy and prediction on common NCI-60/CGP cells") +
   xlab("CGP accuracy in terms of correlation") + ylab("NCI-60 accuracy in terms of correlation")
+
+ggplot(main_table[Type=="All NCI-60",], aes(cgp_nci_cor, Prediction)) + geom_point(size=1.5) +
+  theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
+  ggtitle("Correlation between CGP/NCI-60 accuracy concordance and Prediction on all NCI-60 cells") +
+  xlab("CGP/NCI-60 accuracy concordance") + ylab("NCI-60 accuracy in terms of correlation")
+
+ggplot(main_table[Type=="All NCI-60",], aes(cgp_nci_cor * cgp_pred, Prediction)) + geom_point(size=1.5) +
+  theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
+  ggtitle("Correlation between CGP/NCI-60 accuracy concordance influence on and Prediction on all NCI-60 cells") +
+  xlab("CGP/NCI-60 accuracy concordance * CGP accuracy") + ylab("NCI-60 accuracy in terms of correlation")
+
+ggplot(main_table[Type=="Common NCI-60/CGP",], aes(cgp_nci_cor, Prediction)) + geom_point(size=1.5) +
+  theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
+  ggtitle("Correlation between CGP/NCI-60 accuracy concordance and Prediction on common NCI-60/CGP cells") +
+  xlab("CGP/NCI-60 accuracy concordance") + ylab("NCI-60 accuracy in terms of correlation")
+
+ggplot(main_table[Type=="Common NCI-60/CGP",], aes(cgp_nci_cor * cgp_pred, Prediction)) + geom_point(size=1.5) +
+  theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
+  ggtitle("Correlation between CGP/NCI-60 accuracy concordance influence on and Prediction on common NCI-60/CGP cells") +
+  xlab("CGP/NCI-60 accuracy concordance * CGP accuracy") + ylab("NCI-60 accuracy in terms of correlation")
 
 dev.off()
 
