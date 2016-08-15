@@ -1,8 +1,7 @@
 #!/bin/bash
 # cgp_new_sel_mlp_tigress.sh
 
-drug=$1
-extra=$2
+extra=$1
 
 for drug in Axitinib Vinorelbine Methotrexate Shikonin Etoposide Paclitaxel Embelin Cyclopamine \
 PAC-1 Bleomycin Docetaxel Rapamycin ATRA Sorafenib Erlotinib Temsirolimus Parthenolide Lapatinib \
