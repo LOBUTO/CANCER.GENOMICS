@@ -30,7 +30,9 @@ date_out    <- Sys.Date()
 
 main_table <- lapply(all_drugs, function(target_drug) {
 
+  print(target_drug)
   drug_table     <- fread(paste0(in_folder, "cgp_new_modeling_nci_", target_drug))
+  print(drug_table)
 
   # Predict for all
   drug_all_pred  <- drug_table[,list(NRMSE = Function.NRMSE(Predicted, Actual),
@@ -43,6 +45,7 @@ main_table <- lapply(all_drugs, function(target_drug) {
   common_cells   <- main_table$cell_name
 
   drug_table_com <- drug_table[cell_name %in% common_cells,]
+  print(drug_table_com)
   drug_comb_pred <- drug_table_com[,list(NRMSE = Function.NRMSE(Predicted, Actual),
                                          Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
