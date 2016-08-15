@@ -63,7 +63,7 @@ out_table   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
 
 # Prep drug table first
 target_nsc   <- as.character(nci_to_cgp[Compound==target_drug,]$NSC)
-drug_hmdb    <- drug_hmdb[DRUG==target_nsc,]
+drug_hmdb    <- drug_hmdb[DRUG %in% target_nsc,]
 drug_hmdb$DRUG <- target_drug
 MET.PROFILE  <- MET.PROFILE[DRUG!="CMK",] #Necessary to avoid confusion of also "CMK" cell name later
 common_met   <- intersect(unique(drug_hmdb$METABOLITE), unique(MET.PROFILE$METABOLITE))
@@ -102,6 +102,8 @@ main_table   <- merge(main_table, cell_table, by = "cell_name")
 
 # Filter features and return
 main_table   <- main_table[ , c("cell_name", "Compound", "NORM_pIC50", colnames(feat_table)[4:ncol(feat_table)] ), with= F]
+setkey(main_table)
+main_table   <- unique(main_table)
 
 write.table(main_table, paste0(out_table, "NCI_CGP_SEL_FEAT.", target_drug),
             quote=F, sep="\t", row.names=F, col.names=T)
