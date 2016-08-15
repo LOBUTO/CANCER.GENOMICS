@@ -5,7 +5,7 @@
 drug=$1
 model=$2
 extra=$3
-self_data=$4
+self_data=$4 #To be used in the future as actual input
 
 export PATH=/usr/local/cuda/bin:/usr/local/cuda/lib64:$PATH
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH

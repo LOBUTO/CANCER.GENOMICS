@@ -692,11 +692,11 @@ drug   = sys.argv[1]
 drug   = (" ").join(drug.split("_"))
 extra  = sys.argv[2]
 
-OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_RESULTS" #For tigress
 OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/" #For Lab
+OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_NEW_RESULTS/" #For tigress
 
-IN_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_TRAIN_TABLES" #For tigress
 IN_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/" #For Lab
+IN_FOLDER="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
 
 train_table = pd.read_csv(IN_FOLDER + "TRAIN_CGP_SEL." +  drug, sep="\t")
 valid_table = pd.read_csv(IN_FOLDER + "VALID_CGP_SEL." +  drug, sep="\t")
