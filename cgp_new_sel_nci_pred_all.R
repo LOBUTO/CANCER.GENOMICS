@@ -22,7 +22,8 @@ out_folder  <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_FIGURES/"
 in_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/"
 
 all_drugs   <- c("Sunitinib", "Mitomycin C", "Midostaurin", "Imatinib", "Cisplatin",
-                 "Camptothecin", "17-AAG", "Dasatinib", "Gefitinib", "Nilotinib")
+                 "Camptothecin", "17-AAG", "Dasatinib", "Gefitinib", "Nilotinib",
+                 "Doxorubicin", "Vorinostat", "Gemcitabine")
 date_out    <- Sys.Date()
 
 #####################################################################################
@@ -44,7 +45,6 @@ main_table <- lapply(all_drugs, function(target_drug) {
                               unique(cgp_table[Compound==target_drug,]$cell_name))
 
   drug_table_com <- drug_table[cell_name %in% common_cells,]
-  print(drug_table_com)
   drug_comb_pred <- drug_table_com[,list(NRMSE = Function.NRMSE(Predicted, Actual),
                                          Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
