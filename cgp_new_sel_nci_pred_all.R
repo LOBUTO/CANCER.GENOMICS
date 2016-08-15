@@ -104,7 +104,7 @@ ggplot(main_table[Type=="Common NCI-60/CGP",], aes(Perc_common * 100, Prediction
   ggtitle("CGP-based predictions on common cells across CGP and NCI-60 datasets") +
   xlab("Percent common cell count") + ylab("Accuracy in terms of correlation")
 
-cor_1 <- cor(main_table[Type=="Common NCI-60/CGP",]$cgp_pred, main_table[Type=="All NCI-60",]$Prediction)
+cor_1 <- cor(main_table[Type=="Common NCI-60/CGP",]$cgp_pred, main_table[Type=="Common NCI-60/CGP",]$Prediction)
 ggplot(main_table[Type=="Common NCI-60/CGP",], aes(cgp_pred, Prediction)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
   ggtitle("Correlation between CGP-based model self-dataset accuracy and prediction on common NCI-60/CGP cells") +
