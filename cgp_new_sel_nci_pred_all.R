@@ -98,7 +98,8 @@ ggplot(main_table, aes(Type, Prediction, colour=Type)) + geom_boxplot() + geom_j
   theme_bw() + scale_colour_brewer(palette="Set1") +
   ggtitle("CGP-based predictions comparisson on NCI-60") + xlab("Type of comparisson") +
     ylab("Accuracy in terms of correlation") +
-    facet_wrap(~cor_class) + theme(legend.position = "bottom")
+    facet_wrap(~cor_class) + theme(legend.position = "bottom") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12))
 
 ggplot(main_table[Type=="All NCI-60",], aes(Perc_common * 100, Prediction)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
