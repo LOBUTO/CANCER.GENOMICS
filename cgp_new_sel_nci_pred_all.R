@@ -35,6 +35,11 @@ date_out    <- Sys.Date()
 #####################################################################################
 # EXECUTE
 
+# Classify original correlations
+plot_6$Cor_Class <- ifelse(plot_6$Cor >= 0.5, "High",
+                           ifelse(plot_6$Cor >= 0.3, "Medium", "Low"))
+
+# Obtain per drug
 main_table <- lapply(all_drugs, function(target_drug) {
 
   drug_table     <- fread(paste0(in_folder, "cgp_new_modeling_nci_", target_drug))
@@ -75,7 +80,8 @@ main_table <- lapply(all_drugs, function(target_drug) {
                                    "Non-CGP NCI-60", "Self CGP"),
                     Perc_common= c(nrow(drug_table_com) / nrow(drug_table)),
                     cgp_pred   = drug_cgp_pred$Cor,
-                    cgp_nci_cor=unique(plot_6[Compound == target_drug,]$Cor)
+                    cgp_nci_cor= unique(plot_6[Compound == target_drug,]$Cor),
+                    cor_class  = unique(plot_6[Compound == target_drug,]$Cor_Class)
                     ))
 })
 
@@ -90,7 +96,8 @@ pdf(paste0(out_folder, date_out, "cgp_new_modeling_nci_all.pdf"), width=12, heig
 ggplot(main_table, aes(Type, Prediction, colour=Type)) + geom_boxplot() + geom_jitter(size=0.4) +
   theme_bw() + scale_colour_brewer(palette="Set1") +
   ggtitle("CGP-based predictions comparisson on NCI-60") + xlab("Type of comparisson") +
-    ylab("Accuracy in terms of correlation")
+    ylab("Accuracy in terms of correlation") +
+    facet_wrap(~Cor_Class)
 
 ggplot(main_table[Type=="All NCI-60",], aes(Perc_common * 100, Prediction)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
