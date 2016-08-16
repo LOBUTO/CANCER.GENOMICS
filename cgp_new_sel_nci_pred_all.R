@@ -38,7 +38,7 @@ date_out    <- Sys.Date()
 # Classify original correlations
 plot_6$Cor_Class <- ifelse(plot_6$Cor >= 0.5, "High",
                            ifelse(plot_6$Cor >= 0.3, "Medium", "Low"))
-plot_6$Cor_Class <- factor(comp_6$Cor_Class, levels = c("High", "Medium", "Low"))
+plot_6$Cor_Class <- factor(plot_6$Cor_Class, levels = c("High", "Medium", "Low"))
 
 # Obtain per drug
 main_table <- lapply(all_drugs, function(target_drug) {
