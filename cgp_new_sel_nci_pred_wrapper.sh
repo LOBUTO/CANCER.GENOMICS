@@ -6,7 +6,8 @@ model_end=".pkl"
 extra="new_combat"
 
 for drug in Axitinib Vinorelbine Methotrexate Shikonin Etoposide Paclitaxel Embelin Cyclopamine \
-PAC-1 Bleomycin Docetaxel Rapamycin ATRA Sorafenib Erlotinib Temsirolimus Parthenolide Lapatinib
+PAC-1 Bleomycin Docetaxel Rapamycin ATRA Sorafenib Erlotinib Temsirolimus Parthenolide Lapatinib \
+Pazopanib Vinblastine Bortezomib Pyrimethamine Elesclomol Roscovitine
 
 do
 
