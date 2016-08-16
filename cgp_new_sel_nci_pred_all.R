@@ -24,7 +24,11 @@ in_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/"
 
 all_drugs   <- c("Sunitinib", "Mitomycin C", "Midostaurin", "Imatinib", "Cisplatin",
                  "Camptothecin", "17-AAG", "Dasatinib", "Gefitinib", "Nilotinib",
-                 "Doxorubicin", "Vorinostat", "Gemcitabine", "Cytarabine")
+                 "Doxorubicin", "Vorinostat", "Gemcitabine", "Cytarabine",
+                 "Axitinib", "Vinorelbine", "Methotrexate", "Shikonin", "Etoposide",
+                 "Paclitaxel", "Embelin", "Cyclopamine", "PAC-1", "Bleomycin", "Docetaxel"
+                 "Rapamycin", "ATRA", "Sorafenib", "Erlotinib", "Temsirolimus",
+                 "Parthenolide", "Lapatinib")
 date_out    <- Sys.Date()
 
 #####################################################################################
