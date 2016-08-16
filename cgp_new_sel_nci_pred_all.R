@@ -26,7 +26,7 @@ all_drugs   <- c("Sunitinib", "Mitomycin C", "Midostaurin", "Imatinib", "Cisplat
                  "Camptothecin", "17-AAG", "Dasatinib", "Gefitinib", "Nilotinib",
                  "Doxorubicin", "Vorinostat", "Gemcitabine", "Cytarabine",
                  "Axitinib", "Vinorelbine", "Methotrexate", "Shikonin", "Etoposide",
-                 "Paclitaxel", "Embelin", "Cyclopamine", "PAC-1", "Bleomycin", "Docetaxel"
+                 "Paclitaxel", "Embelin", "Cyclopamine", "PAC-1", "Bleomycin", "Docetaxel",
                  "Rapamycin", "ATRA", "Sorafenib", "Erlotinib", "Temsirolimus",
                  "Parthenolide", "Lapatinib")
 date_out    <- Sys.Date()
