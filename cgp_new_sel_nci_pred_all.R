@@ -107,11 +107,11 @@ ggplot(main_table[Type=="All NCI-60",], aes(Perc_common * 100, Prediction)) + ge
   xlab("Percent common cell count") + ylab("Accuracy in terms of correlation")
 
 cor_1 <- cor(main_table[Type=="All NCI-60",]$cgp_pred, main_table[Type=="All NCI-60",]$Prediction)
-ggplot(main_table[Type=="All NCI-60",], aes(cgp_pred, Prediction)) + geom_point(size=1.5) +
+ggplot(main_table[Type=="All NCI-60",], aes(cgp_pred, Prediction, label = Compound)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
   ggtitle("Correlation between CGP-based model self-dataset accuracy and prediction on all NCI-60 cells") +
   xlab("CGP accuracy in terms of correlation") + ylab("NCI-60 accuracy in terms of correlation") +
-  annotate("text", x = 0.2, y= 0.4, label = cor_1)
+  annotate("text", x = 0.2, y= 0.4, label = cor_1) + geom_text()
 
 ggplot(main_table[Type=="Common NCI-60/CGP",], aes(Perc_common * 100, Prediction)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
@@ -119,11 +119,11 @@ ggplot(main_table[Type=="Common NCI-60/CGP",], aes(Perc_common * 100, Prediction
   xlab("Percent common cell count") + ylab("Accuracy in terms of correlation")
 
 cor_1 <- cor(main_table[Type=="Common NCI-60/CGP",]$cgp_pred, main_table[Type=="Common NCI-60/CGP",]$Prediction)
-ggplot(main_table[Type=="Common NCI-60/CGP",], aes(cgp_pred, Prediction)) + geom_point(size=1.5) +
+ggplot(main_table[Type=="Common NCI-60/CGP",], aes(cgp_pred, Prediction, label = Compound)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
   ggtitle("Correlation between CGP-based model self-dataset accuracy and prediction on common NCI-60/CGP cells") +
   xlab("CGP accuracy in terms of correlation") + ylab("NCI-60 accuracy in terms of correlation") +
-  annotate("text", x = 0.2, y= 0.4, label = cor_1)
+  annotate("text", x = 0.2, y= 0.4, label = cor_1) + geom_text()
 
 ggplot(main_table[Type=="All NCI-60",], aes(cgp_nci_cor, Prediction)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
