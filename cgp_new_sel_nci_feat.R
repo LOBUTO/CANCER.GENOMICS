@@ -52,7 +52,7 @@ if (usage=="nci60"){
   nci60.gi50  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci.gi50.rds")
   nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci60_names_to_cgp.rds")
   drug_hmdb   <- fread("TABLES/TCGA.TRAINING/NCI60.TC.HMDB.FP4",
-                      header=T, colClasses=c("character", "character", "numeric"))
+                      header=T, colClasses=c("character", "character", "numeric"), verbose=F)
 } else if (usage=="ccle"){
   feat_table  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081616_cgp_new_feat_combat_ccle_based.rds")
   # Keeping nci60-like variable names to keep in line with rest of code (for now)

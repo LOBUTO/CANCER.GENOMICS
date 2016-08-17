@@ -386,7 +386,7 @@ usage       = sys.argv[3]
 
 if "-" not in drug_target:
     model_file  = (" ").join(model_file.split("-"))
-elif drug_target=="Mitomycin_C":
+if drug_target=="Mitomycin_C":
     model_file  = "CGP_FILES/CGP_NEW_RESULTS/new_cgp_sel_model_new_combat_Mitomycin C.pkl"
 
 in_folder   = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
