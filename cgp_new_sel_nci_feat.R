@@ -77,7 +77,8 @@ if(usage=="nci60"){
   drug_table   <- rbind(drug_hmdb[METABOLITE %in% common_met,],
                       MET.PROFILE[METABOLITE %in% common_met,][!DRUG %in% target_drug,])
 } else if(usage=="ccle"){
-  drug_table   <- MET.PROFILE[DRUG!="CMK",] #Necessary to avoid confusion of also "CMK" cell name later
+  MET.PROFILE  <- MET.PROFILE[DRUG!="CMK",] #Necessary to avoid confusion of also "CMK" cell name later
+  drug_table   <- MET.PROFILE
 }
 
 drug_table   <- cor( acast(drug_table, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
