@@ -21,7 +21,6 @@ if (usage=="nci60"){
   feat_table <- readRDS(paste0(in_folder,"081616_cgp_new_feat_combat_ccle_based.rds"))
 }
 
-
 out_table   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/" #For lab
 out_table   <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
 #####################################################################################################

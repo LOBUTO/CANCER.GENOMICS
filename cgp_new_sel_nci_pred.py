@@ -382,15 +382,16 @@ def model_prediction(MODEL_FILE, test_drug_x):
 drug_target = sys.argv[1]
 drug_target = (" ").join(drug_target.split("_"))
 model_file  = sys.argv[2]
+usage       = sys.argv[3]
 
 if "-" not in drug_target:
     model_file  = (" ").join(model_file.split("-"))
 
 in_folder   = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
-drug_file   = in_folder + "NCI_CGP_SEL_FEAT." + drug_target
+drug_file   = in_folder + usage + "_NCI_CGP_SEL_FEAT." + drug_target
 
 out_folder  = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/"
-file_out    = out_folder + "cgp_new_modeling_nci_" + drug_target
+file_out    = out_folder + "cgp_new_modeling_nci_" + drug_target # Keep in line same name for now
 file_out_2  = out_folder + "cgp_new_modeling_cgp_" + drug_target
 
 ####################################################################################################################################################################################################
@@ -413,7 +414,7 @@ for n in xrange(len(actual)):
 ####################################################################################################################################################################################################
 # Execute for self
 
-test_table  = pd.read_csv(in_folder + "TEST_CGP_SEL."  +  drug_target, sep="\t")
+test_table  = pd.read_csv(in_folder + usage + "_TEST_CGP_SEL."  +  drug_target, sep="\t")
 
 test_drug_x, test_drug_y   = shared_drug_dataset_IC50(test_table,  integers=False)
 
