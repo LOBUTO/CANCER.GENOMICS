@@ -115,6 +115,7 @@ main_table$cgp_pred <- ifelse(main_table$cgp_pred >= 0.5, "High",
 main_table$cgp_pred <- factor(main_table$cgp_pred,
                               levels = c("High", "Medium", "Low"),
                               ordered = TRUE)
+print(main_table)
 
 # Plot
 pdf(paste0(out_folder, date_out, "cgp_new_modeling_", usage,"_all.pdf"), width=12, height=8)
