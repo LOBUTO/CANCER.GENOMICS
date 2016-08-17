@@ -167,7 +167,7 @@ cor_1 <- cor(main_table[Type==sprintf("Common %s/CGP", usage),]$cgp_nci_cor * ma
              main_table[Type==sprintf("Common %s/CGP", usage),]$Prediction)
 ggplot(main_table[Type==sprintf("Common %s/CGP", usage),], aes(cgp_nci_cor * cgp_pred, Prediction)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
-  ggtitle(sprintf("Correlation between CGP/%s accuracy concordance influence on and Prediction on common %s/CGP cells",usage)) +
+  ggtitle(sprintf("Correlation between CGP/%s accuracy concordance influence on and Prediction on common %s/CGP cells",usage, usage)) +
   xlab(sprintf("CGP/%s accuracy concordance * CGP accuracy", usage)) + ylab(sprintf("%s accuracy in terms of correlation",usage)) +
   annotate("text", x = 0.1, y= 0.4, label = cor_1)
 
