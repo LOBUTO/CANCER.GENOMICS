@@ -107,18 +107,31 @@ main_table <- lapply(all_drugs, function(target_drug) {
 })
 
 main_table <- do.call(rbind, main_table)
-main_table$Type <- factor(main_table$Type,
-                          levels=sprintf(c("Self CGP", "All %s", "Common %s/CGP", "Non-CGP %s"), usage),
-                          ordered = TRUE)
+main_table$Type     <- factor(main_table$Type,
+                              levels = sprintf(c("Self CGP", "All %s", "Common %s/CGP", "Non-CGP %s"), usage),
+                              ordered = TRUE)
+main_table$cgp_pred <- ifelse(main_table$cgp_pred >= 0.5, "High",
+                              ifelse(main_table$cgp_pred >= 0.3, "Medium", "Low"))
+main_table$cgp_pred <- factor(main_table$cgp_pred,
+                              levels = c("High", "Medium", "Low"),
+                              ordered = TRUE)
 
 # Plot
 pdf(paste0(out_folder, date_out, "cgp_new_modeling_", usage,"_all.pdf"), width=12, height=8)
 
 ggplot(main_table, aes(Type, Prediction, colour=Type)) + geom_boxplot() + geom_jitter(size=0.4) +
   theme_bw() + scale_colour_brewer(palette="Set1") +
-  ggtitle(paste0("CGP-based predictions comparisson on ",usage)) + xlab("Type of comparisson") +
+  ggtitle(paste0("CGP-based predictions comparisson on ",usage, " classified by cgp to ", usage, " response correlation")) +
+  xlab("Type of comparisson") +
     ylab("Accuracy in terms of correlation") +
     facet_wrap(~cor_class) + theme(legend.position = "bottom") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12))
+
+ggplot(main_table, aes(Type, Prediction, colour=Type)) + geom_boxplot() + geom_jitter(size=0.4) +
+  theme_bw() + scale_colour_brewer(palette="Set1") +
+  ggtitle(paste0("CGP-based predictions comparisson on ",usage, " classified by cgp performance")) + xlab("Type of comparisson") +
+    ylab("Accuracy in terms of correlation") +
+    facet_wrap(~cgp_pred) + theme(legend.position = "bottom") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12))
 
 ggplot(main_table[Type==sprintf("All %s", usage),], aes(Perc_common * 100, Prediction)) + geom_point(size=1.5) +
