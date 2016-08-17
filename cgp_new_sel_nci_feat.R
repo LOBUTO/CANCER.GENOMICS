@@ -44,17 +44,17 @@ target_drug <- args[1]
 target_drug <- paste0(strsplit(target_drug, "_")[[1]], collapse = " ")
 usage       <- args[2]
 
-feat_table  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081016_cgp_new_feat_combat.rds")
 MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.DRUG.MET.PROFILE.rds")
 
 if (usage=="nci60"){
+  feat_table  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081016_cgp_new_feat_combat.rds")
   nci60.exp   <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081016_NCI60_EXP_COMBAT.rds")
   nci60.gi50  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci.gi50.rds")
   nci_to_cgp  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.nci60_names_to_cgp.rds")
   drug_hmdb   <- fread("TABLES/TCGA.TRAINING/NCI60.TC.HMDB.FP4",
                       header=T, colClasses=c("character", "character", "numeric"))
 } else if (usage=="ccle"){
-
+  feat_table  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081616_cgp_new_feat_combat_ccle_based.rds")
   # Keeping nci60-like variable names to keep in line with rest of code (for now)
   nci60.exp   <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081616_CCLE_EXP_COMBAT_CGP.rds")
   nci60.gi50  <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/081616_ccle.rds")
