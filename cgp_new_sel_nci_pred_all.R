@@ -110,12 +110,11 @@ main_table <- do.call(rbind, main_table)
 main_table$Type     <- factor(main_table$Type,
                               levels = sprintf(c("Self CGP", "All %s", "Common %s/CGP", "Non-CGP %s"), usage),
                               ordered = TRUE)
-main_table$cgp_pred <- ifelse(main_table$cgp_pred >= 0.5, "High",
+main_table$cgp_type <- ifelse(main_table$cgp_pred >= 0.5, "High",
                               ifelse(main_table$cgp_pred >= 0.3, "Medium", "Low"))
-main_table$cgp_pred <- factor(main_table$cgp_pred,
+main_table$cgp_type <- factor(main_table$cgp_type,
                               levels = c("High", "Medium", "Low"),
                               ordered = TRUE)
-print(main_table)
 
 # Plot
 pdf(paste0(out_folder, date_out, "cgp_new_modeling_", usage,"_all.pdf"), width=12, height=8)
@@ -132,7 +131,7 @@ ggplot(main_table, aes(Type, Prediction, colour=Type)) + geom_boxplot() + geom_j
   theme_bw() + scale_colour_brewer(palette="Set1") +
   ggtitle(paste0("CGP-based predictions comparisson on ",usage, " classified by cgp performance")) + xlab("Type of comparisson") +
     ylab("Accuracy in terms of correlation") +
-    facet_wrap(~cgp_pred) + theme(legend.position = "bottom") +
+    facet_wrap(~cgp_type) + theme(legend.position = "bottom") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12))
 
 ggplot(main_table[Type==sprintf("All %s", usage),], aes(Perc_common * 100, Prediction)) + geom_point(size=1.5) +
