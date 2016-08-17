@@ -64,7 +64,7 @@ main_table <- lapply(all_drugs, function(target_drug) {
     setnames(drug_table, c("Compound", "CELL", "Actual", "Predicted"))
     drug_table     <- merge(drug_table, unique(nci60.gi50[,c("CELL", "cell_name"),with=F]), by="CELL")
     drug_table$CELL<-NULL
-  } else (usage=="ccle"){
+  } else if (usage=="ccle"){
     drug_table     <- drug_table
   }
 
