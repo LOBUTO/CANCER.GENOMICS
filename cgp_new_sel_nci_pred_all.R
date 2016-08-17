@@ -147,7 +147,7 @@ ggplot(main_table[Type==sprintf("Common %s/CGP", usage),], aes(cgp_pred, Predict
 
 ggplot(main_table[Type==sprintf("All %s",usage),], aes(cgp_nci_cor, Prediction)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple" ) +
-  ggtitle(sprintf("Correlation between CGP/%s accuracy concordance and Prediction on all %s cells"),usage, usage) +
+  ggtitle(sprintf("Correlation between CGP/%s accuracy concordance and Prediction on all %s cells",usage, usage)) +
   xlab(sprintf("CGP/%s accuracy concordance", usage)) + ylab(sprintf("%s accuracy in terms of correlation",usage))
 
 cor_1 <- cor(main_table[Type==sprintf("All %s",usage),]$cgp_nci_cor * main_table[Type==sprintf("All %s",usage),]$cgp_pred,
