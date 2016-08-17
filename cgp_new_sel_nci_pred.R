@@ -35,7 +35,7 @@ date_out    <- Sys.Date()
 # EXECUTE
 
 #Obtain comparable cgp identifiers (Depending on usage)
-drug_table     <- fread(paste0(in_folder, "cgp_new_modeling_nci_", target_drug)) #Keeping same name for now
+drug_table     <- fread(paste0(in_folder, usage, "_cgp_new_modeling_", usage, "_", target_drug)) #Keeping same name for now
 
 if (usage=="nci60"){
   setnames(drug_table, c("Compound", "CELL", "Actual", "Predicted"))
@@ -63,7 +63,7 @@ drug_unc_pred  <- drug_table_unc[,list(NRMSE = Function.NRMSE(Predicted, Actual)
                                        Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
 # Predict for cgp self
-drug_table_cgp <- fread(paste0(in_folder, "cgp_new_modeling_cgp_", target_drug)) #Keeping same name for now
+drug_table_cgp <- fread(paste0(in_folder, usage, "_cgp_new_modeling_cgp_", target_drug)) #Keeping same name for now
 
 drug_cgp_pred  <- drug_table_cgp[,list(NRMSE = Function.NRMSE(Predicted, Actual),
                                    Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]

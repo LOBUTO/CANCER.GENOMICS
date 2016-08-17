@@ -59,7 +59,7 @@ plot_6$Cor_Class <- factor(plot_6$Cor_Class, levels = c("High", "Medium", "Low")
 # Obtain per drug
 main_table <- lapply(all_drugs, function(target_drug) {
 
-  drug_table     <- fread(paste0(in_folder, "cgp_new_modeling_nci_", target_drug))
+  drug_table     <- fread(paste0(in_folder, usage, "_cgp_new_modeling_", usage, "_", target_drug))
   if (usage=="nci60"){
     setnames(drug_table, c("Compound", "CELL", "Actual", "Predicted"))
     drug_table     <- merge(drug_table, unique(nci60.gi50[,c("CELL", "cell_name"),with=F]), by="CELL")
@@ -86,7 +86,7 @@ main_table <- lapply(all_drugs, function(target_drug) {
                                         Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
   # Predict for cgp self
-  drug_table_cgp <- fread(paste0(in_folder, "cgp_new_modeling_cgp_", target_drug))
+  drug_table_cgp <- fread(paste0(in_folder, usage , "_cgp_new_modeling_cgp_", target_drug))
 
   drug_cgp_pred  <- drug_table_cgp[,list(NRMSE = Function.NRMSE(Predicted, Actual),
                                     Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
