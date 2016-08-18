@@ -692,6 +692,7 @@ drug   = sys.argv[1]
 drug   = (" ").join(drug.split("_"))
 usage  = sys.argv[2]
 extra  = sys.argv[3]
+modifier = sys.argv[4]
 
 OUT_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/" #For Lab
 OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_NEW_RESULTS/" #For tigress
@@ -699,9 +700,9 @@ OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_NEW_RESULTS/" #For tigress
 IN_FOLDER = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/" #For Lab
 IN_FOLDER="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
 
-train_table = pd.read_csv(IN_FOLDER + usage + "_TRAIN_CGP_SEL." +  drug, sep="\t")
-valid_table = pd.read_csv(IN_FOLDER + usage + "_VALID_CGP_SEL." +  drug, sep="\t")
-test_table  = pd.read_csv(IN_FOLDER + usage + "_TEST_CGP_SEL."  +  drug, sep="\t")
+train_table = pd.read_csv(IN_FOLDER + usage + "." + modifier + "_TRAIN_CGP_SEL." +  drug, sep="\t")
+valid_table = pd.read_csv(IN_FOLDER + usage + "." + modifier + "_VALID_CGP_SEL." +  drug, sep="\t")
+test_table  = pd.read_csv(IN_FOLDER + usage + "." + modifier + "_TEST_CGP_SEL."  +  drug, sep="\t")
 
 train_drug_x, train_drug_y = shared_drug_dataset_IC50(train_table, integers=False)
 valid_drug_x, valid_drug_y = shared_drug_dataset_IC50(valid_table, integers=False)
@@ -717,10 +718,10 @@ print NEURONS
 for drop_out in [0.5]:
 
     for l in [2]:
-        test_mlp(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=3000, initial_momentum=0.5, input_p=0.2,
+        test_mlp(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=1000, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
                      n_hidden=[NEURONS]*l, p=drop_out, dropout=True,
-                     drug_name=usage + "_new_cgp_sel_model_" + extra + "_" + drug,
+                     drug_name=usage + "." + modifier "_new_cgp_sel_model_" + extra + "_" + drug,
                      OUT_FOLDER = OUT_FOLDER)
 
 print "DONE"

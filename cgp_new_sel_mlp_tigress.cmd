@@ -14,4 +14,4 @@
 module load cudatoolkit
 module load python
 
-THEANO_FLAGS='device=gpu' python GIT/cgp_new_sel_mlp.py ${drug} ${usage} ${extra}
+THEANO_FLAGS='device=gpu' python GIT/cgp_new_sel_mlp.py ${drug} ${usage} ${extra} ${modifier}
