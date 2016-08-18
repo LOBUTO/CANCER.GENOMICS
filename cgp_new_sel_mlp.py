@@ -721,7 +721,7 @@ for drop_out in [0.5]:
         test_mlp(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=1000, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
                      n_hidden=[NEURONS]*l, p=drop_out, dropout=True,
-                     drug_name=usage + "." + modifier "_new_cgp_sel_model_" + extra + "_" + drug,
+                     drug_name=usage + "." + modifier + "_new_cgp_sel_model_" + extra + "_" + drug,
                      OUT_FOLDER = OUT_FOLDER)
 
 print "DONE"
