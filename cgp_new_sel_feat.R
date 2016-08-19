@@ -16,6 +16,7 @@ modifier    <- args[3]
 in_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/" #For lab
 in_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 
+MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.DRUG.MET.PROFILE.rds")
 if (usage=="nci60"){
   feat_table <- readRDS(paste0(in_folder,"081016_cgp_new_feat_combat.rds"))
 } else if (usage=="ccle"){
@@ -33,7 +34,16 @@ temp_table  <- feat_table[Compound!=target_drug]
 if (modifier=="target_cells"){
   target_cells <- unique(test_table$cell_name)
   temp_table   <- temp_table[cell_name %in% target_cells,]
-} else {
+
+} else if (modifier=="target_drugs"){
+  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
+  drug_met_cor <- data.table(melt(drug_met_cor))
+  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0,]
+
+  target_drugs <- unique(drug_met_cor$Var2)
+  temp_table   <- temp_table[Compound %in% target_drugs,]
+
+}else {
   print("no modifier")
 }
 
