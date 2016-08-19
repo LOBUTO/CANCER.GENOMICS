@@ -16,7 +16,7 @@ modifier    <- args[3]
 in_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/" #For lab
 in_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 
-MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716.DRUG.MET.PROFILE.rds")
+MET.PROFILE <- readRDS(paste0(in_folder, "080716.DRUG.MET.PROFILE.rds"))
 if (usage=="nci60"){
   feat_table <- readRDS(paste0(in_folder,"081016_cgp_new_feat_combat.rds"))
 } else if (usage=="ccle"){
