@@ -43,7 +43,16 @@ if (modifier=="target_cells"){
   target_drugs <- unique(drug_met_cor$Var2)
   temp_table   <- temp_table[Compound %in% target_drugs,]
 
-}else {
+} else if (modifier=="both"){
+  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
+  drug_met_cor <- data.table(melt(drug_met_cor))
+  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.5,]
+
+  target_drugs <- unique(drug_met_cor$Var2)
+  target_cells <- unique(test_table$cell_name)
+  temp_table   <- temp_table[Compound %in% target_drugs,][cell_name %in% target_cells,]
+
+} else {
   print("no modifier")
 }
 
