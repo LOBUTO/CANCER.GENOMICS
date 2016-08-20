@@ -11,8 +11,9 @@ modifier=$3
 
 #for drug in PLX4720 TAE684 PHA-665752 Sorafenib PD-0325901 PD-0332991 Lapatinib 17-AAG Erlotinib Nilotinib Paclitaxel
 
-for drug in Erlotinib Lapatinib Vorinostat Elesclomol ATRA Gefitinib Parthenolide Cyclopamine 17-AAG \
-Sunitinib Gemcitabine Doxorubicin Vinorelbine Vinblastine Mitomycin_C Embelin Paclitaxel
+# for drug in Erlotinib Lapatinib Vorinostat Elesclomol ATRA Gefitinib Parthenolide Cyclopamine 17-AAG \
+# Sunitinib Gemcitabine Doxorubicin Vinorelbine Vinblastine Mitomycin_C Embelin Paclitaxel
+for drug in Erlotinib Lapatinib Gefitinib
 do
   Rscript GIT/cgp_new_sel_feat.R $drug $usage $modifier
   echo "Done building training sets"
