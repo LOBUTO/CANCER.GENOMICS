@@ -18,7 +18,8 @@ in_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 
 MET.PROFILE <- readRDS(paste0(in_folder, "080716.DRUG.MET.PROFILE.rds"))
 if (usage=="nci60"){
-  feat_table <- readRDS(paste0(in_folder,"081016_cgp_new_feat_combat.rds"))
+  #feat_table <- readRDS(paste0(in_folder,"081016_cgp_new_feat_combat.rds"))
+  feat_table <- readRDS(paste0(in_folder,"082116_cgp_new_feat_combat_all_drugs.rds"))
 } else if (usage=="ccle"){
   feat_table <- readRDS(paste0(in_folder,"081616_cgp_new_feat_combat_ccle_based.rds"))
 }
@@ -39,7 +40,7 @@ if (modifier=="target_cells"){
 } else if (modifier=="target_drugs"){
   drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
   drug_met_cor <- data.table(melt(drug_met_cor))
-  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.5,]
+  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0,]
 
   target_drugs <- unique(drug_met_cor$Var2)
   temp_table   <- temp_table[Compound %in% target_drugs,]
@@ -47,7 +48,7 @@ if (modifier=="target_cells"){
 } else if (modifier=="both"){
   drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
   drug_met_cor <- data.table(melt(drug_met_cor))
-  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.5,]
+  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0,]
 
   target_drugs <- unique(drug_met_cor$Var2)
   target_cells <- unique(test_table$cell_name)
