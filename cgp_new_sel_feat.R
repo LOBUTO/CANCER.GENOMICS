@@ -124,6 +124,7 @@ if (modifier=="target_cells"){
   temp_table   <- temp_table[Compound %in% target_drugs,][cell_name %in% target_cells,]
 
 } else if (modifier=="target_feat"){
+  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
   temp_table   <- Function.cgp.select.best.feat(feat_table, drug_met_cor, target_drug, weighted="length")
   temp_table   <- temp_table[Compound!=target_drug,]
 
