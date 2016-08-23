@@ -128,6 +128,10 @@ if (modifier=="target_cells"){
   temp_table   <- Function.cgp.select.best.feat(feat_table, drug_met_cor, target_drug, weighted="length")
   temp_table   <- temp_table[Compound!=target_drug,]
 
+} else if (modifier=="target_met"){
+  feat_table <- readRDS(paste0(in_folder,"082216_cgp_new_feat_combat_met.rds"))
+  test_table  <- feat_table[Compound==target_drug]
+  temp_table  <- feat_table[Compound!=target_drug]
 } else {
   print("no modifier")
 }
