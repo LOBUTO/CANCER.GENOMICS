@@ -73,6 +73,49 @@ Function.cgp.select.best.feat <- function(cgp_new_feat, drug_met_cor, target_dru
   return(main_table)
 }
 
+Function.scale.data.table<-function(d.t, col.protect=1:3, criteria=c(), scaling="SCALE"){
+  #Scaling can be regular z-scoring ("SCALE") or 0-1 range ("ZERO")
+
+  y.colnames <- colnames(d.t[,-col.protect,with=F])
+
+  if (length(criteria)>0){
+    all.criteria <- unique(d.t[[criteria]])
+
+    all.y <- lapply(all.criteria, function(x)  {
+      z <- d.t[d.t[[criteria]]==x,]
+      z <- data.frame(z[,-col.protect,with=F])
+      col.except <- apply(z, 2, sd)==0
+      not.col.except <- apply(z, 2, sd)!=0
+
+      if (scaling=="SCALE"){
+        z <- cbind(z[,col.except], scale(z[,not.col.except]))
+      } else if (scaling=="ZERO"){
+        z <- cbind(z[,col.except], apply(z[,not.col.except], 2 ,function(zz) Function.range.0.1(zz)) )
+      }
+
+      return (z)
+    })
+    y <- do.call(rbind, all.y)
+
+  } else {
+    y<-data.frame(d.t[,-col.protect,with=F])
+
+    if (scaling=="SCALE"){
+      y<-scale(y)
+    } else if (scaling=="ZERO"){
+      y <- apply(y, 2, function(zz) Function.range.0.1(zz))
+    }
+
+  }
+
+  x.colnames<-colnames(d.t[,col.protect,with=F])
+  x<-cbind(d.t[,col.protect,with=F], y)
+  setnames(x, c(x.colnames, y.colnames))
+
+  return(x)
+}
+
+
 ######################################################################################################
 # LOAD DATA
 args        <- commandArgs(trailingOnly = TRUE)
@@ -88,6 +131,7 @@ in_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 MET.PROFILE <- readRDS(paste0(in_folder, "082316.DRUG.MET.PROFILE.rds"))
 if (usage=="nci60"){
   feat_table <- readRDS(paste0(in_folder,"082316_cgp_new_feat_combat.rds"))
+  feat_table <- Function.scale.data.table(feat_table, col.protect=1:3)
   #feat_table <- readRDS(paste0(in_folder,"082116_cgp_new_feat_combat_all_drugs.rds"))
   #feat_table  <- readRDS(paste0(in_folder,"121615.CGP.TABLE.PIC50.CELL.SCALED.SCALED.rds"))
 } else if (usage=="ccle"){
