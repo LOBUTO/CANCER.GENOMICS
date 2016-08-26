@@ -146,13 +146,18 @@ out_table   <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
 test_table  <- feat_table[Compound==target_drug]
 temp_table  <- feat_table[Compound!=target_drug]
 
+
+if (target_drug=="Erlotinib"){
+  temp_table <- temp_table[Compound %in% c("Gefitinib", "Lapatinib"),]
+}
+
 if (modifier=="target_cells"){
   target_cells <- unique(test_table$cell_name)
   temp_table   <- temp_table[cell_name %in% target_cells,]
   #temp_table[,NORM_pIC50:=scale(NORM_pIC50), by="Compound"]
 
 } else if (modifier=="target_drugs"){
-  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
+  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="spearman")
   drug_met_cor <- data.table(melt(drug_met_cor))
   drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.8,]
 
@@ -160,7 +165,7 @@ if (modifier=="target_cells"){
   temp_table   <- temp_table[Compound %in% target_drugs,]
 
 } else if (modifier=="both"){
-  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
+  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="spearman")
   drug_met_cor <- data.table(melt(drug_met_cor))
   drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.8,]
 
