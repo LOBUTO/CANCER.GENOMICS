@@ -147,9 +147,9 @@ test_table  <- feat_table[Compound==target_drug]
 temp_table  <- feat_table[Compound!=target_drug]
 
 
-if (target_drug=="Erlotinib"){
-  temp_table <- temp_table[Compound %in% c("Gefitinib", "Lapatinib"),]
-}
+# if (target_drug=="Erlotinib"){
+#   temp_table <- temp_table[Compound %in% c("Gefitinib", "Lapatinib"),]
+# }
 
 if (modifier=="target_cells"){
   target_cells <- unique(test_table$cell_name)
@@ -159,7 +159,7 @@ if (modifier=="target_cells"){
 } else if (modifier=="target_drugs"){
   drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="spearman")
   drug_met_cor <- data.table(melt(drug_met_cor))
-  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.8,]
+  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.9,]
 
   target_drugs <- unique(drug_met_cor$Var2)
   temp_table   <- temp_table[Compound %in% target_drugs,]
@@ -167,7 +167,7 @@ if (modifier=="target_cells"){
 } else if (modifier=="both"){
   drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="spearman")
   drug_met_cor <- data.table(melt(drug_met_cor))
-  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.8,]
+  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.9,]
 
   target_drugs <- unique(drug_met_cor$Var2)
   target_cells <- unique(test_table$cell_name)
