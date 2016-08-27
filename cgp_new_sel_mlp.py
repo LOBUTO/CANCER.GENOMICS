@@ -122,7 +122,7 @@ class LinearRegression(object):
             # the T.neq operator returns a vector of 0s and 1s, where 1
             # represents a mistake in prediction
 
-            return T.sqrt((T.sqr(y - self.y_pred) * y_weights) / T.sum(y_weights))
+            return T.sqrt(T.sum(T.sqr(y - self.y_pred) * y_weights) / T.sum(y_weights))
 
         else:
             raise NotImplementedError()
