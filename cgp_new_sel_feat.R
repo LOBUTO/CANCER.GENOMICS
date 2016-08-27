@@ -189,7 +189,7 @@ valid_table <- temp_table[valid_rows, ]
 
 # Obtain weigthed index
 drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
-drug_met_cor <- data.table(melt(drug_met_cor))
+drug_met_cor <- data.table(melt(drug_met_cor)) # [Var1, Var2, value]
 drug_met_cor <- drug_met_cor[Var1==target_drug,]
 
 train_w      <- sapply(train_table$Compound, function(x) unique(drug_met_cor[Var2==x]$value))

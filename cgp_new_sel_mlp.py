@@ -119,8 +119,6 @@ class LinearRegression(object):
             )
         # check if y is of the correct datatype
         if y.dtype.startswith('flo'): #CHANGED!!!!!
-            # the T.neq operator returns a vector of 0s and 1s, where 1
-            # represents a mistake in prediction
 
             return T.sqrt(T.sum(T.sqr(y - self.y_pred) * y_weights) / T.sum(y_weights))
 
@@ -752,7 +750,7 @@ print NEURONS
 for drop_out in [0.5]:
 
     for l in [2]:
-        test_mlp(learning_rate=1.0, L1_reg=0, L2_reg=0.0000000, n_epochs=1000, initial_momentum=0.5, input_p=0.2,
+        test_mlp(learning_rate=0.1, L1_reg=0, L2_reg=0.0000000, n_epochs=1000, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, datasets_weights=drugval_weights, train_batch_size=50,
                      n_hidden=[NEURONS]*l, p=drop_out, dropout=True,
                      drug_name=usage + "." + modifier + "_new_cgp_sel_model_" + extra + "_" + drug,
