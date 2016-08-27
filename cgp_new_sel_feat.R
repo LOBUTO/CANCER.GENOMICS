@@ -146,18 +146,13 @@ out_table   <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
 test_table  <- feat_table[Compound==target_drug]
 temp_table  <- feat_table[Compound!=target_drug]
 
-
-# if (target_drug=="Erlotinib"){
-#   temp_table <- temp_table[Compound %in% c("Gefitinib", "Lapatinib"),]
-# }
-
 if (modifier=="target_cells"){
   target_cells <- unique(test_table$cell_name)
   temp_table   <- temp_table[cell_name %in% target_cells,]
   temp_table[,NORM_pIC50:=scale(NORM_pIC50), by="Compound"]
 
 } else if (modifier=="target_drugs"){
-  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="spearman")
+  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
   drug_met_cor <- data.table(melt(drug_met_cor))
   drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.95,]
 
@@ -165,7 +160,7 @@ if (modifier=="target_cells"){
   temp_table   <- temp_table[Compound %in% target_drugs,]
 
 } else if (modifier=="both"){
-  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="spearman")
+  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
   drug_met_cor <- data.table(melt(drug_met_cor))
   drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.95,]
 
@@ -192,6 +187,16 @@ valid_rows  <- setdiff(1:nrow(temp_table), train_rows)
 train_table <- temp_table[train_rows, ]
 valid_table <- temp_table[valid_rows, ]
 
+# Obtain weigthed index
+drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
+drug_met_cor <- data.table(melt(drug_met_cor))
+drug_met_cor <- drug_met_cor[Var1==target_drug,]
+
+train_w      <- sapply(train_table$Compound, function(x) unique(drug_met_cor[Var2==x]$value))
+train_w      <- data.table(W = train_w)
+valid_w      <- sapply(valid_table$Compound, function(x) unique(drug_met_cor[Var2==x]$value))
+valid_w      <- data.table(W = valid_w)
+
 ######################################################################################################
 # WRITE
 write.table(train_table, paste0(out_table, usage , ".", modifier, "_TRAIN_CGP_SEL.", target_drug),
@@ -202,5 +207,12 @@ write.table(valid_table, paste0(out_table, usage , ".", modifier, "_VALID_CGP_SE
 
 write.table(test_table,  paste0(out_table, usage , ".", modifier, "_TEST_CGP_SEL.",  target_drug),
             quote=F, sep="\t", row.names=F, col.names=T)
+
+write.table(train_w,     paste0(out_table, usage , ".", modifier, "_TRAIN_CGP_SEL.", target_drug, ".weights"),
+            quote=F, sep="\t", row.names=F, col.names=T)
+
+write.table(valid_w,     paste0(out_table, usage , ".", modifier, "_VALID_CGP_SEL.", target_drug, ".weights"),
+            quote=F, sep="\t", row.names=F, col.names=T)
+
 
 print("Done writing sel tables")
