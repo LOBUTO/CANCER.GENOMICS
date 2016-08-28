@@ -109,21 +109,21 @@ class LinearRegression(object):
         else:
             raise NotImplementedError()
 
-    def weighted_errors(self, y, y_weights):
-
-        # check if y has same dimension of y_pred
-        if y.ndim != self.y_pred.ndim:
-            raise TypeError(
-                'y should have the same shape as self.y_pred',
-                ('y', y.type, 'y_pred', self.y_pred.type)
-            )
-        # check if y is of the correct datatype
-        if y.dtype.startswith('flo'): #CHANGED!!!!!
-
-            return T.sqrt(T.sum(T.sqr(y - self.y_pred) * y_weights) / T.sum(y_weights))
-
-        else:
-            raise NotImplementedError()
+    # def weighted_errors(self, y, y_weights):
+    #
+    #     # check if y has same dimension of y_pred
+    #     if y.ndim != self.y_pred.ndim:
+    #         raise TypeError(
+    #             'y should have the same shape as self.y_pred',
+    #             ('y', y.type, 'y_pred', self.y_pred.type)
+    #         )
+    #     # check if y is of the correct datatype
+    #     if y.dtype.startswith('flo'): #CHANGED!!!!!
+    #
+    #         return T.sqrt(T.sum(T.sqr(y - self.y_pred) * y_weights) / T.sum(y_weights))
+    #
+    #     else:
+    #         raise NotImplementedError()
 
     def loss(self, y):
         """Return a float representing the number of errors in the minibatch
@@ -339,12 +339,12 @@ class MLP(object):
         self.loss = self.linearRegressionLayer.loss
         self.NRMSE = self.linearRegressionLayer.NRMSE
         self.pred = self.linearRegressionLayer.pred
-        self.weighted_errors = self.linearRegressionLayer.weighted_errors
+        # self.weighted_errors = self.linearRegressionLayer.weighted_errors
 
         self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
 
 def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
-             datasets="datasets", datasets_weights="datasets_weights", train_batch_size=20,
+             datasets="datasets", train_batch_size=20,
              n_hidden=[500,200,100], p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"):
 
     #Demonstrate stochastic gradient descent optimization for a multilayer
@@ -366,7 +366,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     n_test_batches = test_set_x.get_value(borrow=True).shape[0] / test_batch_size
 
     # load weights
-    train_set_weights, valid_set_weights = datasets_weights
+    # train_set_weights, valid_set_weights = datasets_weights
 
     ######################
     # BUILD ACTUAL MODEL #
@@ -378,7 +378,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
     vector = T.vector("v", dtype='int32')
     x = T.matrix('x')
     y = T.fvector('y')
-    y_weights = T.fvector('y_weights')
+    # y_weights = T.fvector('y_weights')
 
     is_train = T.iscalar('is_train') # pseudo boolean for switching between training and prediction
 
@@ -400,18 +400,17 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
     #classifier.negative_log_likelihood(y)
     cost = (
-        classifier.weighted_errors(y, y_weights)
+        classifier.errors(y)
         + L1_reg * classifier.L1
         + L2_reg * classifier.L2_sqr
     )
 
     validate_model = theano.function(
         inputs=[index, ],
-        outputs=classifier.weighted_errors(y, y_weights), #negative_log_likelihood(y)
+        outputs=classifier.errors(y), #negative_log_likelihood(y)
         givens={
             x: valid_set_x[index * valid_batch_size:(index + 1) * valid_batch_size],
             y: valid_set_y[index * valid_batch_size:(index + 1) * valid_batch_size],
-            y_weights: valid_set_weights[index * valid_batch_size:(index + 1) * valid_batch_size],
             is_train: np.cast['int32'](0)
         },
         on_unused_input='warn',
@@ -489,7 +488,6 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
         givens={
             x: train_set_x[vector,],
             y: train_set_y[vector,],
-            y_weights: train_set_weights[vector,],
             is_train: np.cast['int32'](1)
         },
         on_unused_input='warn',
@@ -497,11 +495,10 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, init
 
     train_error = theano.function(
         inputs=[index],
-        outputs=classifier.weighted_errors(y, y_weights),
+        outputs=classifier.errors(y),
         givens={
             x: train_set_x[index * train_batch_size:(index + 1) * train_batch_size],
             y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
-            y_weights: train_set_weights[index * train_batch_size:(index + 1) * train_batch_size],
             is_train: np.cast['int32'](0)
         },
         on_unused_input='warn',
@@ -734,13 +731,13 @@ test_drug_x, test_drug_y   = shared_drug_dataset_IC50(test_table,  integers=Fals
 drugval = [(train_drug_x, train_drug_y), (valid_drug_x, valid_drug_y),(test_drug_x, test_drug_y)]
 
 # Load weights
-train_weights = pd.read_csv(IN_FOLDER + usage + "." + modifier + "_TRAIN_CGP_SEL." +  drug + ".weights", sep="\t")
-valid_weights = pd.read_csv(IN_FOLDER + usage + "." + modifier + "_VALID_CGP_SEL." +  drug + ".weights", sep="\t")
-
-train_weights = theano.shared(np.asarray(list(train_weights.W), dtype=theano.config.floatX), borrow=True )
-valid_weights = theano.shared(np.asarray(list(valid_weights.W), dtype=theano.config.floatX), borrow=True )
-
-drugval_weights = [train_weights, valid_weights]
+# train_weights = pd.read_csv(IN_FOLDER + usage + "." + modifier + "_TRAIN_CGP_SEL." +  drug + ".weights", sep="\t")
+# valid_weights = pd.read_csv(IN_FOLDER + usage + "." + modifier + "_VALID_CGP_SEL." +  drug + ".weights", sep="\t")
+#
+# train_weights = theano.shared(np.asarray(list(train_weights.W), dtype=theano.config.floatX), borrow=True )
+# valid_weights = theano.shared(np.asarray(list(valid_weights.W), dtype=theano.config.floatX), borrow=True )
+#
+# drugval_weights = [train_weights, valid_weights]
 
 #DEEP LEARNING WITHOUT DROPOUT
 NEURONS = (valid_drug_x.get_value(borrow=True).shape[1] +1)*2/3
@@ -751,7 +748,7 @@ for drop_out in [0.5]:
 
     for l in [2]:
         test_mlp(learning_rate=0.1, L1_reg=0, L2_reg=0.0000000, n_epochs=1000, initial_momentum=0.5, input_p=0.2,
-                     datasets=drugval, datasets_weights=drugval_weights, train_batch_size=50,
+                     datasets=drugval, train_batch_size=50,
                      n_hidden=[NEURONS]*l, p=drop_out, dropout=True,
                      drug_name=usage + "." + modifier + "_new_cgp_sel_model_" + extra + "_" + drug,
                      OUT_FOLDER = OUT_FOLDER)

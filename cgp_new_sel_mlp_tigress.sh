@@ -15,8 +15,10 @@ modifier=$3
 # Sunitinib Gemcitabine Doxorubicin Vinorelbine Vinblastine Mitomycin_C Embelin Paclitaxel
 for drug in Erlotinib Lapatinib Gefitinib Sunitinib Gemcitabine Doxorubicin
 do
-  # Rscript GIT/cgp_new_sel_feat.R $drug $usage $modifier
-  # echo "Done building training sets"
+
+  echo $drug
+  Rscript GIT/cgp_new_sel_feat.R $drug $usage $modifier
+  echo "Done building training sets"
 
   export drug usage extra modifier
   sbatch GIT/cgp_new_sel_mlp_tigress.cmd
