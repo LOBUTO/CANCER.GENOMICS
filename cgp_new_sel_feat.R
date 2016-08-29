@@ -131,7 +131,7 @@ in_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 MET.PROFILE <- readRDS(paste0(in_folder, "082316.DRUG.MET.PROFILE.rds"))
 if (usage=="nci60"){
   feat_table <- readRDS(paste0(in_folder,"082316_cgp_new_feat_combat.rds"))
-  #feat_table <- Function.scale.data.table(feat_table, col.protect=1:3)
+  feat_table <- readRDS(paste0(in_folder,"082916_cgp_new_feat_combat_cmf.rds"))
   #feat_table <- readRDS(paste0(in_folder,"082116_cgp_new_feat_combat_all_drugs.rds"))
   #feat_table  <- readRDS(paste0(in_folder,"121615.CGP.TABLE.PIC50.CELL.SCALED.SCALED.rds"))
 } else if (usage=="ccle"){
