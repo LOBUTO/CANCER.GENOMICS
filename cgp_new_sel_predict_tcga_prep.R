@@ -188,6 +188,9 @@ out_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress (same as in for now)
 #####################################################################################################
 # EXECUTE
 
+# Minot clean up - removes invariants prior to expression standarization
+cancer_exp$tumor <- cancer_exp$tumor[apply(cancer_exp$tumor, 1, sd)!=0,]
+
 # Build cgp model data
 feat_table <- Function_build_feat_cgp(cgp_new, MET.PROFILE, cgp_exp, cancer_exp$tumor, keep=c(),
                                         mets=F, genes=F, chem_cor = "pearson")
