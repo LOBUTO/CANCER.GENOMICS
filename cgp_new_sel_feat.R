@@ -135,9 +135,12 @@ if (usage=="nci60"){
   feat_table <- readRDS(paste0(in_folder,"082316_cgp_new_feat_combat.rds"))
   feat_table <- readRDS(paste0(in_folder,"082916_cgp_new_feat_combat_cmf.rds"))
   #feat_table <- readRDS(paste0(in_folder,"082116_cgp_new_feat_combat_all_drugs.rds"))
-  #feat_table  <- readRDS(paste0(in_folder,"121615.CGP.TABLE.PIC50.CELL.SCALED.SCALED.rds"))
+
 } else if (usage=="ccle"){
   feat_table <- readRDS(paste0(in_folder,"081616_cgp_new_feat_combat_ccle_based.rds"))
+  
+} else if (strsplit(usage, "_")[[1]][1]=="tcga"){
+  feat_table  <- readRDS(args[4])
 }
 
 out_table   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/" #For lab
@@ -156,9 +159,7 @@ if (modifier=="target_cells"){
 } else if (modifier=="target_drugs"){
   drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
   drug_met_cor <- data.table(melt(drug_met_cor))
-  drug_met_cor <- drug_met_cor[Var1==target_drug,]
-  drug_met_cor$value <- scale(drug_met_cor$value)
-  drug_met_cor <- drug_met_cor[value>0.8,]
+  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.25]
 
   target_drugs <- unique(drug_met_cor$Var2)
   temp_table   <- temp_table[Compound %in% target_drugs,]
