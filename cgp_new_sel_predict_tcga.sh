@@ -14,7 +14,8 @@ Rscript GIT/cgp_new_sel_predict_tcga_prep.R $cancer $cancer_exp $drug
 echo "Done building cgp feat table"
 
 # Split for training
-Rscript GIT/cgp_new_sel_feat.R $drug $usage $modifier
+feat_table="/tigress/zamalloa/CGP_FILES/${cancer}_all_cgp_new_${drug}.rds"
+Rscript GIT/cgp_new_sel_feat.R $drug $usage $modifier $feat_table
 echo "Done drug table for training"
 
 # Train
