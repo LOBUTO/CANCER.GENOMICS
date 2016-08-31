@@ -45,7 +45,7 @@ ggplot(self_table, aes(Actual, Predicted)) + geom_point(size=1.5) +
   ggtitle(paste0("CGP based prediction on CGP Compound: ", target_drug,
                  "- Cor:", self_pred$Cor, "\n", "All CGP cells"))
 
-ggplot(tcga_table, aes(Actual, Predicted, colour=Actual)) + geom_boxplot() + gemo_jitter(size=0.4) +
+ggplot(tcga_table, aes(Actual, Predicted, colour=Actual)) + geom_boxplot() + geom_jitter(size=0.4) +
   theme_bw() + xlab("Response") + ylab("Predicted response") +
   ggtitle(paste0(toupper(cancer), " - CGP based prediction on TCGA samples for Compound: ", target_drug, "\n", "N = ", nrow(tcga_table)))
 
