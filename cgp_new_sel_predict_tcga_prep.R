@@ -240,7 +240,7 @@ tcga_table   <- "/tigress/zamalloa/TCGA_FILES/TRAIN_TABLES/"
 #####################################################################################################
 # EXECUTE
 
-# Minot clean up - removes invariants prior to expression standarization
+# Minor clean up - removes invariants prior to expression standarization
 cancer_exp$tumor <- cancer_exp$tumor[apply(cancer_exp$tumor, 1, sd)!=0,]
 
 # Build cgp model data

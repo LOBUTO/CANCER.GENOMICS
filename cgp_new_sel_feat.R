@@ -138,7 +138,7 @@ if (usage=="nci60"){
 
 } else if (usage=="ccle"){
   feat_table <- readRDS(paste0(in_folder,"081616_cgp_new_feat_combat_ccle_based.rds"))
-  
+
 } else if (strsplit(usage, "_")[[1]][1]=="tcga"){
   feat_table  <- readRDS(args[4])
 }
@@ -148,8 +148,21 @@ out_table   <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
 #####################################################################################################
 # EXECUTE
 
-test_table  <- feat_table[Compound==target_drug]
-temp_table  <- feat_table[Compound!=target_drug]
+if (target_drug %in% unique(feat_table$Compound)){
+
+  test_table  <- feat_table[Compound==target_drug]
+  temp_table  <- feat_table[Compound!=target_drug]
+
+} else{
+  # In the event that the target drug is not in the current background model set (cgp) we will use \
+  # a separate portion of the whole data to test as if testing the capacity of the whole set to predict \
+  # it
+  test_rows   <- sample(1:nrow(feat_table), 0.1*nrow(feat_table))
+  temp_rows   <- setdiff(1:nrow(feat_table), test_rows)
+  test_table  <- feat_table[test_rows,]
+  temp_table  <- feat_table[temp_rows,]
+}
+
 
 if (modifier=="target_cells"){
   target_cells <- unique(test_table$cell_name)
