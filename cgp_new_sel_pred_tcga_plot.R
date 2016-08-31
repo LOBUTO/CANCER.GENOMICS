@@ -42,7 +42,10 @@ self_pred      <- self_table[,list(NRMSE = Function.NRMSE(Predicted, Actual),
 # Clean up for tcga
 tcga_table$Actual <- factor(tcga_table$Actual, levels = c("Clinical Progressive Disease", "Stable Disease",
                                                               "Partial Response", "Complete Response"))
-tcga_table[, n:=length(sample), by = "Actual"]
+
+# Predict more stringently
+tcga_table$Binary_response <- ifelse(as.character(tcga_table$Actual) %in% c("Clinical Progressive Disease", "Stable Disease").
+                                    "Uneffective", "Effective")
 
 # Plot
 if (nchar(extra)>1){
@@ -53,13 +56,21 @@ if (nchar(extra)>1){
 
 ggplot(self_table, aes(Actual, Predicted)) + geom_point(size=1.5) +
   theme_bw() + stat_smooth(method="lm", se=F, color = "purple") +
+  scale_colour_brewer(palette = "Set1") +
   ggtitle(paste0("CGP based prediction on CGP Compound: ", target_drug,
                  "- Cor:", self_pred$Cor, "\n", "All CGP cells"))
 
 ggplot(tcga_table, aes(Actual, Predicted, colour=Actual)) + geom_boxplot() + geom_jitter(size=0.4) +
   stat_summary(aes(x = factor(Actual)), fun.data = fun_length, geom = "text", vjust = +0.5, size=4) +
-  theme_bw() + xlab("Clinical response") + ylab("Predicted response") +
-  ggtitle(paste0(toupper(cancer), " - CGP based prediction on TCGA samples for Compound: ", target_drug, "\n", "N = ", nrow(tcga_table)))
+  theme_bw() + scale_colour_brewer(palette = "Set1") +
+  xlab("Clinical response") + ylab("Predicted response") +
+  ggtitle(paste0(toupper(cancer), " - CGP based prediction for clinical TCGA drug response for Compound: ", target_drug, "\n", "N = ", nrow(tcga_table)))
+
+ggplot(tcga_table, aes(Binary_response, Predicted, colour=Binary_response)) + geom_boxplot() + geom_jitter(size=0.4) +
+  stat_summary(aes(x = factor(Binary_response)), fun.data = fun_length, geom = "text", vjust = +0.5, size=4) +
+  theme_bw() + scale_colour_brewer(palette = "Set1") +
+  xlab("Clinical binary response") + ylab("Predicted response") +
+  ggtitle(paste0(toupper(cancer), " - CGP based prediction for binary clinical TCGA drug response for Compound: ", target_drug, "\n", "N = ", nrow(tcga_table)))
 
 dev.off()
 
