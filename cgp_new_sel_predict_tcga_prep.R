@@ -203,6 +203,7 @@ Function_build_feat_tcga <-function(feat_table, cancer_exp, cgp_exp, DRUGS.MET.P
     }
   }
 
+  DRUGS.MET.PROFILE  <- DRUGS.MET.PROFILE[DRUG!="CMK",] #Avoiding having same name as cell line
   drug_met_cor <- cor( acast(DRUGS.MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
   drug_table   <- data.table(drug_met_cor, keep.rownames = T)
   setnames(drug_table, c("Compound", colnames(drug_table)[2:ncol(drug_table)]))
