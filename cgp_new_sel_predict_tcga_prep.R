@@ -171,6 +171,55 @@ Function_build_feat_cgp <- function(cgp_table, DRUGS.MET.PROFILE, main_exp, side
   return(main_new_feat)
 }
 
+Function_build_feat_tcga <-function(feat_table, cancer_exp, cgp_exp, DRUGS.MET.PROFILE, tcga_resp, target_drug){
+
+  # Prep expression first
+  combat_scale_main_side         <- Function.exp.combat(t(scale(t(cgp_exp))), t(scale(t(cancer_exp))))
+  main_exp_scale_combat_cor      <- cor(cbind(combat_scale_main_side[["EXP.1"]], combat_scale_main_side[["EXP.2"]]),
+                                        method = "pearson")
+  main_exp_scale_combat_cor      <- main_exp_scale_combat_cor[colnames(cancer_exp), colnames(cgp_exp)]
+
+  cell_table   <- data.table(main_exp_scale_combat_cor, keep.rownames = T)
+  setnames(cell_table, c("sample", colnames(cell_table)[2:ncol(cell_table)]))
+
+  # Prep chemical features next - Remove duplicates, if any
+  duplicates   <- data.table(Var1 = c("MG-132", "ABT-263", "Nutlin-3", "Nutlin-3",
+                                    "GDC-0449", "GSK-1904529A", "AZD-2281", "AZD6244",    "NVP-TAE684",
+                                    "Crizotinib", "Lisitinib", "BEZ235",    "AZD-0530", "AZD-0530"),
+                           Var2 = c("Z-LLNle-CHO", "Navitoclax", "Nutlin-3a", "Nutlin-3a (-)",
+                                    "GDC0449", "GSK1904529A",   "Olaparib", "selumetinib","TAE684",
+                                    "PF-02341066", "OSI-906",  "NVP-BEZ235","AZD0530",  "Saracatinib"))
+
+  for (d in unique(duplicates$Var1)){
+
+    com_drugs <- intersect(c(d, duplicates[Var1==d,]$Var2), unique(DRUGS.MET.PROFILE$DRUG))
+
+    if (length(com_drugs)>1){
+
+      keep_drug   <- com_drugs[1] #Keep the first one
+      filter_drug <- setdiff(com_drugs, keep_drug)
+
+      DRUGS.MET.PROFILE <- DRUGS.MET.PROFILE[!(DRUG %in% filter_drug),]
+    }
+  }
+
+  drug_met_cor <- cor( acast(DRUGS.MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method=chem_cor)
+  drug_table   <- data.table(drug_met_cor, keep.rownames = T)
+  setnames(drug_table, c("Compound", colnames(drug_table)[2:ncol(drug_table)]))
+
+  # Merge all
+  tcga_resp    <- tcga_resp[,c("sample", "Compound", "response"),with=F]
+  tcga_resp    <- merge(tcga_resp, cell_table, by="sample")
+  tcga_resp    <- merge(tcga_resp, drug_table, by="Compound")
+
+  # Select for target and filter for prepped feature columns in model training set
+  tcga_resp    <- tcga_resp[Compound==target_drug,]
+  tcga_resp    <- tcga_resp[ , colnames(feat_table)[4:ncol(feat_table)] , with=F]
+
+  # Return
+  return(tcga_resp)
+}
+
 ######################################################################################################
 # LOAD DATA
 args         <- commandArgs(trailingOnly = TRUE)
@@ -178,6 +227,7 @@ args         <- commandArgs(trailingOnly = TRUE)
 cancer       <- args[1]
 cancer_exp   <- readRDS(args[2])
 target_drug  <- args[3]
+tcga_resp    <- readRDS(args[4])
 
 in_folder    <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 MET.PROFILE  <- readRDS(paste0(in_folder, "082316.DRUG.MET.PROFILE.rds"))
@@ -192,11 +242,16 @@ out_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress (same as in for now)
 cancer_exp$tumor <- cancer_exp$tumor[apply(cancer_exp$tumor, 1, sd)!=0,]
 
 # Build cgp model data
-feat_table <- Function_build_feat_cgp(cgp_new, MET.PROFILE, cgp_exp, cancer_exp$tumor, keep=c(),
-                                        mets=F, genes=F, chem_cor = "pearson")
+feat_table   <- Function_build_feat_cgp(cgp_new, MET.PROFILE, cgp_exp, cancer_exp$tumor, keep=c(),
+                                        mets=F, genes=F, chem_cor = "pearson", cell_cor="pearson")
+
+# Build tcga drug table for testing
+target_table <- Function_build_feat_tcga(feat_table, cancer_exp$tumor, cgp_exp, MET.PROFILE, tcga_resp, target_drug)
 
 ######################################################################################################
 # WRITE
 saveRDS(feat_table, paste0(out_folder, cancer, "_all_cgp_new_", target_drug, ".rds"))
 
-print("Done prepping cgp table for tcga modeling")
+write.table(target_table, col.names=T, row.names=F, quote=F, sep="\t")
+
+print("Done prepping cgp table for tcga modeling and tcga target table for analysis")
