@@ -408,9 +408,9 @@ actual       = list(target_table.response)
 with open(file_out, "w") as f:
     f.write("Cancer" + "\t" + "Compound" + "\t" + "sample" + "\t" + "Actual" + "\t" + "Predicted")
 
-for n in xrange(len(actual)):
+for n in xrange(len(actual)): #fix calling of sample (target_table.sample instead of iloc at one point!!!)
     with open(file_out, "a") as dd:
-        dd.write("\n" + cancer + "\t" + drug_target + "\t" + target_table.sample[n] + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+        dd.write("\n" + cancer + "\t" + drug_target + "\t" + list(target_table.iloc[:,0])[n] + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
 
 ####################################################################################################################################################################################################
 # Execute for self
