@@ -11,6 +11,12 @@ Function.NRMSE <- function(pred, actual){
   return(NRMSE)
 }
 
+fun_length <- function(x){
+
+  # Found @ http://stackoverflow.com/questions/23330279/ggplot2-annotate-labelling-geom-boxplot-with-position-dodge
+  return(data.frame(y=median(x),label= paste0("n=", length(x))))
+}
+
 #####################################################################################
 # LOAD DATA
 args        <- commandArgs(trailingOnly = TRUE)
@@ -33,6 +39,11 @@ tcga_table     <- fread(paste0(in_folder, "cgp_new_modeling_tcga_", cancer, "_",
 self_pred      <- self_table[,list(NRMSE = Function.NRMSE(Predicted, Actual),
                                    Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
+# Clean up for tcga
+tcga_table$Actual <- factor(tcga_table$Actual, levels = c("Clinical Progressive Disease", "Stable Disease",
+                                                              "Partial Response", "Complete Response"))
+tcga_table[, n:=length(sample), by = "Actual"]
+
 # Plot
 if (nchar(extra)>1){
   pdf(paste0(out_folder, date_out, "cgp_new_modeling_", cancer , "_" , target_drug, "_", extra ,".pdf"), width=12, height=8)
@@ -46,7 +57,8 @@ ggplot(self_table, aes(Actual, Predicted)) + geom_point(size=1.5) +
                  "- Cor:", self_pred$Cor, "\n", "All CGP cells"))
 
 ggplot(tcga_table, aes(Actual, Predicted, colour=Actual)) + geom_boxplot() + geom_jitter(size=0.4) +
-  theme_bw() + xlab("Response") + ylab("Predicted response") +
+  stat_summary(aes(x = factor(Actual)), fun.data = fun_length, geom = "text", vjust = +0.5, size=4) +
+  theme_bw() + xlab("Clinical response") + ylab("Predicted response") +
   ggtitle(paste0(toupper(cancer), " - CGP based prediction on TCGA samples for Compound: ", target_drug, "\n", "N = ", nrow(tcga_table)))
 
 dev.off()
