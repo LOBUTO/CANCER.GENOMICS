@@ -47,12 +47,15 @@ tcga_table$Actual <- factor(tcga_table$Actual, levels = c("Clinical Progressive 
 tcga_table$Binary_response <- ifelse(as.character(tcga_table$Actual) %in% c("Clinical Progressive Disease", "Stable Disease"),
                                     "Uneffective", "Effective")
 tcga_table$Binary_response <- factor(tcga_table$Binary_response, levels = c("Uneffective", "Effective"))
+tcga_pval                  <- wilcox.test(tcga_table[Binary_response=="Effective",]$Predicted,
+                                          tcga_table[Binary_response=="Uneffective",]$Predicted,
+                                          paired=F)$p.val
 
 # Plot
 if (nchar(extra)>1){
-  pdf(paste0(out_folder, date_out, "cgp_new_modeling_", cancer , "_" , target_drug, "_", extra ,".pdf"), width=8, height=8)
+  pdf(paste0(out_folder, date_out, "cgp_new_modeling_", cancer , "_" , target_drug, "_", extra ,".pdf"), width=10, height=8)
 } else {
-  pdf(paste0(out_folder, date_out, "cgp_new_modeling_", cancer , "_" , target_drug, ".pdf"), width=8, height=8)
+  pdf(paste0(out_folder, date_out, "cgp_new_modeling_", cancer , "_" , target_drug, ".pdf"), width=10, height=8)
 }
 
 ggplot(self_table, aes(Actual, Predicted)) + geom_point(size=1.5) +
@@ -71,7 +74,8 @@ ggplot(tcga_table, aes(Binary_response, Predicted, colour=Binary_response)) + ge
   stat_summary(aes(x = factor(Binary_response)), fun.data = fun_length, geom = "text", vjust = +0.5, size=4) +
   theme_bw() + scale_colour_brewer(palette = "Set1") +
   xlab("Clinical binary response") + ylab("Predicted response") +
-  ggtitle(paste0(toupper(cancer), " - CGP based prediction for binary clinical TCGA drug response for Compound: ", target_drug, "\n", "N = ", nrow(tcga_table)))
+  ggtitle(paste0(toupper(cancer), " - CGP based prediction for binary clinical TCGA drug response for Compound: ",
+                  target_drug, "\n", "N = ", nrow(tcga_table), ", P-value: ",round(tcga_pval, 3)) )
 
 dev.off()
 
