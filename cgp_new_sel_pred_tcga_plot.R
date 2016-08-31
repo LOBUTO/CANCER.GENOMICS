@@ -46,6 +46,7 @@ tcga_table$Actual <- factor(tcga_table$Actual, levels = c("Clinical Progressive 
 # Predict more stringently
 tcga_table$Binary_response <- ifelse(as.character(tcga_table$Actual) %in% c("Clinical Progressive Disease", "Stable Disease"),
                                     "Uneffective", "Effective")
+tcga_table$Binary_response <- factor(tcga_table$Binary_response, levels = c("Uneffective", "Effective"))
 
 # Plot
 if (nchar(extra)>1){
