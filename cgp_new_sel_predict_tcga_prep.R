@@ -236,6 +236,7 @@ cgp_new      <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
 cgp_exp      <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
 
 out_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress (same as in for now)
+tcga_table   <- "/tigress/zamalloa/TCGA_FILES/TRAIN_FILES/"
 #####################################################################################################
 # EXECUTE
 
@@ -253,6 +254,6 @@ target_table <- Function_build_feat_tcga(feat_table, cancer_exp$tumor, cgp_exp, 
 # WRITE
 saveRDS(feat_table, paste0(out_folder, cancer, "_all_cgp_new_", target_drug, ".rds"))
 
-write.table(target_table, col.names=T, row.names=F, quote=F, sep="\t")
+write.table(target_table, paste0(tcga_table, cancer, "_all_cgp_new_", target_drug) , col.names=T, row.names=F, quote=F, sep="\t")
 
 print("Done prepping cgp table for tcga modeling and tcga target table for analysis")
