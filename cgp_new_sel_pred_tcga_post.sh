@@ -8,7 +8,8 @@ extra=$3
 export PATH=/usr/local/cuda/bin:/usr/local/cuda/lib64:$PATH
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 
-for drug in Docetaxel Paclitaxel Tamoxifen
+#for drug in Docetaxel Paclitaxel Tamoxifen
+for drug in Paclitaxel Carboplatin
 do
 
   echo $drug
