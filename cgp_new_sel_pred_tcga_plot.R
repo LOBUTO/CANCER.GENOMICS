@@ -50,9 +50,9 @@ tcga_table$Binary_response <- factor(tcga_table$Binary_response, levels = c("Une
 
 # Plot
 if (nchar(extra)>1){
-  pdf(paste0(out_folder, date_out, "cgp_new_modeling_", cancer , "_" , target_drug, "_", extra ,".pdf"), width=12, height=8)
+  pdf(paste0(out_folder, date_out, "cgp_new_modeling_", cancer , "_" , target_drug, "_", extra ,".pdf"), width=8, height=8)
 } else {
-  pdf(paste0(out_folder, date_out, "cgp_new_modeling_", cancer , "_" , target_drug, ".pdf"), width=12, height=8)
+  pdf(paste0(out_folder, date_out, "cgp_new_modeling_", cancer , "_" , target_drug, ".pdf"), width=8, height=8)
 }
 
 ggplot(self_table, aes(Actual, Predicted)) + geom_point(size=1.5) +
