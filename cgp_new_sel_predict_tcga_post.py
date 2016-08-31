@@ -381,6 +381,7 @@ def model_prediction(MODEL_FILE, test_drug_x):
 # Load data
 drug_target = sys.argv[1]
 drug_target = (" ").join(drug_target.split("_"))
+cancer      = sys.argv[2]
 model_file  = sys.argv[2]
 usage       = sys.argv[3]
 
@@ -392,7 +393,7 @@ if drug_target=="Mitomycin C":
 train_folder   = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
 drug_file   = in_folder + usage + "_NCI_CGP_SEL_FEAT." + drug_target
 
-cgp_folder     = 
+cgp_folder     =
 
 out_folder  = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/"
 file_out    = out_folder + usage + "_cgp_new_modeling_" + usage + "_" + drug_target # Keep in line same name for now

@@ -236,7 +236,7 @@ cgp_new      <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
 cgp_exp      <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
 
 out_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress (same as in for now)
-tcga_table   <- "/tigress/zamalloa/TCGA_FILES/TRAIN_FILES/"
+tcga_table   <- "/tigress/zamalloa/TCGA_FILES/TRAIN_TABLES/"
 #####################################################################################################
 # EXECUTE
 
