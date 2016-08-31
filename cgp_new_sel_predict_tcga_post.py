@@ -382,39 +382,36 @@ def model_prediction(MODEL_FILE, test_drug_x):
 drug_target = sys.argv[1]
 drug_target = (" ").join(drug_target.split("_"))
 cancer      = sys.argv[2]
-model_file  = sys.argv[2]
 usage       = sys.argv[3]
+modifier    = sys.argv[4]
+extra       = sys.argv[5]
 
-if "-" not in drug_target:
-    model_file  = (" ").join(model_file.split("-"))
-if drug_target=="Mitomycin C":
-    model_file  = "CGP_FILES/CGP_NEW_RESULTS/new_cgp_sel_model_new_combat_Mitomycin C.pkl"
+model_folder   = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/"
+model_file     = model_folder + "tcga_" + cancer + "." + modifier + "_new_cgp_sel_model_" + extra + "_" + drug_target + ".pkl"
 
-train_folder   = "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
-drug_file   = in_folder + usage + "_NCI_CGP_SEL_FEAT." + drug_target
+target_folder  = "/home/zamalloa/Documents/FOLDER/TCGA_FILES/TRAIN_TABLES/"
+target_file    = target_folder + cancer + "_all_cgp_new_" + drug_target
 
-cgp_folder     =
-
-out_folder  = "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_RESULTS/"
-file_out    = out_folder + usage + "_cgp_new_modeling_" + usage + "_" + drug_target # Keep in line same name for now
-file_out_2  = out_folder + usage + "_cgp_new_modeling_cgp_" + drug_target
+out_folder  = "/home/zamalloa/Documents/FOLDER/TCGA_FILES/TCGA_NEW_RESULTS/"
+file_out    = out_folder + "cgp_new_modeling_" + usage + "_" + drug_target # Keep in line same name for now
+file_out_2  = out_folder + "cgp_new_modeling_" + usage + "_" + cancer + "_" + drug_target
 
 ####################################################################################################################################################################################################
-# Execute for nci60
+# Execute for tcga
 
-target_table = pd.read_csv(drug_file, sep="\t")
-
-test_drug_x, test_drug_y = shared_drug_dataset_IC50(target_table, integers=False)
+target_table = pd.read_csv(target_file, sep="\t")
+data_x       = drug_data.iloc[:,3:]
+test_drug_x  = theano.shared(np.asarray(data_x, dtype=theano.config.floatX), borrow=True)
 
 prediction   = model_prediction(model_file, test_drug_x)
 actual       = test_drug_y.get_value()
 
 with open(file_out, "w") as f:
-    f.write("Compound" + "\t" + "cell_name" + "\t" + "Actual" + "\t" + "Predicted")
+    f.write("Cancer" + "\t" + "Compound" + "\t" + "sample" + "\t" + "Actual" + "\t" + "Predicted")
 
 for n in xrange(len(actual)):
     with open(file_out, "a") as dd:
-        dd.write("\n" + drug_target + "\t" + target_table.cell_name[n] + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+        dd.write("\n" + cancer + "\t" + drug_target + "\t" + target_table.sample[n] + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
 
 ####################################################################################################################################################################################################
 # Execute for self

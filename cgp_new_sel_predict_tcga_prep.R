@@ -215,7 +215,7 @@ Function_build_feat_tcga <-function(feat_table, cancer_exp, cgp_exp, DRUGS.MET.P
 
   # Select for target and filter for prepped feature columns in model training set
   tcga_resp    <- tcga_resp[Compound==target_drug,]
-  tcga_resp    <- tcga_resp[ , colnames(feat_table)[4:ncol(feat_table)] , with=F]
+  tcga_resp    <- tcga_resp[ , c("sample", "Compound", "response", colnames(feat_table)[4:ncol(feat_table)]) , with=F]
 
   # Return
   return(tcga_resp)
