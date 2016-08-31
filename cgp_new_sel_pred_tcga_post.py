@@ -428,7 +428,7 @@ with open(file_out_2, "w") as f:
 
 for n in xrange(len(actual)):
     with open(file_out_2, "a") as dd:
-        dd.write("\n" + cancer + "\t" drug_target + "\t" + test_table.cell_name[n] + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
+        dd.write("\n" + cancer + "\t" + drug_target + "\t" + test_table.cell_name[n] + "\t" + str(actual[n]) + "\t" + str(prediction[n]) )
 
 ####################################################################################################################################################################################################
 # Done
