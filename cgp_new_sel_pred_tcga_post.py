@@ -399,7 +399,7 @@ file_out_2     = out_folder + "cgp_new_modeling_tcga_" + drug_target
 # Execute for tcga
 
 target_table = pd.read_csv(target_file, sep="\t")
-data_x       = drug_data.iloc[:,3:]
+data_x       = target_table.iloc[:,3:]
 test_drug_x  = theano.shared(np.asarray(data_x, dtype=theano.config.floatX), borrow=True)
 
 prediction   = model_prediction(model_file, test_drug_x)
