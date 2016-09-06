@@ -2,16 +2,14 @@
 # cgp_new_sel_predict_tcga.sh
 
 cancer=$1
-cancer_exp=$2
-tcga_resp=$3
-drug=$4
+drug=$2
 
 usage="tcga_$cancer"
-modifier=$5
-extra=$6
+modifier=$3
+extra=$4
 
 # Set up entry table
-Rscript GIT/cgp_new_sel_predict_tcga_prep.R $cancer $cancer_exp $drug $tcga_resp
+Rscript GIT/cgp_new_sel_predict_tcga_prep.R $cancer $drug
 echo "Done building cgp feat table"
 
 # Split for training

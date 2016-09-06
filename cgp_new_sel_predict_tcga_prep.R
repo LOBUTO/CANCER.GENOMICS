@@ -226,14 +226,14 @@ Function_build_feat_tcga <-function(feat_table, cancer_exp, cgp_exp, DRUGS.MET.P
 args         <- commandArgs(trailingOnly = TRUE)
 
 cancer       <- args[1]
-cancer_exp   <- readRDS(args[2])
-target_drug  <- args[3]
-tcga_resp    <- readRDS(args[4])
+target_drug  <- args[2]
 
 in_folder    <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 MET.PROFILE  <- readRDS(paste0(in_folder, "082316.DRUG.MET.PROFILE.rds"))
 cgp_new      <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
 cgp_exp      <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
+cancer_exp   <- readRDS("/tigress/zamalloa/TCGA_FILES/090616_fireshose_all_exp.rds")[[cancer]]
+tcga_resp    <- readRDS("/tigress/zamalloa/TCGA_FILES/090616_fireshose_all_response.rds")[[cancer]]
 
 out_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress (same as in for now)
 tcga_table   <- "/tigress/zamalloa/TCGA_FILES/TRAIN_TABLES/"
