@@ -211,6 +211,10 @@ Function_build_feat_tcga <-function(feat_table, cancer_exp, cgp_exp, DRUGS.MET.P
 
   # Merge all
   tcga_resp    <- tcga_resp[,c("sample", "Compound", "response"),with=F]
+  tcga_resp$response <- as.character(tcga_resp$response)
+  print(tcga_resp)
+  print(cell_table[1:5,1:5,with=F])
+  print(drug_table[1:5,1:5,with=F])
   tcga_resp    <- merge(tcga_resp, cell_table, by="sample")
   tcga_resp    <- merge(tcga_resp, drug_table, by="Compound")
 
