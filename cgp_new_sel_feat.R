@@ -153,87 +153,84 @@ if (target_drug %in% unique(feat_table$Compound)){
   test_table  <- feat_table[Compound==target_drug]
   temp_table  <- feat_table[Compound!=target_drug]
 
-  if (modifier=="target_cells"){
-    target_cells <- unique(test_table$cell_name)
-    temp_table   <- temp_table[cell_name %in% target_cells,]
-    temp_table[,NORM_pIC50:=scale(NORM_pIC50), by="Compound"]
-
-  } else if (modifier=="target_drugs"){
-    drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
-    drug_met_cor <- data.table(melt(drug_met_cor))
-    drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.25]
-
-    target_drugs <- unique(drug_met_cor$Var2)
-    temp_table   <- temp_table[Compound %in% target_drugs,]
-
-  } else if (modifier=="both"){
-    drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
-    drug_met_cor <- data.table(melt(drug_met_cor))
-    drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.25,]
-
-    target_drugs <- unique(drug_met_cor$Var2)
-    target_cells <- unique(test_table$cell_name)
-    temp_table   <- temp_table[Compound %in% target_drugs,][cell_name %in% target_cells,]
-
-  } else if (modifier=="target_feat"){
-    drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
-    temp_table   <- Function.cgp.select.best.feat(feat_table, drug_met_cor, target_drug, weighted="length")
-    temp_table   <- temp_table[Compound!=target_drug,]
-
-  } else if (modifier=="target_met"){
-    feat_table <- readRDS(paste0(in_folder,"082216_cgp_new_feat_combat_met.rds"))
-    test_table <- feat_table[Compound==target_drug]
-    temp_table <- feat_table[Compound!=target_drug]
-  } else {
-    print("no modifier")
-  }
-
-  train_rows  <- sample(1:nrow(temp_table), 0.8*nrow(temp_table))
-  valid_rows  <- setdiff(1:nrow(temp_table), train_rows)
-
-  train_table <- temp_table[train_rows, ]
-  valid_table <- temp_table[valid_rows, ]
-
-  # Obtain weigthed index
-  # drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
-  # drug_met_cor <- data.table(melt(drug_met_cor)) # [Var1, Var2, value]
-  # drug_met_cor <- drug_met_cor[Var1==target_drug,]
-  #
-  # train_w      <- sapply(train_table$Compound, function(x) unique(drug_met_cor[Var2==x]$value))
-  # train_w      <- data.table(W = train_w)
-  # valid_w      <- sapply(valid_table$Compound, function(x) unique(drug_met_cor[Var2==x]$value))
-  # valid_w      <- data.table(W = valid_w)
-
-  ######################################################################################################
-  # WRITE
-  write.table(train_table, paste0(out_table, usage , ".", modifier, "_TRAIN_CGP_SEL.", target_drug),
-              quote=F, sep="\t", row.names=F, col.names=T)
-
-  write.table(valid_table, paste0(out_table, usage , ".", modifier, "_VALID_CGP_SEL.", target_drug),
-              quote=F, sep="\t", row.names=F, col.names=T)
-
-  write.table(test_table,  paste0(out_table, usage , ".", modifier, "_TEST_CGP_SEL.",  target_drug),
-              quote=F, sep="\t", row.names=F, col.names=T)
-
-  # write.table(train_w,     paste0(out_table, usage , ".", modifier, "_TRAIN_CGP_SEL.", target_drug, ".weights"),
-  #             quote=F, sep="\t", row.names=F, col.names=T)
-  #
-  # write.table(valid_w,     paste0(out_table, usage , ".", modifier, "_VALID_CGP_SEL.", target_drug, ".weights"),
-  #             quote=F, sep="\t", row.names=F, col.names=T)
-  #
-
-  print("Done writing sel tables")
-
-# } else{
-#   # In the event that the target drug is not in the current background model set (cgp) we will use \
-#   # a separate portion of the whole data to test as if testing the capacity of the whole set to predict \
-#   # it
-#   test_rows   <- sample(1:nrow(feat_table), 0.1*nrow(feat_table))
-#   temp_rows   <- setdiff(1:nrow(feat_table), test_rows)
-#   test_table  <- feat_table[test_rows,]
-#   temp_table  <- feat_table[temp_rows,]
-# }
-
-} else {
-  print(c(target_drug, "no_data"))
+} else{
+  # In the event that the target drug is not in the current background model set (cgp) we will use \
+  # a separate portion of the whole data to test as if testing the capacity of the whole set to predict \
+  # it
+  test_rows   <- sample(1:nrow(feat_table), 0.1*nrow(feat_table))
+  temp_rows   <- setdiff(1:nrow(feat_table), test_rows)
+  test_table  <- feat_table[test_rows,]
+  temp_table  <- feat_table[temp_rows,]
 }
+
+
+if (modifier=="target_cells"){
+  target_cells <- unique(test_table$cell_name)
+  temp_table   <- temp_table[cell_name %in% target_cells,]
+  temp_table[,NORM_pIC50:=scale(NORM_pIC50), by="Compound"]
+
+} else if (modifier=="target_drugs"){
+  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
+  drug_met_cor <- data.table(melt(drug_met_cor))
+  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.25]
+
+  target_drugs <- unique(drug_met_cor$Var2)
+  temp_table   <- temp_table[Compound %in% target_drugs,]
+
+} else if (modifier=="both"){
+  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
+  drug_met_cor <- data.table(melt(drug_met_cor))
+  drug_met_cor <- drug_met_cor[Var1==target_drug,][value>0.25,]
+
+  target_drugs <- unique(drug_met_cor$Var2)
+  target_cells <- unique(test_table$cell_name)
+  temp_table   <- temp_table[Compound %in% target_drugs,][cell_name %in% target_cells,]
+
+} else if (modifier=="target_feat"){
+  drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
+  temp_table   <- Function.cgp.select.best.feat(feat_table, drug_met_cor, target_drug, weighted="length")
+  temp_table   <- temp_table[Compound!=target_drug,]
+
+} else if (modifier=="target_met"){
+  feat_table <- readRDS(paste0(in_folder,"082216_cgp_new_feat_combat_met.rds"))
+  test_table <- feat_table[Compound==target_drug]
+  temp_table <- feat_table[Compound!=target_drug]
+} else {
+  print("no modifier")
+}
+
+train_rows  <- sample(1:nrow(temp_table), 0.8*nrow(temp_table))
+valid_rows  <- setdiff(1:nrow(temp_table), train_rows)
+
+train_table <- temp_table[train_rows, ]
+valid_table <- temp_table[valid_rows, ]
+
+# Obtain weigthed index
+# drug_met_cor <- cor( acast(MET.PROFILE, METABOLITE~DRUG, value.var = "TC")  , method="pearson")
+# drug_met_cor <- data.table(melt(drug_met_cor)) # [Var1, Var2, value]
+# drug_met_cor <- drug_met_cor[Var1==target_drug,]
+#
+# train_w      <- sapply(train_table$Compound, function(x) unique(drug_met_cor[Var2==x]$value))
+# train_w      <- data.table(W = train_w)
+# valid_w      <- sapply(valid_table$Compound, function(x) unique(drug_met_cor[Var2==x]$value))
+# valid_w      <- data.table(W = valid_w)
+
+######################################################################################################
+# WRITE
+write.table(train_table, paste0(out_table, usage , ".", modifier, "_TRAIN_CGP_SEL.", target_drug),
+            quote=F, sep="\t", row.names=F, col.names=T)
+
+write.table(valid_table, paste0(out_table, usage , ".", modifier, "_VALID_CGP_SEL.", target_drug),
+            quote=F, sep="\t", row.names=F, col.names=T)
+
+write.table(test_table,  paste0(out_table, usage , ".", modifier, "_TEST_CGP_SEL.",  target_drug),
+            quote=F, sep="\t", row.names=F, col.names=T)
+
+# write.table(train_w,     paste0(out_table, usage , ".", modifier, "_TRAIN_CGP_SEL.", target_drug, ".weights"),
+#             quote=F, sep="\t", row.names=F, col.names=T)
+#
+# write.table(valid_w,     paste0(out_table, usage , ".", modifier, "_VALID_CGP_SEL.", target_drug, ".weights"),
+#             quote=F, sep="\t", row.names=F, col.names=T)
+#
+
+print("Done writing sel tables")
