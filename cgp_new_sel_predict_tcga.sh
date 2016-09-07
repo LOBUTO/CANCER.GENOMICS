@@ -29,74 +29,74 @@ function tcga {
 modifier=$1
 extra=$2
 
-cancer="COAD"
+# cancer="COAD"
+# for i in CAPECITABINE
+# do
+#   tcga $cancer $i $modifier $extra
+# done
+
+cancer="COADREAD"
 for i in CAPECITABINE
 do
   tcga $cancer $i $modifier $extra
 done
 
-# cancer="COADREAD"
-# for i in CAPECITABINE
-# do
-#   tcga $cancer $i $modifier $extra
-# done
-#
-# cancer="LUAD"
-# for i in Paclitaxel
-# do
-#   tcga $cancer $i $modifier $extra
-# done
-#
-# cancer="LUSC"
-# for i in Carboplatin Gemcitabine
-# do
-#   tcga $cancer $i $modifier $extra
-# done
-#
-# cancer="MESO"
-# for i in Cisplatin
-# do
-#   tcga $cancer $i $modifier $extra
-# done
-#
-# cancer="PAAD"
-# for i in Gemcitabine 5-Fluorouracil
-# do
-#   tcga $cancer $i $modifier $extra
-# done
-#
-# cancer="READ"
-# for i in Leucovorin 5-Fluorouracil
-# do
-#   tcga $cancer $i $modifier $extra
-# done
-#
-# cancer="READ"
-# for i in Leucovorin 5-Fluorouracil
-# do
-#   tcga $cancer $i $modifier $extra
-# done
-#
-# cancer="STAD"
-# for i in Leucovorin 5-Fluorouracil Cisplatin Epirubicin
-# do
-#   tcga $cancer $i $modifier $extra
-# done
-#
-# cancer="STES"
-# for i in 5-Fluorouracil CAPECITABINE Cisplatin Epirubicin Etoposide Leucovorin
-# do
-#   tcga $cancer $i $modifier $extra
-# done
-#
-# cancer="UCEC"
-# for i in Carboplatin Paclitaxel
-# do
-#   tcga $cancer $i $modifier $extra
-# done
-#
-# cancer="UCS"
-# for i in Carboplatin
-# do
-#   tcga $cancer $i $modifier $extra
-# done
+cancer="LUAD"
+for i in Paclitaxel
+do
+  tcga $cancer $i $modifier $extra
+done
+
+cancer="LUSC"
+for i in Carboplatin Gemcitabine
+do
+  tcga $cancer $i $modifier $extra
+done
+
+cancer="MESO"
+for i in Cisplatin
+do
+  tcga $cancer $i $modifier $extra
+done
+
+cancer="PAAD"
+for i in Gemcitabine 5-Fluorouracil
+do
+  tcga $cancer $i $modifier $extra
+done
+
+cancer="READ"
+for i in Leucovorin 5-Fluorouracil
+do
+  tcga $cancer $i $modifier $extra
+done
+
+cancer="READ"
+for i in Leucovorin 5-Fluorouracil
+do
+  tcga $cancer $i $modifier $extra
+done
+
+cancer="STAD"
+for i in Leucovorin 5-Fluorouracil Cisplatin Epirubicin
+do
+  tcga $cancer $i $modifier $extra
+done
+
+cancer="STES"
+for i in 5-Fluorouracil CAPECITABINE Cisplatin Epirubicin Etoposide Leucovorin
+do
+  tcga $cancer $i $modifier $extra
+done
+
+cancer="UCEC"
+for i in Carboplatin Paclitaxel
+do
+  tcga $cancer $i $modifier $extra
+done
+
+cancer="UCS"
+for i in Carboplatin
+do
+  tcga $cancer $i $modifier $extra
+done
