@@ -234,4 +234,6 @@ if (target_drug %in% unique(feat_table$Compound)){
 #   temp_table  <- feat_table[temp_rows,]
 # }
 
+} else {
+  print(c(target_drug, "no_data"))
 }

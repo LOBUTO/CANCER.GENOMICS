@@ -109,6 +109,7 @@ Function_build_feat_cgp <- function(cgp_table, DRUGS.MET.PROFILE, main_exp, side
   #   main_exp and side_exp should have genes in rows and cells in columns
 
   # Choose type of chemical features (drugs vs directly metabolites)
+  DRUGS.MET.PROFILE  <- DRUGS.MET.PROFILE[DRUG!="CMK",] #Avoiding having same name as cell line
 
   # Remove duplicates, if any
   duplicates <- data.table(Var1 = c("MG-132", "ABT-263", "Nutlin-3", "Nutlin-3",
@@ -246,9 +247,11 @@ cancer_exp$tumor <- cancer_exp$tumor[apply(cancer_exp$tumor, 1, sd)!=0,]
 # Build cgp model data
 feat_table   <- Function_build_feat_cgp(cgp_new, MET.PROFILE, cgp_exp, cancer_exp$tumor, keep=c(),
                                         mets=F, genes=F, chem_cor = "pearson", cell_cor="pearson")
+print("Done building feat_table")
 
 # Build tcga drug table for testing
 target_table <- Function_build_feat_tcga(feat_table, cancer_exp$tumor, cgp_exp, MET.PROFILE, tcga_resp, target_drug)
+print("Done building target_table")
 
 ######################################################################################################
 # WRITE
