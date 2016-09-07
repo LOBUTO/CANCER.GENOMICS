@@ -29,23 +29,60 @@ function tcga {
 modifier=$1
 extra=$2
 
-# cancer="COAD"
-# for i in CAPECITABINE
-# do
-#   tcga $cancer $i $modifier $extra
-# done
+cancer="BLCA"
+for i in Carboplatin Cisplatin Gemcitabine
+do
+  tcga $cancer $i $modifier $extra
+done
+
+
+cancer="BRCA"
+for i in Cyclophosphamide Paclitaxel Tamoxifen
+do
+  tcga $cancer $i $modifier $extra
+done
+
+
+cancer="CESC"
+for i in Cisplatin
+do
+  tcga $cancer $i $modifier $extra
+done
+
+
+cancer="COAD"
+for i in CAPECITABINE 5-Fluorouracil Leucovorin MFCD00866327
+do
+  tcga $cancer $i $modifier $extra
+done
 
 cancer="COADREAD"
-for i in CAPECITABINE
+for i in CAPECITABINE 5-Fluorouracil Irinotecan Leucovorin MFCD00866327
 do
   tcga $cancer $i $modifier $extra
 done
 
-cancer="LUAD"
-for i in Paclitaxel
+
+cancer="GBMLGG"
+for i in Temozolomide
 do
   tcga $cancer $i $modifier $extra
 done
+
+
+cancer="LGG"
+for i in Temozolomide
+do
+  tcga $cancer $i $modifier $extra
+done
+
+
+cancer="LUAD"
+for i in Alimta Carboplatin Cisplatin Paclitaxel
+do
+  tcga $cancer $i $modifier $extra
+done
+
 
 cancer="LUSC"
 for i in Carboplatin Gemcitabine
@@ -100,3 +137,5 @@ for i in Carboplatin
 do
   tcga $cancer $i $modifier $extra
 done
+
+echo "Done submitting all jobs!"

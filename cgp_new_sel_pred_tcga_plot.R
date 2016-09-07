@@ -40,11 +40,11 @@ self_pred      <- self_table[,list(NRMSE = Function.NRMSE(Predicted, Actual),
                                    Cor   = cor(Predicted, Actual, method="pearson")), by = "Compound"]
 
 # Clean up for tcga
-tcga_table$Actual <- factor(tcga_table$Actual, levels = c("Clinical Progressive Disease", "Stable Disease",
-                                                              "Partial Response", "Complete Response"))
+tcga_table$Actual <- factor(tcga_table$Actual, levels = c("clinical progressive disease", "stable disease",
+                                                              "partial response", "complete response"))
 
 # Predict more stringently
-tcga_table$Binary_response <- ifelse(as.character(tcga_table$Actual) %in% c("Clinical Progressive Disease", "Stable Disease"),
+tcga_table$Binary_response <- ifelse(as.character(tcga_table$Actual) %in% c("clinical progressive disease", "stable disease"),
                                     "Uneffective", "Effective")
 tcga_table$Binary_response <- factor(tcga_table$Binary_response, levels = c("Uneffective", "Effective"))
 tcga_pval                  <- wilcox.test(tcga_table[Binary_response=="Effective",]$Predicted,
