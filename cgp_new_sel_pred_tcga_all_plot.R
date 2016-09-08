@@ -103,7 +103,7 @@ ggplot(tcga_list, aes(Binary_response, Predicted, colour=Binary_response)) + geo
   ggtitle("CGP based prediction for binary clinical TCGA drug response for all Compounds")
 
 ggplot(tcga_pval, aes(x = Compound, y = -log(P_val), fill=Cancer)) + geom_bar(stat="identity", position = "dodge") +
-  facet_wrap(~Cancer) + scale_fill_brewer(palette = "Set1") +
+  facet_wrap(~Cancer) + scale_fill_brewer(palette = "Set3") +
   theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size=8)) +
   geom_hline(aes(yintercept = -log(0.1)), color="black", linetype="dashed") +
   ylab("-log(P_val)") +
