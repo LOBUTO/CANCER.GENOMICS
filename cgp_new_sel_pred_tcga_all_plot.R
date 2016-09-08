@@ -22,8 +22,8 @@ fun_length <- function(x){
 args        <- commandArgs(trailingOnly = TRUE)
 extra       <- args[1]
 
-tcga_resp   <- readRDS("/tigress/zamalloa/TCGA_FILES/090616_fireshose_all_response.rds")
-cgp_new     <- readRDS("/tigress/zamalloa/CGP_FILES/082916_cgp_new.rds")
+tcga_resp   <- readRDS("/home/zamalloa/Documents/FOLDER/TCGA_FILES/090616_fireshose_all_response.rds")
+cgp_new     <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/082916_cgp_new.rds")
 
 in_folder   <- "/home/zamalloa/Documents/FOLDER/TCGA_FILES/TCGA_NEW_RESULTS/"
 out_folder  <- "/home/zamalloa/Documents/FOLDER/TCGA_FILES/TCGA_NEW_RESULTS/"
