@@ -79,8 +79,8 @@ tcga_list$Binary_response <- ifelse(as.character(tcga_list$Actual) %in% c("clini
                                     "Uneffective", "Effective")
 
 tcga_list$Binary_response <- factor(tcga_list$Binary_response, levels = c("Uneffective", "Effective"))
-tcga_list[, P_val:= wilcox.test(  Predicted[which(Binnary_response == "Effective")],
-                                  Predicted[which(Binnary_response == "Uneffective")],
+tcga_list[, P_val:= wilcox.test(  Predicted[which(Binary_response == "Effective")],
+                                  Predicted[which(Binary_response == "Uneffective")],
                                   paired=F, alternative="greater" )$p.val , by=c("Compound", "Cancer")]
 
 tcga_pval      <- tcga_list[,c("Compound", "Cancer", "P_val", "cgp"), with=F]
