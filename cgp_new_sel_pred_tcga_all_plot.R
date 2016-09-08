@@ -97,7 +97,7 @@ if (nchar(extra)>1){
 
 ggplot(tcga_list, aes(Binary_response, Predicted, colour=Binary_response)) + geom_boxplot() + geom_jitter(size=0.4) +
   stat_summary(aes(x = factor(Binary_response)), fun.data = fun_length, geom = "text", vjust = +2, size=4) +
-  theme_bw() + scale_colour_brewer(palette = "Set1") +
+  theme_bw() + scale_colour_brewer(palette = "Set3") +
   facet_wrap(Cancer~Compound) +
   xlab("Clinical binary response") + ylab("Predicted response") +
   ggtitle("CGP based prediction for binary clinical TCGA drug response for all Compounds")
@@ -105,15 +105,15 @@ ggplot(tcga_list, aes(Binary_response, Predicted, colour=Binary_response)) + geo
 ggplot(tcga_pval, aes(x = Compound, y = -log(P_val), fill=Cancer)) + geom_bar(stat="identity", position = "dodge") +
   facet_wrap(~Cancer) + scale_fill_brewer(palette = "Set1") +
   theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size=8)) +
-  geom_hline(aes(yintercept = -log(0.05)), color="black", linetype="dashed") +
+  geom_hline(aes(yintercept = -log(0.1)), color="black", linetype="dashed") +
   ylab("-log(P_val)") +
   ggtitle("CGP based prediction for binary clinical TCGA drug response for all Compounds \n -log(P-values)")
 
 # Evaluate those for which we have performance in cgp and see if we do better as model increases
 ggplot(tcga_pval[cgp=="CGP",], aes(self, -log(P_val), colour=Compound, label=Cancer)) +
   geom_point(size=0.8) + geom_label() +
-  scale_fill_brewer(palette = "Set1") +
-  geom_hline(aes(yintercept = -log(0.05)), color="black", linetype="dashed") +
+  scale_fill_brewer(palette = "Set3") +
+  geom_hline(aes(yintercept = -log(0.1)), color="black", linetype="dashed") +
   xlab("Cross-validation CGP accuracy in terms of correlation") +
   ylab("-log(P_val)") +
   ggtitle("TCGA drug-cancer prediction accuracy vs Cross-validation CGP Accuracy")
