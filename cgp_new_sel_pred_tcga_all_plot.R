@@ -34,7 +34,7 @@ date_out    <- Sys.Date()
 # EXECUTE
 
 # Trim response
-all_exp_samples  <- unlist(lapply(names(tcga_exp), function(z) colnames(y[[z]][["tumor"]])))
+all_exp_samples  <- unlist(lapply(names(tcga_exp), function(z) colnames(tcga_exp[[z]][["tumor"]])))
 response_sel     <- tcga_resp[sample %in% all_exp_samples,][,list(N=length(sample)), by=c("cancer", "Compound", "binary_response")]
 response_sel     <- response_sel[N>5,]
 response_sel[, N_length := length(N), by=c("cancer", "Compound")]
