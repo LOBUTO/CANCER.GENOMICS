@@ -134,7 +134,7 @@ setDefaultCluster(cl)
 clusterExport(cl, varlist=c("as.data.table","data.table", "drugs", "cgp_new_feat", "cgp_exp", "DRUGS.MET.PROFILE",
                             "Function_cgp_model_baseline", "Function_cell_weights",
                             "Function_drug_weights", "Function.range.0.1", "Function.NRMSE",
-                            "melt", "acast", "setnames"),
+                            "melt", "acast", "setnames", "setkey"),
                             envir=environment())
 print ("Done exporting values")
 
