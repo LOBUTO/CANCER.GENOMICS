@@ -113,7 +113,7 @@ Function.NRMSE <- function(pred, actual){
 # cgp_exp           <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_exp.rds")
 # DRUGS.MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/082316.DRUG.MET.PROFILE.rds")
 #
-# date_out    <- Sys.Date()
+date_out    <- Sys.Date()
 # ############################################################################################################################################
 # # EXECUTE
 # # "Vinblastine",  "Midostaurin", "Paclitaxel" , "Camptothecin",
