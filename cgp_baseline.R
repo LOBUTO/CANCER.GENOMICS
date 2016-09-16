@@ -109,9 +109,9 @@ Function.NRMSE <- function(pred, actual){
 ############################################################################################################################################
 # LOAD FILES
 
-cgp_new_feat      <- saveRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_cgp_new_feat_combat.rds")
-cgp_exp           <- saveRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_exp.rds")
-DRUGS.MET.PROFILE <- saveRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/082316.DRUG.MET.PROFILE.rds")
+cgp_new_feat      <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_cgp_new_feat_combat.rds")
+cgp_exp           <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_exp.rds")
+DRUGS.MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/082316.DRUG.MET.PROFILE.rds")
 
 date_out    <- Sys.Date()
 ############################################################################################################################################
