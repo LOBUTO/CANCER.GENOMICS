@@ -124,7 +124,7 @@ drugs         <- c("Gemcitabine", "Sunitinib",   "Doxorubicin", "Mitomycin C", "
                    "Bleomycin", "Axitinib", "Docetaxel", "Nilotinib", "Sorafenib", "Cytarabine",
                    "Shikonin", "Roscovitine", "Etoposide", "Pyrimethamine", "Methotrexate",
                    "PAC-1", "Temsirolimus", "Rapamycin", "Bortezomib", "Imatinib", "Pazopanib",
-                   "Dasatinib", 
+                   "Dasatinib",
                    "Lapatinib"  ,  "Erlotinib" ,  "Vorinostat" , "Cyclopamine", "Cisplatin",
                    "Elesclomol" ,  "17-AAG"    ,  "ATRA",        "Gefitinib"  , "Parthenolide")
 
@@ -133,7 +133,8 @@ cl<-makeCluster(nodes)
 setDefaultCluster(cl)
 clusterExport(cl, varlist=c("as.data.table","data.table", "drugs", "cgp_new_feat", "cgp_exp", "DRUGS.MET.PROFILE",
                             "Function_cgp_model_baseline", "Function_cell_weights",
-                            "Function_drug_weights", "Function.range.0.1", "Function.NRMSE"),
+                            "Function_drug_weights", "Function.range.0.1", "Function.NRMSE",
+                            "melt", "acast"),
                             envir=environment())
 print ("Done exporting values")
 
