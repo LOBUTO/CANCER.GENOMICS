@@ -109,41 +109,44 @@ Function.NRMSE <- function(pred, actual){
 ############################################################################################################################################
 # LOAD FILES
 
-cgp_new_feat      <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_cgp_new_feat_combat.rds")
-cgp_exp           <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_exp.rds")
-DRUGS.MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/082316.DRUG.MET.PROFILE.rds")
-
-date_out    <- Sys.Date()
-############################################################################################################################################
-# EXECUTE
-# "Vinblastine",  "Midostaurin", "Paclitaxel" , "Camptothecin",
-# "Lapatinib"  ,  "Erlotinib" ,  "Vorinostat" , "Cyclopamine", "Cisplatin",
-
-baseline <- data.table()
-for (d in c("Gemcitabine", "Sunitinib",   "Doxorubicin", "Mitomycin C", "Vinorelbine",
-            "Elesclomol" ,  "17-AAG"    ,  "ATRA",        "Gefitinib"  , "Parthenolide")){
-
-  print(d)
-  baseline <- rbind(baseline,
-                         Function_cgp_model_baseline(cgp_new_feat, d,
-                                               Function_cell_weights(cgp_exp),
-                                               Function_drug_weights(DRUGS.MET.PROFILE),
-                                               exponential = T)
-  )
-}
+# cgp_new_feat      <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_cgp_new_feat_combat.rds")
+# cgp_exp           <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_exp.rds")
+# DRUGS.MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/082316.DRUG.MET.PROFILE.rds")
+#
+# date_out    <- Sys.Date()
+# ############################################################################################################################################
+# # EXECUTE
+# # "Vinblastine",  "Midostaurin", "Paclitaxel" , "Camptothecin",
+# # "Lapatinib"  ,  "Erlotinib" ,  "Vorinostat" , "Cyclopamine", "Cisplatin",
+#
+# cgp_table  <- cgp_table[, c("Compound", "cell_name", "NORM_pIC50"), with=F]
+#
+# baseline   <- data.table()
+# for (d in c("Gemcitabine", "Sunitinib",   "Doxorubicin", "Mitomycin C", "Vinorelbine",
+#             "Elesclomol" ,  "17-AAG"    ,  "ATRA",        "Gefitinib"  , "Parthenolide")){
+#
+#   print(d)
+#   baseline <- rbind(baseline,
+#                          Function_cgp_model_baseline(cgp_new_feat, d,
+#                                                Function_cell_weights(cgp_exp),
+#                                                Function_drug_weights(DRUGS.MET.PROFILE),
+#                                                exponential = T)
+#   )
+# }
 
 ############################################################################################################################################
 # WRITE and PLOT
 
 out_folder <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_FIGURES/"
 
-write.table(baseline, paste0(out_folder, date_out, ".cgp_baseline.txt"), quote=F, sep="\t", row.names=F, col.names=T)
+#write.table(baseline, paste0(out_folder, date_out, ".cgp_baseline.txt"), quote=F, sep="\t", row.names=F, col.names=T)
 
+baseline <- fread(paste0(out_folder, date_out, ".cgp_baseline.txt"), header=T, sep="\t")
 pdf(paste0(out_folder, date_out, ".cgp_baseline.pdf"), width=10, height=8)
 
 ggplot(baseline, aes(NORM_pIC50, Prediction)) + geom_point() +
-  theme_classic() + ggtitle(paste0(unique(Compound), " - Cor: ", round(unique(Cor),2))) +
-  stat_smooth(method="lm", se = F, colour="red")
+  theme_classic() +
+  stat_smooth(method="lm", se = F, colour="red") + facet_wrap(~Compound)
 
 ggplot(baseline[,c("Compound", "Cor"),with=F], aes(Compound, Cor)) + geom_bar(stat="identity") +
   theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12)) +
