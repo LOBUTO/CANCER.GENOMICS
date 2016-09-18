@@ -128,27 +128,39 @@ drugs         <- c("Gemcitabine", "Sunitinib",   "Doxorubicin", "Mitomycin C", "
                    "Lapatinib"  ,  "Erlotinib" ,  "Vorinostat" , "Cyclopamine", "Cisplatin",
                    "Elesclomol" ,  "17-AAG"    ,  "ATRA",        "Gefitinib"  , "Parthenolide")
 
-nodes<-detectCores()
-cl<-makeCluster(nodes)
-setDefaultCluster(cl)
-clusterExport(cl, varlist=c("as.data.table","data.table", "drugs", "cgp_new_feat", "cgp_exp", "DRUGS.MET.PROFILE",
-                            "Function_cgp_model_baseline", "Function_cell_weights",
-                            "Function_drug_weights", "Function.range.0.1", "Function.NRMSE",
-                            "melt", "acast", "setnames", "setkey"),
-                            envir=environment())
-print ("Done exporting values")
+baseline <- data.table()
+for (d in drugs) {
 
-baseline   <- parLapply(cl, drugs, function(d) {
+  print(d)
 
-  return(Function_cgp_model_baseline(cgp_new_feat, d,
-                        Function_cell_weights(cgp_exp),
-                        Function_drug_weights(DRUGS.MET.PROFILE),
-                        exponential = T))
-  })
+  baseline <- rbind(baseline, Function_cgp_model_baseline(cgp_new_feat, d,
+                                                          Function_cell_weights(cgp_exp),
+                                                          Function_drug_weights(DRUGS.MET.PROFILE),
+                                                          exponential = T))
 
-baseline <- do.call(rbind, baseline)
+}
 
-stopCluster(cl)
+# nodes<-detectCores()
+# cl<-makeCluster(nodes)
+# setDefaultCluster(cl)
+# clusterExport(cl, varlist=c("as.data.table","data.table", "drugs", "cgp_new_feat", "cgp_exp", "DRUGS.MET.PROFILE",
+#                             "Function_cgp_model_baseline", "Function_cell_weights",
+#                             "Function_drug_weights", "Function.range.0.1", "Function.NRMSE",
+#                             "melt", "acast", "setnames", "setkey"),
+#                             envir=environment())
+# print ("Done exporting values")
+#
+# baseline   <- parLapply(cl, drugs, function(d) {
+#
+#   return(Function_cgp_model_baseline(cgp_new_feat, d,
+#                         Function_cell_weights(cgp_exp),
+#                         Function_drug_weights(DRUGS.MET.PROFILE),
+#                         exponential = T))
+#   })
+#
+# baseline <- do.call(rbind, baseline)
+#
+# stopCluster(cl)
 
 ############################################################################################################################################
 # WRITE and PLOT
