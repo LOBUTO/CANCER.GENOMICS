@@ -176,7 +176,7 @@ ggplot(baseline, aes(NORM_pIC50, Prediction)) + geom_point(size=0.8) +
   theme_classic() +
   stat_smooth(method="lm", se = F, colour="red") + facet_wrap(~Compound)
 
-ggplot(unique(baseline[,c("Compound", "Cor")),with=F], aes(Compound, Cor)) + geom_bar(stat="identity") +
+ggplot(unique(baseline[,c("Compound", "Cor"),with=F]), aes(Compound, Cor)) + geom_bar(stat="identity") +
   theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12)) +
   ggtitle("CGP Baseline")
 
