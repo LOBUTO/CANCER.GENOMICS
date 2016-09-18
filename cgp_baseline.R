@@ -40,9 +40,7 @@ Function_drug_weights <- function(drug_feat) {
   return(w)
 }
 
-Function_cgp_model_baseline <- function(cgp_table, target_drug, cell_w, drug_w, exponential=F){
-  # Finds baseline prediction for target drug based on all the data and type of prediction
-  # This will be in terms of weighted average
+Function_cgp_weight_separate <- function(cgp_table, target_drug, cell_w, drug_w, exponential=F) {
 
   # Make sure all data is present from weights
   cgp_table    <- cgp_table[cell_name %in% cell_w[[1]],]
@@ -62,7 +60,7 @@ Function_cgp_model_baseline <- function(cgp_table, target_drug, cell_w, drug_w, 
 
   weight_table <- merge(train_table,  drug_w, by.x="Compound",  by.y="drug_1", allow.cartesian=TRUE)
   weight_table <- merge(weight_table, cell_w, by.x="cell_name", by.y="cell_1", allow.cartesian=TRUE)
-    #[Compound, cell_name, NORM_pIC50, drug_2, weight_d, cell_2, weight_c]
+  #[Compound, cell_name, NORM_pIC50, drug_2, weight_d, cell_2, weight_c]
 
   setkey(weight_table)
   weight_table <- unique(weight_table)
@@ -93,7 +91,65 @@ Function_cgp_model_baseline <- function(cgp_table, target_drug, cell_w, drug_w, 
 
   # Return
   return(output)
+}
 
+Function_cgp_weight_compounded <- function(cgp_table, target_drug, exponential=F) {
+  # Uses whole vector to calculate distances
+
+  # It is numerically faster to calculate the distance per each sample being analyzed
+  train_table  <- cgp_table[Compound!=target_drug,]
+  target_table <- cgp_table[Compound==target_drug,]
+
+  predictions  <- apply(target_table, 1, function(x) {
+
+    target_vector <- as.numeric(x[4:ncol(target_table)])
+
+    weights       <- apply(train_table, 1, function(y) {
+
+      train_vector  <- as.numeric(y[4:ncol(train_table)])
+      return(cor(target_vector, train_vector, method="pearson"))
+    })
+
+    if (exponential==T){
+      weights <- Function.range.0.1(exp(weights))
+    }
+
+    prediction <- sum(weights * train_table$NORM_pIC50) / sum(weights)
+    return(prediction)
+  })
+
+  stopCluster(cl)
+  #Return formatted predictions
+  output       <- data.table(cell_name  = target_table$cell_name,
+                             Compound   = target_drug,
+                             NORM_pIC50 = target_table$NORM_pIC50,
+                             Prediction = prediction)
+
+  output$Cor   <- cor(output$NORM_pIC50, output$Prediction)
+  output$NRMSE <- Function.NRMSE(output$Prediction, output$NORM_pIC50)
+
+  return(output)
+}
+
+Function_cgp_model_baseline <- function(cgp_table, target_drug, cell_w, drug_w, exponential=F, type="separate"){
+  # Finds baseline prediction for target drug based on all the data and type of prediction
+  # This will be in terms of weighted average
+  # type can be:
+    # "separate"   - using each cell_w and drug_w
+    # "compounded" - using whole vector as distance in cgp_table rows [4:ncol]
+
+  if (type == "separate"){
+
+    output <- Function_cgp_weight_separate(cgp_table, target_drug, cell_w, drug_w, exponential=exponential)
+
+  } else if (type == "compounded"){
+
+    output <- Function_cgp_weight_compounded(cgp_table, target_drug, exponential=exponential)
+
+  }
+
+  # Return
+  return(output)
 }
 
 Function.range.0.1 <- function(x){
@@ -114,11 +170,12 @@ cgp_new_feat      <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080816_c
 cgp_exp           <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/080716_cgp_new_exp.rds")
 DRUGS.MET.PROFILE <- readRDS("/home/zamalloa/Documents/FOLDER/CGP_FILES/082316.DRUG.MET.PROFILE.rds")
 
+args        <- commandArgs(trailingOnly = TRUE)
 date_out    <- Sys.Date()
+file_name   <- args[1]
+
 ############################################################################################################################################
 # EXECUTE
-cgp_new_feat  <- cgp_new_feat[, c("Compound", "cell_name", "NORM_pIC50"), with=F]
-
 drugs         <- c("Gemcitabine", "Sunitinib",   "Doxorubicin", "Mitomycin C", "Vinorelbine",
                    "Vinblastine",  "Midostaurin", "Paclitaxel" , "Camptothecin", "Embelin",
                    "Bleomycin", "Axitinib", "Docetaxel", "Nilotinib", "Sorafenib", "Cytarabine",
@@ -128,48 +185,52 @@ drugs         <- c("Gemcitabine", "Sunitinib",   "Doxorubicin", "Mitomycin C", "
                    "Lapatinib"  ,  "Erlotinib" ,  "Vorinostat" , "Cyclopamine", "Cisplatin",
                    "Elesclomol" ,  "17-AAG"    ,  "ATRA",        "Gefitinib"  , "Parthenolide")
 
-baseline <- data.table()
-for (d in drugs) {
-
-  print(d)
-
-  baseline <- rbind(baseline, Function_cgp_model_baseline(cgp_new_feat, d,
-                                                          Function_cell_weights(cgp_exp),
-                                                          Function_drug_weights(DRUGS.MET.PROFILE),
-                                                          exponential = T))
-
-}
-
-# nodes<-detectCores()
-# cl<-makeCluster(nodes)
-# setDefaultCluster(cl)
-# clusterExport(cl, varlist=c("as.data.table","data.table", "drugs", "cgp_new_feat", "cgp_exp", "DRUGS.MET.PROFILE",
-#                             "Function_cgp_model_baseline", "Function_cell_weights",
-#                             "Function_drug_weights", "Function.range.0.1", "Function.NRMSE",
-#                             "melt", "acast", "setnames", "setkey"),
-#                             envir=environment())
-# print ("Done exporting values")
+# baseline <- data.table()
+# for (d in drugs) {
 #
-# baseline   <- parLapply(cl, drugs, function(d) {
+#   print(d)
 #
-#   return(Function_cgp_model_baseline(cgp_new_feat, d,
-#                         Function_cell_weights(cgp_exp),
-#                         Function_drug_weights(DRUGS.MET.PROFILE),
-#                         exponential = T))
-#   })
+#   baseline <- rbind(baseline, Function_cgp_model_baseline(cgp_new_feat, d,
+#                                                           Function_cell_weights(cgp_exp),
+#                                                           Function_drug_weights(DRUGS.MET.PROFILE),
+#                                                           exponential = T, type="compounded"))
 #
-# baseline <- do.call(rbind, baseline)
-#
-# stopCluster(cl)
+# }
+
+nodes<-detectCores()
+cl<-makeCluster(nodes)
+setDefaultCluster(cl)
+clusterExport(cl, varlist=c("as.data.table","data.table", "drugs", "cgp_new_feat", "cgp_exp", "DRUGS.MET.PROFILE",
+                            "Function_cgp_model_baseline", "Function_cell_weights",
+                            "Function_drug_weights", "Function.range.0.1", "Function.NRMSE",
+                            "melt", "acast", "setnames", "setkey"),
+                            envir=environment())
+print ("Done exporting values")
+
+baseline   <- parLapply(cl, drugs, function(d) {
+
+  #Write to log to track
+  write.table(d, "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_FIGURES/log", append=T)
+  write.table("\t", "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_FIGURES/log", append=T)
+
+  return(Function_cgp_model_baseline(cgp_new_feat, d,
+                        Function_cell_weights(cgp_exp),
+                        Function_drug_weights(DRUGS.MET.PROFILE),
+                        exponential = T, type="compounded"))
+  })
+
+baseline <- do.call(rbind, baseline)
+
+stopCluster(cl)
 
 ############################################################################################################################################
 # WRITE and PLOT
 
 out_folder <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/CGP_NEW_FIGURES/"
 
-write.table(baseline, paste0(out_folder, date_out, ".cgp_baseline.txt"), quote=F, sep="\t", row.names=F, col.names=T)
+write.table(baseline, paste0(out_folder, date_out, file_name, ".cgp_baseline.txt"), quote=F, sep="\t", row.names=F, col.names=T)
 
-baseline <- fread(paste0(out_folder, date_out, ".cgp_baseline.txt"), header=T, sep="\t")
+#baseline <- fread(paste0(out_folder, date_out, file_name, ".cgp_baseline.txt"), header=T, sep="\t")
 pdf(paste0(out_folder, date_out, ".cgp_baseline.pdf"), width=10, height=8)
 
 ggplot(baseline, aes(NORM_pIC50, Prediction)) + geom_point(size=0.8) +
