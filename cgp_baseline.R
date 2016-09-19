@@ -122,7 +122,7 @@ Function_cgp_weight_compounded <- function(cgp_table, target_drug, exponential=F
   output       <- data.table(cell_name  = target_table$cell_name,
                              Compound   = target_drug,
                              NORM_pIC50 = target_table$NORM_pIC50,
-                             Prediction = prediction)
+                             Prediction = predictions)
 
   output$Cor   <- cor(output$NORM_pIC50, output$Prediction)
   output$NRMSE <- Function.NRMSE(output$Prediction, output$NORM_pIC50)
