@@ -118,7 +118,6 @@ Function_cgp_weight_compounded <- function(cgp_table, target_drug, exponential=F
     return(prediction)
   })
 
-  stopCluster(cl)
   #Return formatted predictions
   output       <- data.table(cell_name  = target_table$cell_name,
                              Compound   = target_drug,
