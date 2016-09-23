@@ -52,8 +52,8 @@ in_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 out_table   <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
 
 MET.PROFILE <- readRDS(paste0(in_folder, "082316.DRUG.MET.PROFILE.rds"))
-cgp_new     <- readRDS(paste0(in_folder), "082916_cgp_new.rds")
-cgp_exp     <- readRDS(paste0(in_folder), "083016_cgp_exp.rds")
+cgp_new     <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
+cgp_exp     <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
 
 #####################################################################################################
 # EXECUTE
