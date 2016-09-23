@@ -16,12 +16,12 @@ do
 
       echo $drug $c $d
       # Build feature tables
-      cgp_baseline_mlp.R $drug $c $d
+      Rscript GIT/cgp_baseline_mlp.R $drug $c $d
       echo "Done building training sets"
 
       # Execute mlp model
       export drug c d
-      cgp_baseline_mlp.cmd
+      sbatch GIT/cgp_baseline_mlp.cmd
       echo "Done sending mlp job"
 
     done
