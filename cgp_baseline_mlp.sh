@@ -3,7 +3,8 @@
 # Produces model for most variable cell and drug features
 # across entire - target cgp data set
 
-for c in 10 20 50 100 200
+#10 20 50 100 200 300 500 750 1000
+for c in 300 500 750 1000
 do
   for d in 10 20 50 100 200
   do
