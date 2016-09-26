@@ -1,6 +1,6 @@
 #!/bin/bash
-# parallel job using 1 processor and runs for 2:00 hours:
-#SBATCH -t 1:00:00
+# parallel job using 1 processor and runs for 4:00 hours:
+#SBATCH -t 4:00:00
 #SBATCH --mem-per-cpu=6000
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
