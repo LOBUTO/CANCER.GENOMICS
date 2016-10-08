@@ -1,6 +1,7 @@
 #!/bin/bash
 # cgp_pic50_ccle_predict.sh
 # Master wrapper for python script to predict ccle drug activity using cgp models
+# DEPRECATED as python script was self sufficient
 
 module load python
 module load cudatoolkit

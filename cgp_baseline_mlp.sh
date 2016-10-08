@@ -4,10 +4,11 @@
 # across entire - target cgp data set
 
 #10 20 50 100 200 300 500 750 900
+#10 20 50 100 200
 LOG_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_BASELINE_RESULTS/log.Baseline"
-for c in 750 900
+for c in 750
 do
-  for d in 10 20 50 100 200
+  for d in 10 50 200
   do
     for drug in Dasatinib Camptothecin Mitomycin_C Imatinib Cisplatin Sunitinib Midostaurin 17-AAG \
     Gefitinib Nilotinib Doxorubicin Vorinostat Gemcitabine Cytarabine \

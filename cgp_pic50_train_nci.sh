@@ -1,5 +1,5 @@
 #cgp_pic50_train_nci.sh
-#Master script to pre training files to target specific NSC compound
+#Master script to build pre training files to target specific NSC compound
 
 Rscript /tigress/zamalloa/GIT/cgp_pic50_train_nci.R $1
 

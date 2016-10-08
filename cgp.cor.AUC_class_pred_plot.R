@@ -18,7 +18,7 @@ prediction <- prediction[, list(Accuracy=mean(ACTUAL==PREDICTED), COUNT=length(A
 prediction$BIN <- cut(prediction$COUNT, 4)
 
 #Plot across drugs
-file.name <- paste0(FIGURES, "cgp.AUC.nci60.based.predictions.pdf")
+file.name <- paste0(FIGURES, "cgp.pca.nci60.based.predictions.pdf")
 pdf(file.name, width=20, height=16)
 
 ggplot(prediction, aes(DRUG, Accuracy, fill=BIN)) + geom_bar(stat="identity", position="dodge") +
@@ -28,7 +28,7 @@ ggplot(prediction, aes(DRUG, Accuracy, fill=BIN)) + geom_bar(stat="identity", po
 dev.off()
 
 #Boxplots of accuracies across bins
-file.name <- paste0(FIGURES, "cgp.AUC.nci60.based.predictions.boxplot.pdf")
+file.name <- paste0(FIGURES, "cgp.pca.nci60.based.predictions.boxplot.pdf")
 pdf(file.name, width=16, height=12)
 
 ggplot(prediction, aes(BIN, Accuracy, fill=BIN)) + geom_boxplot() +

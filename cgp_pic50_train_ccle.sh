@@ -8,6 +8,7 @@ for drug in 17-AAG AEW541 AZD0530 AZD6244 Erlotinib Irinotecan L-685458 \
               Sorafenib TAE684 TKI258 Topotecan ZD-6474
 do
 
+  echo $drug
   Rscript /tigress/zamalloa/GIT/cgp_pic50_train_ccle.R $drug
 
   module load cudatoolkit

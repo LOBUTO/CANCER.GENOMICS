@@ -13,7 +13,7 @@ Function.NRMSE <- function(pred, actual){
 #LOAD FILES
 all_files <- list.files(path = "CGP_FILES/CGP_RESULTS/", pattern = "combined_D_values",
                         full.names = T)
-file_out <- paste0("FIGURES/CGP.MLP/", as.character(Sys.Date()), ".pdf")
+file_out  <- paste0("FIGURES/CGP.MLP/", as.character(Sys.Date()), ".pdf")
 
 ########################################################################################
 #EXECUTE

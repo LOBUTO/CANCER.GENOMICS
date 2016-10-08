@@ -40,6 +40,37 @@ Function_top_cell_drug_features_extracted <- function(feats, exp_table, met_tabl
   return(feat_table)
 }
 
+Function_randomize_cell_drug_draw <- function(feat_table, target_drug, random_cells=c(), random_compounds=c()){
+  # Function to randomly sample either cell_name or Compound attributes and return filtered down feature table
+
+  target_table <- feat_table[Compound==target_drug,]
+  feat_table   <- feat_table[Compound!=target_drug,]
+
+  all_cells    <- unique(feat_table$cell_name)
+  all_comp     <- unique(feat_table$Compound)
+
+  # Select random samples
+  if (length(random_cells)>0){
+    new_cells  <- sample(all_cells, random_cells)
+  } else {
+    new_cells  <- all_cells
+  }
+
+  if (length(random_compounds)>0){
+    new_compounds <- sample(all_comp, random_compounds)
+  } else {
+    new_compounds <- all_comp
+  }
+
+  # Obtain new feature table out of random samples
+  feat_table <- feat_table[Compound %in% new_compounds,]
+  feat_table <- feat_table[cell_name %in% new_cells,]
+
+  # Clean up and Return
+  feat_table <- rbind(feat_table, target_table)
+  return(feat_table)
+}
+
 ######################################################################################################
 # LOAD DATA
 args        <- commandArgs(trailingOnly = TRUE)

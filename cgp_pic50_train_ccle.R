@@ -6,7 +6,6 @@ Function.cgp.all.data.cor <- function(cgp.table, nci.table, target_drug) {
 
   non_target_drugs <- unique(cgp.table[Compound!=target_drug,]$Compound)
   nci_target_table <- nci.table[Compound==target_drug,]
-  print(dim(nci_target_table))
 
   count    <- 1
   total    <- length(non_target_drugs)
@@ -29,7 +28,6 @@ Function.cgp.all.data.cor <- function(cgp.table, nci.table, target_drug) {
     cgp_calc     <- cgp_calc[Var1!=Var2,]
     cgp_calc     <- merge(cgp_calc, cgp_ident, by.x="Var1", by.y="LABELS")
     cgp_calc     <- merge(cgp_calc, cgp_ident, by.x="Var2", by.y="LABELS")
-    print(dim(cgp_calc))
 
     #Cut at threshold
     cgp_calc     <- cgp_calc[Compound.x==target_drug,] #Table of all distances from each target_drug-cell pair to all others
@@ -45,7 +43,6 @@ Function.cgp.all.data.cor <- function(cgp.table, nci.table, target_drug) {
     cgp_calc     <- cgp_calc[value >= min_value,]
       # That means we are only keeping those drug-cell pairs that are similar enough as a within set drug-pair
     print(dim(cgp_calc))
-    print(unique(cgp_calc[,c("cell_name.y","Compound.y", "value", "min_value"),with=F][order(value),]))
 
     #Clean up and return
     cgp_calc$target_abs_diff <- abs(cgp_calc$NORM_pIC50.x - cgp_calc$NORM_pIC50.y)
