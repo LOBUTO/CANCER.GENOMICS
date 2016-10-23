@@ -2,6 +2,9 @@
 # Set of functions designed to analyze best potential drug features that explained activity
 
 ##################################################################################################################
+require(data.table)
+require(reshape2)
+require(ggplot2)
 
 Function_top_cell_features_extracted <- function(feats, exp_table, max_cells=10){
   # Constructs feature table using ONLY cell correlations as features, but limiting to most variable features
@@ -835,4 +838,61 @@ Function_drug_drug_target_prediction_lm_knn <- function(feat_table, target_drug,
   
   # Return
   return(rbind(lm_prediction, knn_prediction))
+}
+
+# ADD ONS
+Function_pairwise_matrix_column <- function(m, f, labels){
+  # m = Matrix where pairwise columns are desired
+  # f = Function that takes two arguments to compare and returns single scalar
+  
+  m_result <- apply(combn(ncol(m), 2), 2, function(x) f(m[,x[1]],  m[,x[2]]) )
+  
+  m_result <- cbind(data.table(t(combn(colnames(m), 2))), data.table(m = m_result))
+  setnames(m_result, labels)
+  
+  return(m_result)
+}
+
+Function_pairwise_matrix_column_for_vectors <- function(m, f, pair_labels){
+  # m = Matrix where pairwise operations on columns are desired
+  # f = Function that takes two same-length vector, applies a function and return a vector
+  
+  f_matrix <- apply(combn(ncol(m), 2), 2, function(x) f(m[,x[1]], m[,x[2]]) )
+  f_matrix <- data.table(t(f_matrix))
+  
+  f_pairs  <- data.table(t(combn(colnames(m), 2)))
+  setnames(f_pairs, pair_labels)
+  
+  f_matrix <- cbind(f_pairs, f_matrix)
+  
+  return(f_matrix)
+}
+
+Function_vector_abs_diff <- function(v_1, v_2){
+  # v_1 and v_2 are vectors of the same length
+  
+  return(abs(v_1-v_2))
+  
+}
+ 
+Function_vector_product <- function(v_1, v_2){
+  # v_1 and v_2 are vectors of the same length
+  
+  return(v_1*v_2)
+  
+}
+ 
+Function_tanimoto <- function(v1, v2, binary=T){
+  # Computes the tanimoto coefficient between two vectors
+  # Use names==T for binary vectors
+  
+  if (binary==T){
+    v_intersect <- sum((v1+v2)==2)
+  } else {
+    v_intersect <- length(intersect(v1, v2))
+  }
+  
+  tanimoto    <- v_intersect / (length(v1) + length(v2) - v_intersect)
+  
+  return(tanimoto)
 }
