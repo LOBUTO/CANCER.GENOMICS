@@ -140,7 +140,7 @@ if (met_type=="drug_cor"){
                                                           max_cells = max_cells, max_drugs = max_drugs,
                                                           pic50_class = T)
 } else if (met_type=="morgan_bits"){
-  feat_table <- Function_top_cell_morgan_features_extracted(cgp_new, cgp_exp, best_morgan,
+  feat_table <- Function_top_cell_morgan_bits_features_extracted(cgp_new, cgp_exp, best_morgan,
                                                           max_cells = max_cells, max_bits = max_drugs,
                                                           pic50_class = T)
 
