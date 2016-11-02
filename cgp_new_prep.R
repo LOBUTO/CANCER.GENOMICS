@@ -185,7 +185,8 @@ DRUGS.MET.PROFILE <- readRDS(paste0(in_folder, "082316.DRUG.MET.PROFILE.rds"))
 cgp_new       <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
 cgp_exp       <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
 morgan_bits   <- fread("/tigress/zamalloa/MORGAN_FILES/morgan_bits.txt")[radius==16 & bits==2048,]
-morgan_counts <- fread("/tigress/zamalloa/MORGAN_FILES/morgan_counts.txt")[radius==12,]
+morgan_counts <- fread("/tigress/zamalloa/MORGAN_FILES/morgan_counts.txt",
+                       colClasses = c("character", "numeric", "character", "numeric", "numeric"))[radius==12,]
 
 #################################################### EXECUTE ####################################################
 if (met_type=="drug_cor"){
@@ -223,7 +224,7 @@ if (met_type=="drug_cor"){
 } else if (met_type=="morgan_bits"){
   not_scaling <- 1:(3 + max_drugs)
   scaling     <- (max(not_scaling) + 1):ncol(feat_table)
-  
+
 } else if (met_type=="morgan_counts"){
   not_scaling <- 1:(3 + max_drugs)
   scaling     <- (max(not_scaling) + 1):ncol(feat_table)
