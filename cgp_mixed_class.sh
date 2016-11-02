@@ -9,7 +9,7 @@ do
     echo $c $d
     file_name="all_scaled_C_${c}_D_${d}"
 
-    Rscript GIT/cgp_new_prep.R $c $d $mlp_file
+    Rscript GIT/cgp_new_prep.R $c $d $file_name
 
     export file_name
     sbatch GIT/cgp_mixed_class.cmd

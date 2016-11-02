@@ -14,4 +14,4 @@
 module load cudatoolkit
 module load python
 
-THEANO_FLAGS='device=gpu' python GIT/cgp_mixed_class.py {file_name}
+THEANO_FLAGS='device=gpu' python GIT/cgp_mixed_class.py ${file_name}
