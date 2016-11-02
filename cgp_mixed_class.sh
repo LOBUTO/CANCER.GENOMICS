@@ -1,7 +1,7 @@
 #!/bin/bash
 # cgp_mixed_class.sh
 
-met_type=="morgan_bits"
+met_type="morgan_bits"
 for c in 10 20 50 100 200 500 750
 do
   for d in 32 64 128 256 512 1024 2048
