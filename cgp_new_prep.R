@@ -164,7 +164,7 @@ if (met_type=="drug_cor"){
   scaling     <- (max(not_scaling) + 1):ncol(feat_table)
 
 } else if (met_type=="morgan_bits"){
-  not_scaling <- 1:(3 + max_drug)
+  not_scaling <- 1:(3 + max_drugs)
   scaling     <- (max(not_scaling) + 1):ncol(feat_table)
 }
 
