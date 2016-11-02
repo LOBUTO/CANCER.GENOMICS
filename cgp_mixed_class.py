@@ -572,7 +572,7 @@ file_name     = sys.argv[1]
 
 IN_FOLDER="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
 
-OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CGP_BASELINE_RESULTS/" #For tigress
+OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/" #For tigress
 
 
 train_table = pd.read_csv(IN_FOLDER + file_name + "_train", sep="\t")
@@ -602,7 +602,7 @@ print NEURONS
 for drop_out in [0.5]:
 
     for l in [2]:
-        test_mlp(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=100, initial_momentum=0.5, input_p=0.2,
+        test_mlp(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=500, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
                      n_hidden=[NEURONS]*l, p=drop_out, dropout=True,
                      drug_name=file_name,
