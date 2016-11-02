@@ -116,6 +116,58 @@ Function_top_cell_morgan_bits_features_extracted <- function(feats, exp_table, m
   return(feat_table)
 }
 
+Function_top_cell_morgan_counts_features_extracted <- function(feats, exp_table, morgan_table, max_cells=10, max_counts=10, met_scaled=F, pic50_scaled=T,
+                                                      pic50_class=F){
+  # Constructs feature table using morgan bits and cell correlations as features, but limiting to most variable features
+  # Both max_cells and max_counts are based in terms of decreasing variance
+  # NOTE: Function can now be used for classification or regression
+  #       If classification is chosen, pic50-based classes are chosen (1/0), while 2 is discarded
+
+  # Extract most variable cell features
+  #cell_feat <- cor(t(scale(log(t(exp_table)))), method = "pearson") #Temporary change
+  cell_feat <- cor(cgp_exp, method = "pearson")
+  cell_var  <- data.table(cells = colnames(cell_feat),
+                          VAR   = apply(cell_feat, 2, var))
+  top_cells <- cell_var[order(-VAR),]$cells[1:max_cells]
+
+  cell_feat <- data.table(cell_feat[, top_cells], keep.rownames = T)
+  setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
+
+  # Extract most variable drug features
+  top_counts <- apply(acast(morgan_table, Compound~Substructure, value.var="Counts", fill=0), 2, var)
+  top_counts <- names(sort(top_counts, decreasing = T))[1:max_counts]
+
+  drug_feat  <- morgan_table[Substructure %in% top_counts, ]
+  drug_feat  <- acast(drug_feat, Compound~Substructure, value.var="value", fill=0)
+  drug_feat  <- data.table(drug_feat, keep.rownames = T)
+
+  setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
+
+  # Construct feature table based on classification/regression
+  if(pic50_class==F){
+
+    if(pic50_scaled==T){
+      feat_table <- feats[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
+    } else {
+      feat_table <- feats[, c("Compound", "cell_name", "pIC50"), with=F]
+    }
+
+  } else{
+    feat_table <- feats[, c("Compound", "cell_name", "pic50_class"),with=F]
+    feat_table <- feat_table[pic50_class!=2,]
+  }
+
+  setnames(feat_table, c("Compound", "cell_name", "NORM_pIC50"))
+
+  feat_table <- merge(feat_table, drug_feat, by="Compound")
+  feat_table <- merge(feat_table, cell_feat, by="cell_name")
+
+  # Clean up and return
+  setkey(feat_table)
+  feat_table <- unique(feat_table)
+  return(feat_table)
+}
+
 
 # LOAD INPUT
 args        <- commandArgs(trailingOnly = TRUE)
@@ -130,9 +182,10 @@ in_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 out_folder  <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/"
 
 DRUGS.MET.PROFILE <- readRDS(paste0(in_folder, "082316.DRUG.MET.PROFILE.rds"))
-cgp_new     <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
-cgp_exp     <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
-best_morgan <- fread("/tigress/zamalloa/MORGAN_FILES/morgan_bits.txt")[radius==16 & bits==2048,]
+cgp_new       <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
+cgp_exp       <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
+morgan_bits   <- fread("/tigress/zamalloa/MORGAN_FILES/morgan_bits.txt")[radius==16 & bits==2048,]
+morgan_counts <- fread("/tigress/zamalloa/MORGAN_FILES/morgan_counts.txt")[radius==12,]
 
 #################################################### EXECUTE ####################################################
 if (met_type=="drug_cor"){
@@ -140,10 +193,14 @@ if (met_type=="drug_cor"){
                                                           max_cells = max_cells, max_drugs = max_drugs,
                                                           pic50_class = T)
 } else if (met_type=="morgan_bits"){
-  feat_table <- Function_top_cell_morgan_bits_features_extracted(cgp_new, cgp_exp, best_morgan,
+  feat_table <- Function_top_cell_morgan_bits_features_extracted(cgp_new, cgp_exp, morgan_bits,
                                                           max_cells = max_cells, max_bits = max_drugs,
                                                           pic50_class = T)
 
+} else if (met_type=="morgan_counts"){
+  feat_table <- Function_top_cell_morgan_counts_features_extracted(cgp_new, cgp_exp, morgan_counts,
+                                                          max_cells = max_cells, max_counts = max_drugs,
+                                                          pic50_class = T)
 }
 
 # Split tables
@@ -164,6 +221,10 @@ if (met_type=="drug_cor"){
   scaling     <- (max(not_scaling) + 1):ncol(feat_table)
 
 } else if (met_type=="morgan_bits"){
+  not_scaling <- 1:(3 + max_drugs)
+  scaling     <- (max(not_scaling) + 1):ncol(feat_table)
+  
+} else if (met_type=="morgan_counts"){
   not_scaling <- 1:(3 + max_drugs)
   scaling     <- (max(not_scaling) + 1):ncol(feat_table)
 }
