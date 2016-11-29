@@ -151,15 +151,22 @@ met_type    <- args[4]
 class_mlp   <- as.logical(args[5])
 samples     <- args[6]
 
-# LOAD DATA
-in_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress
-out_folder  <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/"
+if (args[7] == "lab"){
+  in_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/" #For lab
+  in_morgan   <- "/home/zamalloa/Documents/FOLDER/MORGAN_FILES/"
+  out_folder  <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
+} else{
+  in_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress
+  in_morgan   <- "/tigress/zamalloa/MORGAN_FILES/"
+  out_folder  <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/"
+}
 
+# LOAD DATA
 DRUGS.MET.PROFILE <- readRDS(paste0(in_folder, "082316.DRUG.MET.PROFILE.rds"))
 cgp_new           <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
 cgp_exp           <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
-morgan_bits       <- fread("/tigress/zamalloa/MORGAN_FILES/morgan_bits.txt")[radius==16 & bits==2048,]
-morgan_counts     <- fread("/tigress/zamalloa/MORGAN_FILES/morgan_counts.txt",
+morgan_bits       <- fread(paste0(in_morgan, "morgan_bits.txt"))[radius==16 & bits==2048,]
+morgan_counts     <- fread(paste0(in_morgan, "morgan_counts.txt"),
                        colClasses = c("character", "numeric", "character", "numeric", "numeric"))[radius==12,]
 
 #################################################### EXECUTE ####################################################
