@@ -363,6 +363,44 @@ class Multiplicative_fusion(object):
         # Parameters of the fusion
         self.params = [self.cell_alpha, self.drug_alpha, self.cell_beta, self.drug_beta]
 
+class Multiplicative_fusion_zero_drug(object):
+    # Performs combinations of two neural layers (drug_input, cell_input) from
+    # different sources and output the Multiplicative_fusion layer along with
+    # 4 parameters to be learned.
+
+    def __init__(self, cell_input, cell_in,
+                 cell_alpha=None, cell_beta=None):
+
+        self.cell_input = cell_input
+
+        if cell_alpha is None:
+
+            cell_alpha_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            cell_alpha = theano.shared(value=cell_alpha_value, name='cell_alpha', borrow=True)
+
+        if cell_beta is None:
+
+            cell_beta_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            cell_beta = theano.shared(value=cell_beta_value, name='cell_beta', borrow=True)
+
+        self.cell_alpha = cell_alpha
+        self.cell_beta  = cell_beta
+
+        # Apply linear modifications to both input based on parameters
+        cell_output = (cell_input * self.cell_alpha) + self.cell_beta
+
+        # Apply pairwise neuron multiplication
+        # output      = T.concatenate(
+        #                               [drug_output[:, [i]] * cell_output for i in neural_range],
+        #                                axis = 1
+        #                             )
+        output      = cell_output
+        # Output
+        self.output = output
+
+        # Parameters of the fusion
+        self.params = [self.cell_alpha, self.cell_beta]
+
 def rescale_weights(params, incoming_max):
     incoming_max = np.cast[theano.config.floatX](incoming_max)
     for p in params:
@@ -725,6 +763,138 @@ class Multi_MLP_Class(object):
 
         self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
 
+class Multi_MLP_Class_Zero_Drug(object):
+    def __init__(self, rng, cell_input, is_train,
+                 cell_n_in, cell_n_hidden, fusion_n_hidden,
+                 n_out, p=0.5, dropout=False, input_p=0.1):
+
+        # PROCESS CELL INPUT FIRST
+        if input_p!=None:
+            self.cell_input_layer = drop(cell_input, rng=rng, p=input_p)
+            self.cell_input_layer = T.switch(T.neq(is_train, 0), self.cell_input_layer, cell_input)
+        else:
+            self.cell_input_layer = cell_input
+
+        param_to_scale = [] #To scale weights to square length of 15
+
+        self.cell_layer_0 = HiddenLayer(
+            rng=rng,
+            input=self.cell_input_layer,
+            n_in=cell_n_in,
+            n_out=cell_n_hidden[0],
+            activation=prelu,
+            is_train=is_train,
+            p=p,
+            dropout=dropout
+        )
+
+        self.params = self.cell_layer_0.params
+        param_to_scale = param_to_scale + [self.cell_layer_0.params[0]]
+
+        cell_layer_number = 1
+        if len(cell_n_hidden)>1:
+
+            for layer in cell_n_hidden[1:]:
+
+                current_hidden_layer = HiddenLayer(
+                                                    rng=rng,
+                                                    input=getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
+                                                    n_in=cell_n_hidden[cell_layer_number-1],
+                                                    n_out=cell_n_hidden[cell_layer_number],
+                                                    activation=prelu,
+                                                    is_train=is_train,
+                                                    p=p,
+                                                    dropout=dropout
+                                                )
+
+                setattr(self, "cell_layer_" + str(cell_layer_number), current_hidden_layer)
+
+                self.params = self.params + getattr(self, "cell_layer_" + str(cell_layer_number)).params
+
+                param_to_scale = param_to_scale + [getattr(self, "cell_layer_" + str(cell_layer_number)).params[0]]
+
+                cell_layer_number = cell_layer_number + 1
+
+
+        # APPLY FUSION
+        # Combine single output to obtain Multiplicative fusion layer
+        self.multiplicative_input = Multiplicative_fusion_zero_drug(
+            cell_input = getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
+            cell_in  = cell_n_hidden[cell_layer_number-1]
+        )
+        self.params = self.params + self.multiplicative_input.params
+
+        # PROCESS FUSION LAYERS
+        self.fusion_layer_0 = HiddenLayer(
+            rng=rng,
+            input=self.multiplicative_input.output,
+            n_in=cell_n_hidden[cell_layer_number-1],
+            n_out=fusion_n_hidden[0],
+            activation=prelu,
+            is_train=is_train,
+            p=p,
+            dropout=dropout
+        )
+
+        self.params = self.params + self.fusion_layer_0.params # Plus previous separate layer params (drug + cell + mf)
+        param_to_scale = param_to_scale + [self.fusion_layer_0.params[0]]
+
+        fusion_layer_number = 1
+        if len(fusion_n_hidden)>1:
+
+            for layer in fusion_n_hidden[1:]:
+
+                current_hidden_layer = HiddenLayer(
+                                                    rng=rng,
+                                                    input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
+                                                    n_in=fusion_n_hidden[fusion_layer_number-1],
+                                                    n_out=fusion_n_hidden[fusion_layer_number],
+                                                    activation=prelu,
+                                                    is_train=is_train,
+                                                    p=p,
+                                                    dropout=dropout
+                                                )
+
+                setattr(self, "fusion_layer_" + str(fusion_layer_number), current_hidden_layer)
+
+                self.params = self.params + getattr(self, "fusion_layer_" + str(fusion_layer_number)).params
+
+                param_to_scale = param_to_scale + [getattr(self, "fusion_layer_" + str(fusion_layer_number)).params[0]]
+
+                fusion_layer_number = fusion_layer_number + 1
+
+
+        # APPLY LOGISTIC REGRESSION
+        # The logistic regression layer gets as input the fused multiplicate_input
+        self.logRegressionLayer = LogisticRegression(
+            input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
+            n_in=fusion_n_hidden[fusion_layer_number-1],
+            n_out=n_out,
+            rng=rng
+        )
+
+        self.params = self.params + self.logRegressionLayer.params
+
+        #L1 and L2 regularization
+        self.L1 = (
+            abs(self.drug_layer_0.W).sum() + abs(self.logRegressionLayer.W).sum()
+        )
+
+        self.L2_sqr = (
+            (self.drug_layer_0.W ** 2).sum() + (self.logRegressionLayer.W ** 2).sum()
+        )
+
+        self.negative_log_likelihood = (
+            self.logRegressionLayer.negative_log_likelihood
+        )
+
+        self.errors = self.logRegressionLayer.errors
+        self.pred = self.logRegressionLayer.pred
+        self.param_to_scale = param_to_scale
+
+        self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
+
+
 def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
              datasets="datasets", train_batch_size=20,
              cell_n_hidden=[500,200,100], drug_n_hidden=[500,200,100], fusion_n_hidden = [500,200,100],
@@ -1064,10 +1234,313 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
                                 os.path.split("__file__")[1] +
                                 ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
+def class_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
+             datasets="datasets", train_batch_size=20,
+             cell_n_hidden=[500,200,100], fusion_n_hidden = [500,200,100],
+             p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"
+             ):
+
+    #Demonstrate stochastic gradient descent optimization for a multilayer
+    #perceptron for parallel drug and cell layers to Multiplicative fusion layer
+    train_cell_x, train_cell_index_x, train_set_y = datasets[0]
+    valid_cell_x, valid_cell_index_x, valid_set_y = datasets[1]
+    test_cell_x,  test_cell_index_x,  test_set_y = datasets[2]
+
+    valid_batch_size = valid_cell_index_x.eval().shape[0]
+    test_batch_size  = test_cell_index_x.eval().shape[0]
+    train_samples    = train_cell_index_x.eval().shape[0]
+
+    # Compute input layer
+    CELL_N_IN = train_cell_x.get_value(borrow=True).shape[1]
+
+    # compute number of minibatches for training, validation and testing
+    n_train_batches = train_samples / train_batch_size
+    n_valid_batches = valid_batch_size / valid_batch_size #1
+    n_test_batches  = test_batch_size / test_batch_size #1
+
+    ######################
+    # BUILD ACTUAL MODEL #
+    ######################
+    print '... building the model'
+
+    # allocate symbolic variables for the data
+    index = T.lscalar("i") # index to a [mini]batch
+    vector = T.vector("v", dtype='int32')
+    x_c = T.matrix('x_c')
+
+    y = T.ivector('y')
+
+    is_train = T.iscalar('is_train') # pseudo boolean for switching between training and prediction
+
+    rng = np.random.RandomState(1234)
+
+    # construct the MLP class
+    classifier = Multi_MLP_Class_Zero_Drug(
+        rng=rng,
+        is_train = is_train, #needed
+        cell_input = x_c, #needed
+        cell_n_in = CELL_N_IN, #calculated
+        cell_n_hidden = cell_n_hidden, #calculated
+        fusion_n_hidden = fusion_n_hidden,
+        n_out=2,
+        p=p,
+        dropout=dropout,
+        input_p=input_p
+    )
+
+    cost = (
+        classifier.negative_log_likelihood(y)
+        + L1_reg * classifier.L1
+        + L2_reg * classifier.L2_sqr
+    )
+
+    validate_model = theano.function(
+        inputs=[index],
+        outputs=classifier.negative_log_likelihood(y),
+        givens={
+            x_c: valid_cell_x[valid_cell_index_x,],
+            y: valid_set_y,
+            is_train: np.cast['int32'](0)
+        },
+        on_unused_input='warn',
+    )
+
+    test_model = theano.function(
+        inputs=[index],
+        outputs=classifier.errors(y),
+        givens={
+            x_c: test_cell_x[test_cell_index_x,],
+            y: test_set_y,
+            is_train: np.cast['int32'](0)
+        },
+        on_unused_input='warn',
+    )
+
+    test_pred = theano.function(
+        inputs=[index],
+        outputs=classifier.pred(y),
+        givens={
+            x_c: test_cell_x[test_cell_index_x,],
+            y: test_set_y,
+            is_train: np.cast['int32'](0)
+        },
+        on_unused_input='warn',
+    )
+
+    ###################################
+
+    #learning rate to shared
+    learning_rate = theano.shared(np.cast[theano.config.floatX](learning_rate) )
+
+    # momentum implementation stolen from
+    # http://nbviewer.ipython.org/github/craffel/theano-tutorial/blob/master/Theano%20Tutorial.ipynb
+    assert initial_momentum >= 0. and initial_momentum < 1.
+    momentum =theano.shared(np.cast[theano.config.floatX](initial_momentum), name='momentum', borrow=True)
+
+    # List of update steps for each parameter
+    updates = []
+    #Just gradient descent on cost
+    for param in classifier.params:
+        # For each parameter, we'll create a param_update shared variable.
+        # This variable will keep track of the parameter's update step across iterations.
+        # We initialize it to 0
+        param_update = theano.shared(param.get_value()*0., broadcastable=param.broadcastable, borrow=True)
+        # Each parameter is updated by taking a step in the direction of the gradient.
+        # However, we also "mix in" the previous step according to the given momentum value.
+        # Note that when updating param_update, we are using its old value and also the new gradient step.
+        updates.append((param, param - learning_rate*param_update))
+        # Note that we don't need to derive backpropagation to compute updates - just use T.grad!
+        updates.append((param_update, momentum*param_update + (1. - momentum)*T.grad(cost, param)/(2*train_batch_size) ))
+
+    train_model = theano.function(
+        inputs=[vector],
+        outputs=cost,
+        updates=updates,
+        givens={
+            x_c: train_cell_x[train_cell_index_x[vector],],
+            y: train_set_y[vector,],
+            is_train: np.cast['int32'](1)
+        },
+        on_unused_input='warn',
+    )
+
+    train_error = theano.function(
+        inputs=[index],
+        outputs=classifier.errors(y),
+        givens={
+            x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
+            y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
+            is_train: np.cast['int32'](0)
+        },
+        on_unused_input='warn',
+    )
+
+    ###############
+    # TRAIN MODEL #
+    ###############
+    print '... training'
+
+    # early-stopping parameters
+    patience = 18000000 # look as this many examples regardless
+
+    patience_increase = 2 # wait this much longer when a new best is found
+    improvement_threshold = 0.995 # a relative improvement of this much is considered significant (default = 0.995)
+    validation_frequency = min(n_train_batches, patience / 2)
+
+    best_validation_loss = np.inf
+    best_iter = 0
+    start_time = timeit.default_timer()
+
+    epoch = 0
+    done_looping = False
+    test_loss = 1
+    LR_COUNT = 1
+
+    FILE_OUT =  open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "w")
+    FILE_OUT.write("EPOCH" + "\t" + "TRAIN"+ "\t"+"VALID.ERROR" + "\t" + "TEST.ERROR")
+    FILE_OUT.close()
+
+    FILE_OUT_val = open(OUT_FOLDER + "/combined_D_values." + drug_name + ".txt", "w")
+    FILE_OUT_val.write("EPOCH" +"\t" + "ACTUAL" +"\t"+"PREDICTED")
+    FILE_OUT_val.close()
+
+    EPOCH_SIZE = n_train_batches
+    while (epoch < n_epochs) and (not done_looping):
+        epoch = epoch + 1
+        # print "momentum: ", momentum.get_value()
+        # print "learning rate: ", learning_rate.get_value()
+        log = "momentum: " + str(momentum.get_value()) + "; learning_rate: " + str(learning_rate.get_value())
+        with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
+            logfile.write(log + "\n")
+
+        # if LR_COUNT==1000:
+        #     new_learning_rate = learning_rate.get_value() * 0.2
+        #     print new_learning_rate
+        #     learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
+
+        #for minibatch_index in xrange(n_train_batches):
+        for minibatch_index in xrange(EPOCH_SIZE):
+
+            ran_index = list(np.random.randint(low=0, high=train_samples-1, size=train_batch_size))
+            minibatch_avg_cost = train_model(ran_index)
+
+            rescale_weights(classifier.param_to_scale, 15.)
+
+            # iteration number
+            #iter = (epoch - 1) * n_train_batches + minibatch_index
+
+            #if (iter + 1) % validation_frequency == 0:
+            if (minibatch_index + 1) % EPOCH_SIZE == 0:
+                # compute zero-one loss on validation set
+
+                validation_losses = [validate_model(i) for i in xrange(n_valid_batches)]
+                this_validation_loss = np.mean(validation_losses)
+
+                this_train_error = [train_error(i) for i in xrange(n_train_batches)]
+                this_train_error = np.mean(this_train_error)
+
+
+                log = ('epoch %i, minibatch %i/%i, train error %f ,validation error %f %%' %
+                    (
+                        epoch,
+                        minibatch_index + 1,
+                        EPOCH_SIZE,
+                        this_train_error ,
+                        this_validation_loss
+                    ))
+                # print(log)
+                with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
+                    logfile.write(log + "\n")
+
+                with open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "a") as FILE_OUT:
+                    FILE_OUT.write("\n"+ str(epoch) + "\t" + str(this_train_error) + "\t"+ str(this_validation_loss) \
+                                   + "\t" + str(test_loss))
+
+                # if we got the best validation score until now
+                if this_validation_loss < best_validation_loss:
+                    LR_COUNT = 0
+
+                    #improve patience if loss improvement is good enough
+                    # if (
+                    #     this_validation_loss < best_validation_loss *
+                    #     improvement_threshold
+                    # ):
+                    #     patience = max(patience, iter * patience_increase)
+
+                    best_validation_loss = this_validation_loss
+                    best_iter = iter
+
+                    # test it on the test set
+                    test_losses = [test_model(i) for i in xrange(n_test_batches)]
+                    test_loss = np.mean(test_losses)
+
+                    log = ((' epoch %i, minibatch %i/%i, test error of '
+                        'best loss %f %%') %
+                        (epoch, minibatch_index + 1, EPOCH_SIZE, test_loss))
+                    # print(log)
+                    with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
+                        logfile.write(log + "\n")
+
+                    #ONLY SAVE MODEL if validation improves
+                    MODEL = {}
+                    MODEL["cell_n_hidden"]   = [getattr(classifier, "cell_layer_" + str(e)) for e in xrange(len(cell_n_hidden))]
+                    MODEL["multiplicative"]  = classifier.multiplicative_input
+                    MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
+                    MODEL["logistic"]        = classifier.logRegressionLayer
+
+                    # MODEL = []
+                    # for e in xrange(len(cell_n_hidden)):
+                    #     MODEL = MODEL + [getattr(classifier, "cell_layer_" + str(e))]
+                    # for e in xrange(len(drug_n_hidden)):
+                    #     MODEL = MODEL + [getattr(classifier, "drug_layer_" + str(e))]
+                    # for e in xrange(len(fusion_n_hidden)):
+                    #     MODEL = MODEL + [getattr(classifier, "fusion_layer_" + str(e))]
+                    #
+                    # MODEL = MODEL + [classifier.logRegressionLayer]
+                    with open(OUT_FOLDER + "/" + drug_name + ".pkl", "wb") as f:
+                        cPickle.dump(MODEL, f)
+
+                    #Only write if validation improvement
+                    ACTUAL = test_set_y.eval()
+                    PREDICTED = [test_pred(i) for i in xrange(n_test_batches)][0]
+
+                    with open(OUT_FOLDER + "/combined_D_values." + drug_name + ".txt", "a") as FILE_OUT_val:
+                        for l in xrange(len(ACTUAL)):
+                            FILE_OUT_val.write("\n" + str(epoch) + "\t" + str(ACTUAL[l]) + "\t" + str(PREDICTED[l]))
+                else:
+                    LR_COUNT = LR_COUNT+1
+
+            # if patience <= iter:
+            #     done_looping = True
+            #     break
+            # if LR_COUNT==100:
+            #     done_looping = True
+            #     break
+
+        # adaption of momentum
+        if momentum.get_value() < 0.99:
+            new_momentum = 1. - (1. - momentum.get_value()) * 0.999
+            momentum.set_value(np.cast[theano.config.floatX](new_momentum))
+        # adaption of learning rate
+        new_learning_rate = learning_rate.get_value() * 0.998
+        learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
+        # if epoch%500 == 0:
+        #     new_learning_rate = learning_rate.get_value() * 0.1
+        #     learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
+
+    end_time = timeit.default_timer()
+
+    print(('Optimization complete. Best validation score of %f %% '
+            'obtained at iteration %i, with test performance %f %%') %
+            (best_validation_loss, best_iter + 1, test_loss ))
+
+    print >> sys.stderr, ('The code for file ' +
+                                os.path.split("__file__")[1] +
+                                ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
 def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
              datasets="datasets", train_batch_size=20,
-             cell_n_hidden=[500,200,100], drug_n_hidden=[500,200,100], fusion_n_hidden = [500,200,100],
+             cell_n_hidden=[500,200,100], drug_n_hidden=[500,200,100], mf_manual="None", fusion_n_hidden = [500,200,100],
              p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"
              ):
 
@@ -1092,12 +1565,21 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
 
     # compute fusion neural range
     #neural_range = range(drug_n_hidden[-1])
-    neural_range  = min([cell_n_hidden[-1], drug_n_hidden[-1]])
-    if neural_range == cell_n_hidden[-1]:
-        drug_n_hidden = drug_n_hidden + [neural_range] # In place modification!!!
-    else :
-        cell_n_hidden = cell_n_hidden + [neural_range] # In place modification!!!
+    if mf_manual=="None":
 
+        if cell_n_hidden[-1] != drug_n_hidden[-1]:
+
+            neural_range  = min([cell_n_hidden[-1], drug_n_hidden[-1]])
+            if neural_range == cell_n_hidden[-1]:
+                drug_n_hidden = drug_n_hidden + [neural_range] # In place modification!!!
+            else :
+                cell_n_hidden = cell_n_hidden + [neural_range] # In place modification!!!
+        else:
+            neural_range = cell_n_hidden[-1]
+    else:
+        neural_range  = mf_manual
+        drug_n_hidden = drug_n_hidden + [mf_manual]
+        cell_n_hidden = cell_n_hidden + [mf_manual]
     ######################
     # BUILD ACTUAL MODEL #
     ######################
@@ -1391,40 +1873,32 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
 
 def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True):
 
-    drug_data  = drug_data.iloc[:,1:]
-    cell_data  = cell_data.iloc[:,1:]
-
-    drug_index = list(index_data.drug)
-    cell_index = list(index_data.cell)
-    data_y     = list(index_data.NORM_pIC50)
-
-    # if target=="AUC":
-    #     data_y=list(drug_data.NORM_AUC)
-    # elif target=="pIC50":
-    #     data_y=list(drug_data.NORM_pIC50)
-    # elif target=="IC50":
-    #     data_y=list(drug_data.NORM_IC50)
-    # elif target=="LIVED":
-    #     data_y=list(drug_data.LIVED)
-    # elif target=="CLASS":
-    #     data_y=list(drug_data.CLASS)
-    # elif target=="PCA":
-    #     data_y=list(drug_data.PCA)
-
-    shared_drug_x = theano.shared(np.asarray(drug_data, dtype=theano.config.floatX), borrow=True)
+    cell_data     = cell_data.iloc[:,1:]
+    cell_index    = list(index_data.cell)
     shared_cell_x = theano.shared(np.asarray(cell_data, dtype=theano.config.floatX), borrow=True)
-    shared_drug_i = theano.shared(np.asarray(drug_index, dtype=theano.config.floatX), borrow=True)
     shared_cell_i = theano.shared(np.asarray(cell_index, dtype=theano.config.floatX), borrow=True)
-
-    shared_drug_i = T.cast(shared_drug_i, 'int32')
     shared_cell_i = T.cast(shared_cell_i, 'int32')
 
-    shared_y = theano.shared(np.asarray(data_y, dtype=theano.config.floatX), borrow=True)
+    data_y     = list(index_data.NORM_pIC50)
+    shared_y   = theano.shared(np.asarray(data_y, dtype=theano.config.floatX), borrow=True)
 
-    if integers==True:
-        return shared_drug_x, shared_cell_x, shared_drug_i, shared_cell_i, T.cast(shared_y, 'int32')
+    if drug_data!="":
+        drug_data     = drug_data.iloc[:,1:]
+        drug_index    = list(index_data.drug)
+        shared_drug_x = theano.shared(np.asarray(drug_data, dtype=theano.config.floatX), borrow=True)
+        shared_drug_i = theano.shared(np.asarray(drug_index, dtype=theano.config.floatX), borrow=True)
+        shared_drug_i = T.cast(shared_drug_i, 'int32')
+
+        if integers==True:
+            return shared_drug_x, shared_cell_x, shared_drug_i, shared_cell_i, T.cast(shared_y, 'int32')
+        else:
+            return shared_drug_x, shared_cell_x, shared_drug_i, shared_cell_i, shared_y
+
     else:
-        return shared_drug_x, shared_cell_x, shared_drug_i, shared_cell_i, shared_y
+        if integers==True:
+            return shared_cell_x, shared_cell_i, T.cast(shared_y, 'int32')
+        else:
+            return shared_cell_x, shared_cell_i, shared_y
 
 ####################################################################################################################################################################################################
 ####################################################################################################################################################################################################
@@ -1441,35 +1915,59 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
 n_epochs = 1200
 out_file = sys.argv[1]
 
-DRUG_STD     = int(sys.argv[6]) * 2/3
-DRUG_THIRD   = int(sys.argv[6]) * 1/3
-DRUG_SQRT    = int(round(np.sqrt(int(sys.argv[6]))))
-if sys.argv[2]   == "sqrt":
-    d_neurons    = [DRUG_SQRT]*2
-elif sys.argv[2] == "std_sqrt":
-    d_neurons    = [DRUG_STD, DRUG_SQRT]
-elif sys.argv[2] == "std_third_sqrt":
-    d_neurons    = [DRUG_STD, DRUG_THIRD, DRUG_SQRT]
-elif sys.argv[2] == "std_third":
-    d_neurons    = [DRUG_STD, DRUG_THIRD]
-else :
-    DRUG_NEURONS = int(sys.argv[2])
-    d_neurons    = [DRUG_NEURONS]*2
+if sys.argv[6] != "0":
 
+    DRUG_ALL     = int(sys.argv[6])
+    DRUG_STD     = int(sys.argv[6]) * 2/3
+    DRUG_THIRD   = int(sys.argv[6]) * 1/3
+    DRUG_SQRT    = int(round(np.sqrt(int(sys.argv[6]))))
+    DRUG_50      = int(sys.argv[6]) * 3/2
+
+    if sys.argv[2][:6] == "manual":
+        d_neurons    = [int(x) for x in sys.argv[2].split("_")[1:]]
+    elif sys.argv[2]   == "sqrt":
+        d_neurons    = [DRUG_SQRT]*2
+    elif sys.argv[2] == "std_sqrt":
+        d_neurons    = [DRUG_STD, DRUG_SQRT]
+    elif sys.argv[2] == "std_std":
+        d_neurons    = [DRUG_STD, DRUG_STD]
+    elif sys.argv[2] == "std_third_sqrt":
+        d_neurons    = [DRUG_STD, DRUG_THIRD, DRUG_SQRT]
+    elif sys.argv[2] == "std_third":
+        d_neurons    = [DRUG_STD, DRUG_THIRD]
+    elif sys.argv[2] == "all":
+        d_neurons    = [DRUG_ALL, DRUG_ALL]
+    elif sys.argv[2] == "1_50":
+        d_neurons    = [DRUG_50, DRUG_50]
+    else :
+        DRUG_NEURONS = int(sys.argv[2])
+        d_neurons    = [DRUG_NEURONS]*1
+
+CELL_ALL     = int(sys.argv[7])
 CELL_STD     = int(sys.argv[7]) * 2/3
 CELL_THIRD   = int(sys.argv[7]) * 1/3
 CELL_SQRT    = int(round(np.sqrt(int(sys.argv[7]))))
-if sys.argv[3] == "sqrt":
+CELL_50      = int(sys.argv[7]) * 3/2
+
+if sys.argv[3][:6] == "manual":
+    c_neurons    = [int(x) for x in sys.argv[3].split("_")[1:]]
+elif sys.argv[3] == "sqrt":
     c_neurons    = [CELL_SQRT]*2
 elif sys.argv[3] == "std_sqrt":
     c_neurons    = [CELL_STD, CELL_SQRT]
+elif sys.argv[3] == "std_std":
+    c_neurons    = [CELL_STD, CELL_STD]
 elif sys.argv[3] == "std_third_sqrt":
     c_neurons    = [CELL_STD, CELL_THIRD, CELL_SQRT]
 elif sys.argv[3] == "std_third":
     c_neurons    = [CELL_STD, CELL_THIRD]
+elif sys.argv[3] == "all":
+    c_neurons    = [CELL_ALL, CELL_ALL]
+elif sys.argv[3] == "1_50":
+    c_neurons    = [CELL_50, CELL_50]
 else :
     CELL_NEURONS = int(sys.argv[3])
-    c_neurons    = [CELL_NEURONS]*2
+    c_neurons    = [CELL_NEURONS]*1
 
 FUSION_NEURONS = int(sys.argv[4])
 
@@ -1478,15 +1976,20 @@ if sys.argv[5] == "T":
 else:
     class_mlp = False
 
+if len(sys.argv)==9:
+    mf_manual = int(sys.argv[8])
+else:
+    mf_manual = "None"
+
 #OBTAIN FILES
 file_name     = sys.argv[1]
 
 IN_FOLDER="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
-IN_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
+# IN_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
 
 if class_mlp is True:
     OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/" #For tigress
-    OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/CLASS_RESULTS/"
+#    OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/CLASS_RESULTS/"
 else:
     OUT_FOLDER="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/" #For tigress
 
@@ -1502,37 +2005,63 @@ test_drug   = pd.read_csv(IN_FOLDER + file_name + "_test_drug", sep="\t")
 test_cell   = pd.read_csv(IN_FOLDER + file_name + "_test_cell", sep="\t")
 test_index  = pd.read_csv(IN_FOLDER + file_name + "_test_index", sep="\t")
 
-train_drug, train_cell, train_drug_index, train_cell_index, train_set_y = shared_drug_dataset_IC50_mf(train_drug, train_cell, train_index, integers=class_mlp)
-valid_drug, valid_cell, valid_drug_index, valid_cell_index, valid_set_y = shared_drug_dataset_IC50_mf(valid_drug, valid_cell, valid_index, integers=class_mlp)
-test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf(test_drug,  test_cell,  test_index, integers=class_mlp)
+# EXECUTE LEARNING - Do we have any drug features?
+if sys.argv[6] != "0":
 
-drugval = [(train_drug, train_cell, train_drug_index, train_cell_index, train_set_y),
-           (valid_drug, valid_cell, valid_drug_index, valid_cell_index, valid_set_y),
-           (test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y)]
+    train_drug, train_cell, train_drug_index, train_cell_index, train_set_y = shared_drug_dataset_IC50_mf(train_drug, train_cell, train_index, integers=class_mlp)
+    valid_drug, valid_cell, valid_drug_index, valid_cell_index, valid_set_y = shared_drug_dataset_IC50_mf(valid_drug, valid_cell, valid_index, integers=class_mlp)
+    test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf(test_drug,  test_cell,  test_index, integers=class_mlp)
 
-#DEEP LEARNING WITHOUT DROPOUT
-train_samples = train_drug_index.eval().shape[0]
+    drugval = [(train_drug, train_cell, train_drug_index, train_cell_index, train_set_y),
+               (valid_drug, valid_cell, valid_drug_index, valid_cell_index, valid_set_y),
+               (test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y)]
 
-for drop_out in [0.5]:
+    #DEEP LEARNING WITHOUT DROPOUT
+    train_samples = train_drug_index.eval().shape[0]
 
-    for l in [2]:
+    if class_mlp is True:
 
-        if class_mlp is True:
+        class_mlp_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
+                     datasets=drugval, train_batch_size=50,
+                     cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*1,
+                     p=0.5, dropout=True,
+                     drug_name=out_file,
+                     OUT_FOLDER = OUT_FOLDER)
+    else:
 
-            class_mlp_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
-                         datasets=drugval, train_batch_size=50,
-                         cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, fusion_n_hidden = [FUSION_NEURONS]*1,
-                         p=drop_out, dropout=True,
-                         drug_name=out_file,
-                         OUT_FOLDER = OUT_FOLDER)
-        else:
+        regression_mlp_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
+                     datasets=drugval, train_batch_size=50,
+                     cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, fusion_n_hidden = [FUSION_NEURONS]*1,
+                     p=0.5, dropout=True,
+                     drug_name=out_file,
+                     OUT_FOLDER = OUT_FOLDER)
+else:
 
-            regression_mlp_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
-                         datasets=drugval, train_batch_size=50,
-                         cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, fusion_n_hidden = [FUSION_NEURONS]*1,
-                         p=drop_out, dropout=True,
-                         drug_name=out_file,
-                         OUT_FOLDER = OUT_FOLDER)
+    train_cell, train_cell_index, train_set_y = shared_drug_dataset_IC50_mf("", train_cell, train_index, integers=class_mlp)
+    valid_cell, valid_cell_index, valid_set_y = shared_drug_dataset_IC50_mf("", valid_cell, valid_index, integers=class_mlp)
+    test_cell,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf("",  test_cell,  test_index, integers=class_mlp)
+
+    drugval = [(train_cell, train_cell_index, train_set_y),
+               (valid_cell, valid_cell_index, valid_set_y),
+               (test_cell,  test_cell_index,  test_set_y)]
+
+    #DEEP LEARNING WITHOUT DROPOUT
+    if class_mlp is True:
+
+        class_mlp_mf_zero_drug(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
+                     datasets=drugval, train_batch_size=50,
+                     cell_n_hidden=c_neurons, fusion_n_hidden = [FUSION_NEURONS]*1,
+                     p=0.5, dropout=True,
+                     drug_name=out_file,
+                     OUT_FOLDER = OUT_FOLDER)
+    else:
+
+        regression_mlp_mf_zero_drug(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
+                     datasets=drugval, train_batch_size=50,
+                     cell_n_hidden=c_neurons, fusion_n_hidden = [FUSION_NEURONS]*1,
+                     p=0.5, dropout=True,
+                     drug_name=out_file,
+                     OUT_FOLDER = OUT_FOLDER)
 
 
 print "DONE"
