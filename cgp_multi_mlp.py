@@ -1993,20 +1993,21 @@ if class_mlp is True:
 else:
     OUT_FOLDER="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/" #For tigress
 
-train_drug  = pd.read_csv(IN_FOLDER + file_name + "_train_drug", sep="\t")
-train_cell  = pd.read_csv(IN_FOLDER + file_name + "_train_cell", sep="\t")
-train_index = pd.read_csv(IN_FOLDER + file_name + "_train_index", sep="\t")
-
-valid_drug  = pd.read_csv(IN_FOLDER + file_name + "_valid_drug", sep="\t")
-valid_cell  = pd.read_csv(IN_FOLDER + file_name + "_valid_cell", sep="\t")
-valid_index = pd.read_csv(IN_FOLDER + file_name + "_valid_index", sep="\t")
-
-test_drug   = pd.read_csv(IN_FOLDER + file_name + "_test_drug", sep="\t")
-test_cell   = pd.read_csv(IN_FOLDER + file_name + "_test_cell", sep="\t")
-test_index  = pd.read_csv(IN_FOLDER + file_name + "_test_index", sep="\t")
 
 # EXECUTE LEARNING - Do we have any drug features?
 if sys.argv[6] != "0":
+
+    train_drug  = pd.read_csv(IN_FOLDER + file_name + "_train_drug", sep="\t")
+    train_cell  = pd.read_csv(IN_FOLDER + file_name + "_train_cell", sep="\t")
+    train_index = pd.read_csv(IN_FOLDER + file_name + "_train_index", sep="\t")
+
+    valid_drug  = pd.read_csv(IN_FOLDER + file_name + "_valid_drug", sep="\t")
+    valid_cell  = pd.read_csv(IN_FOLDER + file_name + "_valid_cell", sep="\t")
+    valid_index = pd.read_csv(IN_FOLDER + file_name + "_valid_index", sep="\t")
+
+    test_drug   = pd.read_csv(IN_FOLDER + file_name + "_test_drug", sep="\t")
+    test_cell   = pd.read_csv(IN_FOLDER + file_name + "_test_cell", sep="\t")
+    test_index  = pd.read_csv(IN_FOLDER + file_name + "_test_index", sep="\t")
 
     train_drug, train_cell, train_drug_index, train_cell_index, train_set_y = shared_drug_dataset_IC50_mf(train_drug, train_cell, train_index, integers=class_mlp)
     valid_drug, valid_cell, valid_drug_index, valid_cell_index, valid_set_y = shared_drug_dataset_IC50_mf(valid_drug, valid_cell, valid_index, integers=class_mlp)
@@ -2036,6 +2037,15 @@ if sys.argv[6] != "0":
                      drug_name=out_file,
                      OUT_FOLDER = OUT_FOLDER)
 else:
+
+    train_cell  = pd.read_csv(IN_FOLDER + file_name + "_train_cell", sep="\t")
+    train_index = pd.read_csv(IN_FOLDER + file_name + "_train_index", sep="\t")
+
+    valid_cell  = pd.read_csv(IN_FOLDER + file_name + "_valid_cell", sep="\t")
+    valid_index = pd.read_csv(IN_FOLDER + file_name + "_valid_index", sep="\t")
+
+    test_cell   = pd.read_csv(IN_FOLDER + file_name + "_test_cell", sep="\t")
+    test_index  = pd.read_csv(IN_FOLDER + file_name + "_test_index", sep="\t")
 
     train_cell, train_cell_index, train_set_y = shared_drug_dataset_IC50_mf("", train_cell, train_index, integers=class_mlp)
     valid_cell, valid_cell_index, valid_set_y = shared_drug_dataset_IC50_mf("", valid_cell, valid_index, integers=class_mlp)
