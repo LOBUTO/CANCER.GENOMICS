@@ -25,21 +25,24 @@ Function_top_cell_drug_features_extracted <- function(feats, exp_table, met_tabl
   setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
 
   # Extract most variable drug features - is met scaling necessary?
-  if (met_scaled==T){
-    met_table[, SD:=sd(TC), by ="METABOLITE"]
-    met_table <- met_table[SD!=0,]
-    met_table <- met_table[, 1:3, with=F]
+  if (max_drugs > 0){
 
-    met_table <- met_table[, TC := scale(TC), by="METABOLITE"]
+    if (met_scaled==T){
+      met_table[, SD:=sd(TC), by ="METABOLITE"]
+      met_table <- met_table[SD!=0,]
+      met_table <- met_table[, 1:3, with=F]
+
+      met_table <- met_table[, TC := scale(TC), by="METABOLITE"]
+    }
+
+    drug_feat <- cor(acast(met_table, METABOLITE~DRUG, value.var = "TC"), method = "pearson")
+    drug_var  <- data.table(drugs = colnames(drug_feat),
+                            VAR   = apply(drug_feat, 2, var))
+    top_drugs <- drug_var[order(-VAR),]$drugs[1:max_drugs]
+
+    drug_feat <- data.table(drug_feat[, top_drugs], keep.rownames = T)
+    setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
   }
-
-  drug_feat <- cor(acast(met_table, METABOLITE~DRUG, value.var = "TC"), method = "pearson")
-  drug_var  <- data.table(drugs = colnames(drug_feat),
-                          VAR   = apply(drug_feat, 2, var))
-  top_drugs <- drug_var[order(-VAR),]$drugs[1:max_drugs]
-
-  drug_feat <- data.table(drug_feat[, top_drugs], keep.rownames = T)
-  setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
 
   # Construct feature table based on classification/regression
   if(pic50_class==F){
@@ -57,8 +60,10 @@ Function_top_cell_drug_features_extracted <- function(feats, exp_table, met_tabl
 
   setnames(feat_table, c("Compound", "cell_name", "NORM_pIC50"))
 
+  if (max_drugs > 0){
+    feat_table <- merge(feat_table, drug_feat, by="Compound")
+  }
   feat_table <- merge(feat_table, cell_feat, by="cell_name")
-  feat_table <- merge(feat_table, drug_feat, by="Compound")
 
   # Clean up and return
   setkey(feat_table)
@@ -84,12 +89,14 @@ Function_top_cell_morgan_bits_features_extracted <- function(feats, exp_table, m
   setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
 
   # Extract most variable drug features
-  top_bits  <- morgan_table[,list(VAR = var(value)), by="bit_pos"][order(-VAR)]$bit_pos[1:max_bits]
-  drug_feat <- morgan_table[bit_pos %in% top_bits, ]
-  drug_feat <- acast(drug_feat, Compound~bit_pos, value.var="value")
-  drug_feat <- data.table(drug_feat, keep.rownames = T)
+  if (max_bits > 0){
+    top_bits  <- morgan_table[,list(VAR = var(value)), by="bit_pos"][order(-VAR)]$bit_pos[1:max_bits]
+    drug_feat <- morgan_table[bit_pos %in% top_bits, ]
+    drug_feat <- acast(drug_feat, Compound~bit_pos, value.var="value")
+    drug_feat <- data.table(drug_feat, keep.rownames = T)
 
-  setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
+    setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
+  }
 
   # Construct feature table based on classification/regression
   if(pic50_class==F){
@@ -107,7 +114,9 @@ Function_top_cell_morgan_bits_features_extracted <- function(feats, exp_table, m
 
   setnames(feat_table, c("Compound", "cell_name", "NORM_pIC50"))
 
-  feat_table <- merge(feat_table, drug_feat, by="Compound")
+  if (max_bits > 0){
+    feat_table <- merge(feat_table, drug_feat, by="Compound")
+  }
   feat_table <- merge(feat_table, cell_feat, by="cell_name")
 
   # Clean up and return
@@ -133,15 +142,17 @@ Function_top_cell_morgan_counts_features_extracted <- function(feats, exp_table,
   cell_feat <- data.table(cell_feat[, top_cells], keep.rownames = T)
   setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
 
-  # Extract most variable drug features
-  top_counts <- apply(acast(morgan_table, Compound~Substructure, value.var="Counts", fill=0), 2, var)
-  top_counts <- names(sort(top_counts, decreasing = T))[1:max_counts]
+  # Extract most variable drug features (if needed)
+  if (max_counts > 0 ){
+    top_counts <- apply(acast(morgan_table, Compound~Substructure, value.var="Counts", fill=0), 2, var)
+    top_counts <- names(sort(top_counts, decreasing = T))[1:max_counts]
 
-  drug_feat  <- morgan_table[Substructure %in% top_counts, ]
-  drug_feat  <- acast(drug_feat, Compound~Substructure, value.var="value", fill=0)
-  drug_feat  <- data.table(drug_feat, keep.rownames = T)
+    drug_feat  <- morgan_table[Substructure %in% top_counts, ]
+    drug_feat  <- acast(drug_feat, Compound~Substructure, value.var="Counts", fill=0)
+    drug_feat  <- data.table(drug_feat, keep.rownames = T)
 
-  setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
+    setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
+  }
 
   # Construct feature table based on classification/regression
   if(pic50_class==F){
@@ -159,7 +170,9 @@ Function_top_cell_morgan_counts_features_extracted <- function(feats, exp_table,
 
   setnames(feat_table, c("Compound", "cell_name", "NORM_pIC50"))
 
-  feat_table <- merge(feat_table, drug_feat, by="Compound")
+  if (max_counts >0 ){
+    feat_table <- merge(feat_table, drug_feat, by="Compound")
+  }
   feat_table <- merge(feat_table, cell_feat, by="cell_name")
 
   # Clean up and return
@@ -168,7 +181,6 @@ Function_top_cell_morgan_counts_features_extracted <- function(feats, exp_table,
   return(feat_table)
 }
 
-
 # LOAD INPUT
 args        <- commandArgs(trailingOnly = TRUE)
 
@@ -176,6 +188,8 @@ max_cells   <- as.numeric(args[1])
 max_drugs   <- as.numeric(args[2])
 file_name   <- args[3]
 met_type    <- args[4]
+class_mlp   <- as.logical(args[5])
+samples     <- args[6]
 
 # LOAD DATA
 in_folder   <- "/tigress/zamalloa/CGP_FILES/" #For tigress
@@ -192,29 +206,44 @@ morgan_counts <- fread("/tigress/zamalloa/MORGAN_FILES/morgan_counts.txt",
 if (met_type=="drug_cor"){
   feat_table <- Function_top_cell_drug_features_extracted(cgp_new, cgp_exp, DRUGS.MET.PROFILE,
                                                           max_cells = max_cells, max_drugs = max_drugs,
-                                                          pic50_class = T)
+                                                          pic50_class = class_mlp, pic50_scaled = T)
 } else if (met_type=="morgan_bits"){
   feat_table <- Function_top_cell_morgan_bits_features_extracted(cgp_new, cgp_exp, morgan_bits,
                                                           max_cells = max_cells, max_bits = max_drugs,
-                                                          pic50_class = T)
+                                                          pic50_class = class_mlp, pic50_scaled = T)
 
 } else if (met_type=="morgan_counts"){
   feat_table <- Function_top_cell_morgan_counts_features_extracted(cgp_new, cgp_exp, morgan_counts,
                                                           max_cells = max_cells, max_counts = max_drugs,
-                                                          pic50_class = T)
+                                                          pic50_class = class_mlp, pic50_scaled = T)
 }
 
-# Split tables
-set.seed(1234)
-train_rows   <- sample(1:nrow(feat_table), nrow(feat_table)*0.7)
-testing_rows <- setdiff(1:nrow(feat_table), train_rows)
-set.seed(1234)
-valid_rows   <- sample(testing_rows, length(testing_rows)*0.5)
-test_rows    <- setdiff(testing_rows, valid_rows)
+# Split tables depending on all or drug samples
+if (samples == "all"){
 
-train_table  <- feat_table[train_rows,]
-valid_table  <- feat_table[valid_rows,]
-test_table   <- feat_table[test_rows,]
+  set.seed(1234)
+  train_rows    <- sample(1:nrow(feat_table), nrow(feat_table)*0.7)
+  testing_rows  <- setdiff(1:nrow(feat_table), train_rows)
+  set.seed(1234)
+  valid_rows    <- sample(testing_rows, length(testing_rows)*0.5)
+  test_rows     <- setdiff(testing_rows, valid_rows)
+
+  train_table   <- feat_table[train_rows, ]
+  valid_table   <- feat_table[valid_rows, ]
+  test_table    <- feat_table[test_rows, ]
+
+} else {
+  testing_table <- feat_table[Compound!=samples, ]
+  test_table    <- feat_table[Compound==samples, ]
+
+  set.seed(1234)
+  train_rows    <- sample(1:nrow(testing_table), nrow(testing_table)*0.7)
+  valid_rows    <- setdiff(1:nrow(testing_table), train_rows)
+
+  train_table   <- testing_table[train_rows, ]
+  valid_table   <- testing_table[valid_rows, ]
+}
+
 
 # Scale tables with respect to training set
 if (met_type=="drug_cor"){

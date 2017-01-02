@@ -1,6 +1,6 @@
 #!/bin/bash
 # parallel job using 1 processor and runs for 4:00 hours:
-#SBATCH -t 10:00:00
+#SBATCH -t 40:00:00
 #SBATCH --mem-per-cpu=8000
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
@@ -11,7 +11,8 @@
 # address.
 #SBATCH --mail-user=zamalloa@princeton.edu
 
-module load cudatoolkit
+module load cudatoolkit/8.0
+module load cudann
 module load python
 
-THEANO_FLAGS='device=gpu' python GIT/cgp_mixed_class.py ${file_name}
+THEANO_FLAGS='mode=FAST_RUN,allow_gc=False,linker=c,device=gpu,lib.cnmem=1,floatX=float32,nvcc.fastmath=True' python ${script_name} ${file_name}

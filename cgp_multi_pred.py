@@ -10,6 +10,7 @@ import theano
 import cPickle
 import itertools
 import theano.tensor as T
+from theano.tensor.nnet import relu
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 def pear (x, y):
@@ -252,12 +253,6 @@ def drop(input, rng, p=0.5):
     mask = srng.binomial(n=1, p=1.-p, size=input.shape)
     return input * T.cast(mask, theano.config.floatX) / (1.-p)
 
-def relu(x):
-    return theano.tensor.switch(x<0, 0, x)
-
-def prelu(x, alpha):
-    return theano.tensor.switch(x<0, alpha*x, x)
-
 class HiddenLayer(object):
     def __init__(self, rng, is_train, input, n_in, n_out, W=None, b=None, alpha=None,
                  activation=T.tanh, p=0.5, dropout=False):
@@ -284,7 +279,7 @@ class HiddenLayer(object):
             b = theano.shared(value=b_values, name='b', borrow=True)
 
         if alpha is None:
-            alpha_value = np.full((n_out), .1,  dtype=theano.config.floatX)
+            alpha_value = np.full((n_out), .3,  dtype=theano.config.floatX)
             alpha = theano.shared(value=alpha_value, name='alpha', borrow=True)
 
         self.W = W
@@ -292,10 +287,23 @@ class HiddenLayer(object):
         self.alpha = alpha
 
         lin_output = T.dot(input, self.W) + self.b
-        output = (
-            lin_output if activation is None
-            else activation(lin_output, self.alpha)
-        )
+        # if (activation == T.tanh) or (activation == relu):
+        #     output = activation(lin_output)
+        #     self.params = [self.W, self.b]
+        #
+        # elif activation == prelu:
+        #     output = activation(lin_output, self.alpha)
+        #     self.params = [self.W, self.b, self.alpha]
+        # else:
+        #     output = lin_output
+
+        output = activation(lin_output, self.alpha)
+        self.params = [self.W, self.b, self.alpha]
+
+        # output = (
+        #     lin_output if activation is None
+        #     else activation(lin_output, self.alpha)
+        # )
 
         #Is droput necessary?
         if dropout==True:
@@ -305,7 +313,10 @@ class HiddenLayer(object):
             self.output = output
 
         # parameters of the model
-        self.params = [self.W, self.b, self.alpha]
+        # if activation == prelu:
+        #     self.params = [self.W, self.b, self.alpha]
+        # else:
+        #     self.params = [self.W, self.b]
 
 class Multiplicative_fusion(object):
     # Performs combinations of two neural layers (drug_input, cell_input) from
@@ -549,11 +560,13 @@ class Multi_MLP_Regression(object):
 class Multi_MLP_Class(object):
     def __init__(self, rng, cell_input, drug_input, is_train,
                  cell_n_in, drug_n_in, cell_n_hidden, drug_n_hidden, fusion_n_hidden, neural_range,
-                 n_out, p=0.5, dropout=False, input_p=0.1):
+                 n_out,
+                 cell_p=0.5, cell_dropout=False, cell_input_p=0.1,
+                 drug_p=0.5, drug_dropout=False, drug_input_p=0.1):
 
         # PROCESS CELL INPUT FIRST
-        if input_p!=None:
-            self.cell_input_layer = drop(cell_input, rng=rng, p=input_p)
+        if cell_input_p!=None:
+            self.cell_input_layer = drop(cell_input, rng=rng, p=cell_input_p)
             self.cell_input_layer = T.switch(T.neq(is_train, 0), self.cell_input_layer, cell_input)
         else:
             self.cell_input_layer = cell_input
@@ -565,10 +578,10 @@ class Multi_MLP_Class(object):
             input=self.cell_input_layer,
             n_in=cell_n_in,
             n_out=cell_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
-            p=p,
-            dropout=dropout
+            p=cell_p,
+            dropout=cell_dropout
         )
 
         self.params = self.cell_layer_0.params
@@ -584,10 +597,10 @@ class Multi_MLP_Class(object):
                                                     input=getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
                                                     n_in=cell_n_hidden[cell_layer_number-1],
                                                     n_out=cell_n_hidden[cell_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
-                                                    p=p,
-                                                    dropout=dropout
+                                                    p=cell_p,
+                                                    dropout=cell_dropout
                                                 )
 
                 setattr(self, "cell_layer_" + str(cell_layer_number), current_hidden_layer)
@@ -599,8 +612,8 @@ class Multi_MLP_Class(object):
                 cell_layer_number = cell_layer_number + 1
 
         # PROCESS DRUG INPUT NEXT
-        if input_p!=None:
-            self.drug_input_layer = drop(drug_input, rng=rng, p=input_p)
+        if drug_input_p!=None:
+            self.drug_input_layer = drop(drug_input, rng=rng, p=drug_input_p)
             self.drug_input_layer = T.switch(T.neq(is_train, 0), self.drug_input_layer, drug_input)
         else:
             self.drug_input_layer = drug_input
@@ -610,10 +623,10 @@ class Multi_MLP_Class(object):
             input=self.drug_input_layer,
             n_in=drug_n_in,
             n_out=drug_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
-            p=p,
-            dropout=dropout
+            p=drug_p,
+            dropout=drug_dropout
         )
 
         self.params = self.params + self.drug_layer_0.params # Adding to previous cell params
@@ -629,10 +642,10 @@ class Multi_MLP_Class(object):
                                                     input=getattr(self, "drug_layer_" + str(drug_layer_number-1)).output,
                                                     n_in=drug_n_hidden[drug_layer_number-1],
                                                     n_out=drug_n_hidden[drug_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
-                                                    p=p,
-                                                    dropout=dropout
+                                                    p=drug_p,
+                                                    dropout=drug_dropout
                                                 )
 
                 setattr(self, "drug_layer_" + str(drug_layer_number), current_hidden_layer)
@@ -650,7 +663,8 @@ class Multi_MLP_Class(object):
             cell_input = getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
             drug_in  = drug_n_hidden[drug_layer_number-1],
             cell_in  = cell_n_hidden[cell_layer_number-1],
-            neural_range = neural_range
+            neural_range = neural_range,
+            rng = rng
         )
         self.params = self.params + self.multiplicative_input.params
 
@@ -658,12 +672,12 @@ class Multi_MLP_Class(object):
         self.fusion_layer_0 = HiddenLayer(
             rng=rng,
             input=self.multiplicative_input.output,
-            n_in=neural_range, #drug_n_hidden[drug_layer_number-1] * cell_n_hidden[cell_layer_number-1],
+            n_in=neural_range,#drug_n_hidden[drug_layer_number-1] * cell_n_hidden[cell_layer_number-1],
             n_out=fusion_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
-            p=p,
-            dropout=dropout
+            p=cell_p, #MAY CHANGE TO OWN VARIABLE
+            dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
         )
 
         self.params = self.params + self.fusion_layer_0.params # Plus previous separate layer params (drug + cell + mf)
@@ -679,10 +693,10 @@ class Multi_MLP_Class(object):
                                                     input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
                                                     n_in=fusion_n_hidden[fusion_layer_number-1],
                                                     n_out=fusion_n_hidden[fusion_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
-                                                    p=p,
-                                                    dropout=dropout
+                                                    p=cell_p, #MAY CHANGE TO OWN VARIABLE
+                                                    dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
                                                 )
 
                 setattr(self, "fusion_layer_" + str(fusion_layer_number), current_hidden_layer)
@@ -699,8 +713,7 @@ class Multi_MLP_Class(object):
         self.logRegressionLayer = LogisticRegression(
             input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
             n_in=fusion_n_hidden[fusion_layer_number-1],
-            n_out=n_out,
-            rng=rng
+            n_out=n_out
         )
 
         self.params = self.params + self.logRegressionLayer.params
@@ -731,7 +744,7 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
 
     drug_index = list(index_data.drug)
     cell_index = list(index_data.cell)
-    data_y     = list(index_data.NORM_pIC50)
+    data_y     = list(index_data.target)
 
     # if target=="AUC":
     #     data_y=list(drug_data.NORM_AUC)
@@ -768,20 +781,26 @@ def model_prediction(model_dict, drug_data, cell_data, classification=True):
     drug_input = drug_data
     for l in xrange(len(drug_model)):
 
-        drug_input = prelu(
+        # drug_input = prelu(
+        #                     T.dot(drug_input, drug_model[l].W) + drug_model[l].b,
+        #                     drug_model[l].alpha
+        #                    )
+        drug_input = relu(
                             T.dot(drug_input, drug_model[l].W) + drug_model[l].b,
-                            drug_model[l].alpha
-                           )
+                           drug_model[l].alpha)
 
     # Apply cell model next
     cell_model = model_dict["cell_n_hidden"]
     cell_input = cell_data
     for l in xrange(len(cell_model)):
 
-        cell_input = prelu(
+        # cell_input = prelu(
+        #                     T.dot(cell_input, cell_model[l].W) + cell_model[l].b,
+        #                     cell_model[l].alpha
+        #                    )
+        cell_input = relu(
                             T.dot(cell_input, cell_model[l].W) + cell_model[l].b,
-                            cell_model[l].alpha
-                           )
+                           cell_model[l].alpha)
 
     # Combine to multiplicative fusion layer
     mf_fusion  = model_dict["multiplicative"]
@@ -793,10 +812,13 @@ def model_prediction(model_dict, drug_data, cell_data, classification=True):
     mf_model  = model_dict["fusion_n_hidden"]
     for l in xrange(len(mf_model)):
 
-        input = prelu(
-                        T.dot(input , mf_model[l].W) + mf_model[l].b
-                        mf_model[l].alpha
-                      )
+        # input = prelu(
+        #                 T.dot(input , mf_model[l].W) + mf_model[l].b,
+        #                 mf_model[l].alpha
+        #               )
+        input = relu(
+                        T.dot(input , mf_model[l].W) + mf_model[l].b,
+                      mf_model[l].alpha)
 
     # Finally, apply linearity/non-linearity
     if classification == True:
@@ -821,21 +843,29 @@ def model_prediction(model_dict, drug_data, cell_data, classification=True):
 ######################################### PREDICTION #########################################
 
 # Load arguments
-file_name  = sys.argv[1]
-model_file = sys.argv[2]
-OUT_FILE   = sys.argv[3]
-
+target      = sys.argv[1]
+drug_file   = sys.argv[2]
+model_file  = sys.argv[3]
 if sys.argv[4] == "T":
     class_mlp = True
 else:
     class_mlp = False
+bn_external = sys.argv[5]
+
+IN_FOLDER   = "/tigress/zamalloa/PREDICTIONS/"
+OUT_FOLDER  = "/tigress/zamalloa/PREDICTIONS/"
+
+in_file     = drug_file.split("/")[-1]
+in_file     = in_file.replace("_train_drug", "")
+OUT_FILE    = OUT_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_PREDICTION"
 
 # Load model and process input
-model_dict = cPickle.load(open(model_file, "rb"))
+model_dict  = cPickle.load(open(model_file, "rb"))
 
-test_drug     = pd.read_csv(IN_FOLDER + file_name + "_test_drug", sep="\t")
-test_cell     = pd.read_csv(IN_FOLDER + file_name + "_test_cell", sep="\t")
-test_index    = pd.read_csv(IN_FOLDER + file_name + "_test_index", sep="\t")
+test_drug     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_test_drug", sep="\t")
+test_cell     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_test_cell", sep="\t")
+test_index    = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_test_index", sep="\t")
+test_feat     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_feat_table", sep="\t", dtype={"Compound":str})
 
 test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf(test_drug,  test_cell,  test_index, integers=class_mlp)
 
@@ -847,9 +877,10 @@ else:
     actual = test_set_y.get_value()
 
 # Write out predictions to table
-OUT_FILE.write("ACTUAL" + "\t" + "PREDICTED")
+OUT_FILE = open(OUT_FILE, "w")
+OUT_FILE.write("Compound" + "\t" + "Sample" + "\t" +  "ACTUAL" + "\t" + "PREDICTED")
 for l in xrange(len(actual)):
-    OUT_FILE.write("\n" + str(actual[l]) + "\t" + str(prediction[l]))
+    OUT_FILE.write("\n" + test_feat.Compound[l] + "\t" + test_feat.cell_name[l] +"\t" + str(actual[l]) + "\t" + str(prediction[l]))
 
 OUT_FILE.close()
 print("Done predicting")

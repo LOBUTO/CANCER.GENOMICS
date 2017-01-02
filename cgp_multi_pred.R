@@ -1,0 +1,573 @@
+# cgp_multi_pred.R
+# Script to prep outer datasets to be predicted by CGP based models (mf-based models)
+# i.e. NCI-60, CCLE, TCGA
+
+library(data.table)
+library(reshape2)
+
+############################################################################################################
+# FUNCTIONS
+Function_prep_new <- function(target_new, type="", class = F, scaled=T){
+  # Reformats input so that its ready for test table building
+  # NOTE: For testing purposes we will only test 1000 compounds for nci_60 at the moment (Modified, see code)
+
+  if (type=="nci_60"){
+
+    nci_filter <- target_new[act_class!=2,][,list(MEAN=mean(act_class), SUM=sum(act_class), COUNT=length(act_class)), by="NSC"]
+    nci_filter <- nci_filter[MEAN > 0.4 & MEAN < 0.7][COUNT>40,]$NSC
+    # nci_filter <- nci_to_cgp_name$NSC
+    target_new <- target_new[NSC %in% nci_filter,]
+
+    if (class == T){
+      target_new <- target_new[,c("NSC", "cell_name", "act_class"), with=F]
+      target_new <- target_new[act_class!=2,]
+    } else {
+      if (scaled == T){
+        target_new <- target_new[,c("NSC", "cell_name", "SCALE.ACT"), with=F] #MAY NEED TO MODIFY!
+      } else{
+        target_new <- target_new[,c("NSC", "cell_name", "ACT"), with=F] #MAY NEED TO MODIFY!
+      }
+    }
+
+  } else if (type=="ccle"){
+    if (class == T){
+      target_new <- target_new[,c("Compound", "cell_name", "Amax_CLASS"), with=F]
+      target_new <- target_new[Amax_CLASS!=2,]
+    } else {
+      if (scaled == T){
+        target_new <- target_new[,c("Compound", "cell_name", "NORM.pIC50"), with=F]
+      } else {
+        target_new <- target_new[,c("Compound", "cell_name", "pIC50"), with=F]
+      }
+    }
+
+  } else if (type=="cgp"){
+    if (class == T){
+      target_new <- target_new[,c("Compound", "cell_name", "pic50_class"),with=F]
+      target_new <- target_new[pic50_class!=2,]
+    } else {
+      if (scaled == T){
+        target_new <- target_new[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
+      } else {
+        target_new <- target_new[, c("Compound", "cell_name", "pIC50"), with=F]
+      }
+    }
+  } else if (type=="tcga"){
+    target_new    <- target_new[, c("bcr_patient_barcode", "drug_name", "Binary"), with=F]
+    target_filter <- target_new[,list(N = length(bcr_patient_barcode)), by="drug_name"]
+    target_filter <- target_filter[N>15,]$drug_name
+    target_new    <- target_new[drug_name %in% target_filter,]
+
+    target_new_a  <- copy(target_new)
+    target_new_b  <- copy(target_new)
+    target_new_a$cell_name <- paste0(gsub("-", ".", target_new_a$bcr_patient_barcode), ".01A")
+    target_new_b$cell_name <- paste0(gsub("-", ".", target_new_b$bcr_patient_barcode), ".01B")
+    target_new    <- rbind(target_new_a, target_new_b)
+    target_new    <- target_new[, c("drug_name", "cell_name", "Binary"), with=F]
+
+    target_new$Binary <- ifelse(target_new$Binary == "Effective", 1, 0)
+  }
+
+  setnames(target_new, c("Compound", "cell_name", "target"))
+
+  return(target_new)
+}
+
+Function_load_morgan_bits <- function(morgan="nci_60"){
+  if (morgan=="nci_60"){
+    morgan_nci_bits   <- fread(paste0(in_morgan, "NCI_MORGAN_BITS_r_8_b_2048.txt"),
+                           colClasses = c("numeric", "numeric", "character", "numeric", "numeric"))[radius==8 & bits==2048,]
+    morgan_nci_bits$position <- paste0("mcf_", morgan_nci_bits$position)
+  } else if (morgan=="tcga"){
+    morgan_nci_bits   <- fread(paste0(tcga_objects, "TCGA_MORGAN_BITS_r_8_b_2048.txt"),
+                           colClasses = c("numeric", "numeric", "character", "numeric", "numeric"))[radius==8 & bits==2048,]
+    morgan_nci_bits$position <- paste0("mcf_", morgan_nci_bits$position)
+
+  } else{
+    morgan_nci_bits   <- c()
+  }
+  return(morgan_nci_bits)
+}
+
+Function_load_morgan_counts <- function(morgan="nci_60"){
+
+  if (morgan=="nci_60"){
+    morgan_nci_counts <- fread(paste0(in_morgan, "NCI_MORGAN_COUNTS.txt"),
+                           colClasses = c("numeric", "character", "character", "numeric"))[radius==12,]
+
+  } else if (morgan=="tcga") {
+    morgan_nci_counts <- fread(paste0(tcga_objects, "TCGA_MORGAN_COUNTS.txt"),
+                           colClasses = c("numeric", "character", "character", "numeric"))[radius==12,]
+
+  }else{
+    morgan_nci_counts <- c()
+  }
+
+  return(morgan_nci_counts)
+}
+
+Function_prep_morgan_bits <- function(input_morgan, type=""){
+
+  if (type == "nci_60" | type == "tcga"){
+    input_morgan <- input_morgan[,c("bits", "radius", "Compound", "position", "value"), with=F]
+    setnames(input_morgan, c("bits", "radius", "Compound", "bit_pos", "value"))
+
+  } else{
+    input_morgan <- input_morgan
+  }
+
+  return(input_morgan)
+}
+
+Function_prep_morgan_counts <- function(input_morgan, type=""){
+
+  if (type == "nci_60" | type == "tcga"){
+    setnames(input_morgan, c("radius", "Compound", "Substructure", "Counts"))
+
+    input_morgan <- rbind(input_morgan, morgan_counts[,c("radius", "Compound", "Substructure", "Counts"),with=F]) #Global morgan_counts
+    setkey(input_morgan)
+    input_morgan <- unique(input_morgan)
+
+  } else {
+    input_morgan <- input_morgan
+  }
+
+  return(input_morgan)
+}
+
+Function_file_out <- function(in_name){
+
+  file_name <- strsplit(in_name, "/")[[1]]
+  file_name <- file_name[length(file_name)]
+  file_name <- strsplit(file_name, "_train_drug")[[1]][1]
+
+  return(file_name)
+}
+
+Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_table, morgan_table, target_cells=c(), target_bits=c(),
+                                                              cgp_exp, genes=F, scaling=T){
+  # target_bits and target_cells have to be in the order that there trained in the input model
+  # exp_table has to be as genesxsamples (rows=genes, columns=samples)
+
+  # Minor fix to account for common cells
+  colnames(cgp_exp) <- paste0("CGP_", colnames(cgp_exp))
+  target_cells      <- paste0("CGP_", target_cells)
+  cgp_cell_cor      <- cor(cgp_exp, method = "spearman")
+
+  # Build based on common ordered cell features
+  common_genes   <- intersect(rownames(cgp_exp), rownames(exp_table))
+  cgp_exp        <- cgp_exp[common_genes, target_cells]
+  exp_table      <- exp_table[common_genes,]
+  target_samples <- colnames(exp_table)
+
+  if (genes==F){
+    cell_feat <- cbind(exp_table, cgp_exp)
+    cell_feat <- cor(cell_feat, method = "spearman")
+    cell_feat <- cell_feat[target_samples, target_cells]
+
+    cell_feat <- data.table(cell_feat, keep.rownames = T)
+  } else {
+    exp_table <- t(log(exp_table))
+    exp_table <- exp_table[,target_cells] #target_genes in this case
+
+    cell_feat <- data.table(exp_table, keep.rownames = T)
+  }
+  setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
+
+  ##################################################################################################
+  # IS SCALING NECESSARY
+  if (scaling==T){
+
+    cgp_cell_feat <- data.table(cgp_cell_cor[, target_cells], keep.rownames = T)
+    setnames(cgp_cell_feat, c("cell_name", colnames(cgp_cell_feat)[2:ncol(cgp_cell_feat)]))
+
+    not_scaling <- 1
+    scaling     <- 2:ncol(cgp_cell_feat)
+
+    scale_train_cell  <- scale(cgp_cell_feat[, scaling, with=F])
+
+    train_cell_mean   <- attributes(scale_train_cell)$`scaled:center`
+    train_cell_sd     <- attributes(scale_train_cell)$`scaled:scale`
+
+    cell_feat_scaled  <- sweep(cell_feat[, scaling, with=F], 2, train_cell_mean, "-")
+    cell_feat_scaled  <- sweep(cell_feat_scaled, 2, train_cell_sd, "/")
+    cell_feat         <- cbind(cell_feat[, not_scaling, with=F],
+                         cell_feat_scaled)
+    print("scaled")
+  }
+  ##################################################################################################
+
+  # Build based on common ordered drug features
+  if (length(target_bits) > 0){
+    drug_feat   <- morgan_table[bit_pos %in% target_bits,]
+    drug_feat   <- acast(drug_feat, Compound~bit_pos, value.var="value")
+    drug_feat   <- data.table(drug_feat[, target_bits], keep.rownames = T)
+
+    setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
+
+  } else {
+    drug_feat <- data.table()
+  }
+
+  # Merge to obtain total number of possible combinations
+  if (length(target_bits) > 0){
+    feat_table <- merge(target_new, drug_feat[, 1:2, with=F], by="Compound", allow.cartesian=TRUE)
+
+  }
+  feat_table <- merge(feat_table, cell_feat[, 1:2, with=F], by="cell_name", allow.cartesian=TRUE)
+
+  setkey(feat_table)
+  feat_table <- unique(feat_table)
+
+  # Extract indices for combinations
+  if (length(target_bits) > 0){
+    drug_index <- sapply(feat_table$Compound,  function(x)  which(x==drug_feat$Compound))
+  } else {
+    drug_index <- c()
+  }
+
+  cell_index <- sapply(feat_table$cell_name, function(x)  which(x==cell_feat$cell_name))
+  drug_index <- unlist(drug_index)
+  cell_index <- unlist(cell_index)
+  target     <- feat_table$target
+
+  # Return feature tables and indices
+  return(list(drug_feat = drug_feat,
+              cell_feat = cell_feat,
+              drug_index = drug_index,
+              cell_index = cell_index,
+              target = target,
+              feat_table = feat_table))
+}
+
+Function_target_morgan_counts_features_extracted_mf <- function(target_new, exp_table, morgan_table, target_cells=c(), target_counts=c(),
+                                                                cgp_exp, genes=F, scaling=T){
+  # target_counts and target_cells have to be in the order that there trained in the input model
+  # exp_table has to be as genesxsamples (rows=genes, columns=samples)
+
+  # Minor fix to account for common cells
+  colnames(cgp_exp) <- paste0("CGP_", colnames(cgp_exp))
+  target_cells      <- paste0("CGP_", target_cells)
+  cgp_cell_cor      <- cor(cgp_exp, method = "pearson")
+
+  # Build based on common ordered cell features
+  common_genes   <- intersect(rownames(cgp_exp), rownames(exp_table))
+  cgp_exp        <- cgp_exp[common_genes, target_cells]
+  exp_table      <- exp_table[common_genes,]
+  target_samples <- colnames(exp_table)
+
+  if (genes==F){
+    cell_feat <- cbind(exp_table, cgp_exp)
+    cell_feat <- cor(cell_feat, method = "pearson")
+    cell_feat <- cell_feat[target_samples, target_cells]
+
+    cell_feat <- data.table(cell_feat, keep.rownames = T)
+  } else {
+    exp_table <- t(log(exp_table))
+    exp_table <- exp_table[,target_cells] #target_genes in this case
+
+    cell_feat <- data.table(exp_table, keep.rownames = T)
+  }
+  setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
+
+  ##################################################################################################
+  # IS SCALING NECESSARY
+  if (scaling==T){
+
+    cgp_cell_feat <- data.table(cgp_cell_cor[, target_cells], keep.rownames = T)
+    setnames(cgp_cell_feat, c("cell_name", colnames(cgp_cell_feat)[2:ncol(cgp_cell_feat)]))
+
+    not_scaling <- 1
+    scaling     <- 2:ncol(cgp_cell_feat)
+
+    scale_train_cell  <- scale(cgp_cell_feat[, scaling, with=F])
+
+    train_cell_mean   <- attributes(scale_train_cell)$`scaled:center`
+    train_cell_sd     <- attributes(scale_train_cell)$`scaled:scale`
+
+    cell_feat_scaled  <- sweep(cell_feat[, scaling, with=F], 2, train_cell_mean, "-")
+    cell_feat_scaled  <- sweep(cell_feat_scaled, 2, train_cell_sd, "/")
+    cell_feat         <- cbind(cell_feat[, not_scaling, with=F],
+                         cell_feat_scaled)
+    print("scaled")
+  }
+  ##################################################################################################
+
+  # Build based on common ordered drug features
+  if (length(target_counts) > 0 ){
+    morgan_table$Substructure <- paste0("mc_", morgan_table$Substructure)
+    target_counts <- paste0("mc_", target_counts)
+    drug_feat     <- morgan_table[Substructure %in% target_counts, ]
+    saveRDS(drug_feat, "x.rds")
+    drug_feat     <- acast(drug_feat, Compound~Substructure, value.var="Counts", fill=0)
+
+    drug_feat     <- data.table(drug_feat[, target_counts], keep.rownames = T)
+
+    setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
+  } else {
+    drug_feat  <- data.table()
+  }
+
+  # Merge to obtain total number of possible combinations
+  if (length(target_counts) > 0){
+    feat_table <- merge(target_new, drug_feat[, 1:2, with=F], by="Compound")
+  }
+
+  feat_table <- merge(feat_table, cell_feat[, 1:2, with=F], by="cell_name")
+  setkey(feat_table)
+  feat_table <- unique(feat_table)
+
+  # Extract indices for combinations
+  if (length(target_counts) > 0){
+    drug_index <- sapply(feat_table$Compound,  function(x)  which(x==drug_feat$Compound))
+  } else{
+    drug_index <- c()
+  }
+
+  cell_index <- sapply(feat_table$cell_name, function(x)  which(x==cell_feat$cell_name))
+  drug_index <- unlist(drug_index)
+  cell_index <- unlist(cell_index)
+  target     <- feat_table$target
+
+  # Return feature tables and indices
+  return(list(drug_feat = drug_feat,
+              cell_feat = cell_feat,
+              drug_index = drug_index,
+              cell_index = cell_index,
+              target = target,
+              feat_table = feat_table))
+
+}
+
+############################################################################################################
+# LOAD INPUT
+args      <- commandArgs(trailingOnly = TRUE)
+
+target      <- args[1]
+met_type    <- args[2]
+cgp_drug    <- args[3] #_train_drug
+cgp_cell    <- args[4] #_train_cell
+class_mlp   <- as.logical(args[5])
+batch_norm  <- args[6]
+bn_external <- args[7]
+out_folder  <- "/tigress/zamalloa/PREDICTIONS/"
+out_file    <- paste0(out_folder, Function_file_out(cgp_drug), "_bn_external_", bn_external)
+print(out_file)
+
+############################################################################################################
+# LOAD DATA
+
+#GENERAL
+in_folder         <- "/tigress/zamalloa/CGP_FILES/"
+in_morgan         <- "/tigress/zamalloa/MORGAN_FILES/"
+in_objects        <- "/tigress/zamalloa/OBJECTS/"
+tcga_objects      <- "/tigress/zamalloa/TCGA_FILES/"
+cgp_new           <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
+nci_to_cgp_name   <- readRDS(paste0(in_objects, "080716.nci60_names_to_cgp.rds"))
+tcga_ding         <- readRDS(paste0(in_objects, "121316_ding_tcga.rds"))
+morgan_bits       <- fread(paste0(in_morgan, "CGP_MORGAN_BITS.txt"))[radius==8 & bits==2048,]
+morgan_counts     <- fread(paste0(in_morgan, "CGP_MORGAN_COUNTS.txt"),
+                       colClasses = c("numeric", "character", "numeric", "numeric"))[radius==12,] #TO BE DECIDED
+
+if (batch_norm=="cgp_nci60"){
+
+ print("batch_norm nci60")
+ cgp_exp         <- readRDS(paste0(in_objects, "121216_cgp_nci60_exp_b_norm.rds"))[["EXP.1"]]
+ nci_exp         <- readRDS(paste0(in_objects, "121216_cgp_nci60_exp_b_norm.rds"))[["EXP.2"]]
+
+} else if (batch_norm=="cgp_ccle"){
+
+ print("batch_norm ccle")
+ cgp_exp         <- readRDS(paste0(in_objects, "121216_cgp_ccle_exp_b_norm.rds"))[["EXP.1"]]
+ ccle_exp        <- readRDS(paste0(in_objects, "121216_cgp_ccle_exp_b_norm.rds"))[["EXP.2"]]
+
+} else if (batch_norm=="tcga_brca"){
+
+ print("batch_norm tcga_brca")
+ cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.1"]]
+ tcga_brca_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.2"]]
+
+} else if (batch_norm=="tcga_coad"){
+
+ print("batch_norm tcga_coad")
+ cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_coad_exp_b_norm.rds"))[["EXP.1"]]
+ tcga_coad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_coad_exp_b_norm.rds"))[["EXP.2"]]
+
+} else if (batch_norm=="tcga_stad"){
+
+ print("batch_norm tcga_stad")
+ cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_stad_exp_b_norm.rds"))[["EXP.1"]]
+ tcga_stad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_stad_exp_b_norm.rds"))[["EXP.2"]]
+
+} else if (batch_norm=="tcga_luad"){
+
+ print("batch_norm tcga_luad")
+ cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_luad_exp_b_norm.rds"))[["EXP.1"]]
+ tcga_luad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_luad_exp_b_norm.rds"))[["EXP.2"]]
+
+} else{
+ print("None")
+ cgp_exp         <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
+ ccle_exp        <- readRDS(paste0(in_folder, "121116_ccle_exp.rds"))
+ nci_exp         <- readRDS(paste0(in_objects, "121216_nci60_exp.rds"))
+ #tcga_brca_exp   <- readRDS(paste0(tcga_objects, "041715.BRCA.RNASEQ.MATRICES.V2.RSEM.UQ.rds"))[["tumor"]]
+ # cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.1"]]
+ # tcga_brca_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.2"]]
+}
+
+#CCLE
+ccle_new    <- readRDS(paste0(in_objects, "121116_ccle.rds"))
+
+#NCI-60
+nci_new     <- readRDS(paste0(in_objects, "120916_nci60_new.rds"))
+
+#TCGA
+
+#MODEL FEATURES
+cell_features <- fread(cgp_cell, header=T, sep="\t")
+cell_features <- colnames(cell_features)[2:ncol(cell_features)]
+
+drug_features <- fread(cgp_drug, header=T, sep="\t")
+drug_features <- colnames(drug_features)[2:ncol(drug_features)]
+
+############################################################################################################
+# EXECUTE
+cgp_new <- cgp_new[Compound %in% c("GDC0449", "MS-275", "PAC-1", "RDEA119", "TG101348"),] #NOTE (Used during testing)
+
+# Build feat tables
+if (met_type == "morgan_bits"){
+
+  if (target=="nci_60"){
+    if (as.logical(bn_external)==T){
+      print("bn_external")
+      cgp_exp         <- readRDS(paste0(in_objects, "121216_cgp_nci60_exp_b_norm.rds"))[["EXP.1"]]
+      nci_exp         <- readRDS(paste0(in_objects, "121216_cgp_nci60_exp_b_norm.rds"))[["EXP.2"]]
+    }
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(nci_new, type="nci_60", class = class_mlp),
+                                                                           nci_exp,
+                                                                           Function_prep_morgan_bits(Function_load_morgan_bits("nci_60"), type="nci_60"),
+                                                                           target_cells = cell_features, target_bits = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  } else if (target=="ccle"){
+    if (as.logical(bn_external)==T){
+      print("bn_external")
+      cgp_exp         <- readRDS(paste0(in_objects, "121216_cgp_ccle_exp_b_norm.rds"))[["EXP.1"]]
+      ccle_exp        <- readRDS(paste0(in_objects, "121216_cgp_ccle_exp_b_norm.rds"))[["EXP.2"]]
+    }
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(ccle_new, type="ccle", class = class_mlp),
+                                                                           ccle_exp,
+                                                                           morgan_bits,
+                                                                           target_cells = cell_features, target_bits = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  } else if (target=="tcga_brca"){
+    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.1"]]
+    tcga_brca_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.2"]]
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="BRCA",], type="tcga", class = class_mlp),
+                                                                           tcga_brca_exp,
+                                                                           morgan_bits,
+                                                                           target_cells = cell_features, target_bits = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  } else if (target=="tcga_coad"){
+    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_coad_exp_b_norm.rds"))[["EXP.1"]]
+    tcga_coad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_coad_exp_b_norm.rds"))[["EXP.2"]]
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="COAD",], type="tcga", class = class_mlp),
+                                                                           tcga_coad_exp,
+                                                                           Function_prep_morgan_bits(Function_load_morgan_bits("tcga"), type="tcga"),
+                                                                           target_cells = cell_features, target_bits = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  } else if (target=="tcga_stad"){
+    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_stad_exp_b_norm.rds"))[["EXP.1"]]
+    tcga_stad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_stad_exp_b_norm.rds"))[["EXP.2"]]
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="STAD",], type="tcga", class = class_mlp),
+                                                                           tcga_stad_exp,
+                                                                           Function_prep_morgan_bits(Function_load_morgan_bits("tcga"), type="tcga"),
+                                                                           target_cells = cell_features, target_bits = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  } else if (target=="tcga_luad"){
+    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_luad_exp_b_norm.rds"))[["EXP.1"]]
+    tcga_luad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_luad_exp_b_norm.rds"))[["EXP.2"]]
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="LUAD",], type="tcga", class = class_mlp),
+                                                                           tcga_luad_exp,
+                                                                           Function_prep_morgan_bits(Function_load_morgan_bits("tcga"), type="tcga"),
+                                                                           target_cells = cell_features, target_bits = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  } else if (target=="self"){
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(cgp_new, type="cgp", class = class_mlp),
+                                                                           cgp_exp,
+                                                                           morgan_bits,
+                                                                           target_cells = cell_features, target_bits = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  }
+
+} else if (met_type == "morgan_counts"){
+
+  if (target=="nci_60"){
+    feat_table <- Function_target_morgan_counts_features_extracted_mf(Function_prep_new(nci_new, type="nci_60", class = class_mlp),
+                                                                             nci_exp,
+                                                                             Function_prep_morgan_counts(Function_load_morgan_counts("nci_60"), type="nci_60"),
+                                                                             target_cells = cell_features, target_counts = drug_features,
+                                                                             cgp_exp, genes=F, scaling=T)
+  } else if (target=="ccle"){
+    feat_table <- Function_target_morgan_counts_features_extracted_mf(Function_prep_new(ccle_new, type="ccle", class = class_mlp),
+                                                                             ccle_exp,
+                                                                             morgan_counts,
+                                                                             target_cells = cell_features, target_counts = drug_features,
+                                                                             cgp_exp, genes=F, scaling=T)
+  } else if (target=="tcga_brca"){
+    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.1"]]
+    tcga_brca_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.2"]]
+    feat_table <- Function_target_morgan_counts_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="BRCA",], type="tcga", class = class_mlp),
+                                                                           tcga_brca_exp,
+                                                                           morgan_counts,
+                                                                           target_cells = cell_features, target_counts = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  } else if (target=="tcga_coad"){
+    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_coad_exp_b_norm.rds"))[["EXP.1"]]
+    tcga_coad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_coad_exp_b_norm.rds"))[["EXP.2"]]
+    feat_table <- Function_target_morgan_counts_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="COAD",], type="tcga", class = class_mlp),
+                                                                           tcga_coad_exp,
+                                                                           Function_prep_morgan_counts(Function_load_morgan_counts("tcga"), type="tcga"),
+                                                                           target_cells = cell_features, target_counts = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  } else if (target=="tcga_stad"){
+    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_stad_exp_b_norm.rds"))[["EXP.1"]]
+    tcga_stad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_stad_exp_b_norm.rds"))[["EXP.2"]]
+    feat_table <- Function_target_morgan_counts_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="STAD",], type="tcga", class = class_mlp),
+                                                                           tcga_stad_exp,
+                                                                           Function_prep_morgan_counts(Function_load_morgan_counts("tcga"), type="tcga"),
+                                                                           target_cells = cell_features, target_counts = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  } else if (target=="tcga_luad"){
+    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_luad_exp_b_norm.rds"))[["EXP.1"]]
+    tcga_luad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_luad_exp_b_norm.rds"))[["EXP.2"]]
+    feat_table <- Function_target_morgan_counts_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="LUAD",], type="tcga", class = class_mlp),
+                                                                           tcga_luad_exp,
+                                                                           Function_prep_morgan_counts(Function_load_morgan_counts("tcga"), type="tcga"),
+                                                                           target_cells = cell_features, target_counts = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  } else if (target=="self"){
+    feat_table <- Function_target_morgan_counts_features_extracted_mf(Function_prep_new(cgp_new, type="cgp", class = class_mlp),
+                                                                           cgp_exp,
+                                                                           morgan_counts,
+                                                                           target_cells = cell_features, target_counts = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T)
+  }
+}
+
+# Prep to write out for prediction
+index_table<- data.table(drug   = feat_table$drug_index - 1,
+                         cell   = feat_table$cell_index - 1,
+                         target = feat_table$target)
+
+############################################################################################################
+# WRITE
+write.table(feat_table$drug_feat, paste0(out_file, "_", target, "_test_drug"),
+            quote=F, sep="\t", row.names=F, col.names=T)
+write.table(feat_table$cell_feat, paste0(out_file, "_", target, "_test_cell"),
+            quote=F, sep="\t", row.names=F, col.names=T)
+write.table(index_table, paste0(out_file, "_", target, "_test_index"),
+            quote=F, sep="\t", row.names=F, col.names=T)
+write.table(feat_table$feat_table, paste0(out_file, "_", target, "_feat_table"),
+            quote=F, sep="\t", row.names=F, col.names=T)
+
+print("Done writing tables")

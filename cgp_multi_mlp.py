@@ -9,6 +9,7 @@ import theano
 import cPickle
 import itertools
 import theano.tensor as T
+from theano.tensor.nnet import relu
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 #from theano.tensor.shared_randomstreams import RandomStreams
 #from theano.sandbox.cuda.rng_curand import CURAND_RandomStreams as RandomStreams
@@ -180,31 +181,26 @@ class LinearRegression(object):
 
 class LogisticRegression(object):
 
-    def __init__(self, input, n_in, n_out, rng, W=None, b=None):
+    def __init__(self, input, n_in, n_out):
 
-        if W is None:
-            W_values = np.asarray(
-                    rng.uniform(
-                        low=-np.sqrt(6. / (n_in + n_out)),
-                        high=np.sqrt(6. / (n_in + n_out)),
-                        size=(n_in, n_out)
-                    ),
-                    dtype=theano.config.floatX
-                )
-            W = theano.shared(value=W_values, name='W', borrow=True)
-
-        if b is None :
-            b = theano.shared(
-                value=np.zeros(
-                    (n_out,),
-                    dtype=theano.config.floatX
-                ),
-                name='b',
-                borrow=True
-            )
-
-        self.W = W
-        self.b = b
+        # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
+        self.W = theano.shared(
+            value=np.zeros(
+                (n_in, n_out),
+                dtype=theano.config.floatX
+            ),
+            name='W',
+            borrow=True
+        )
+        # initialize the biases b as a vector of n_out 0s
+        self.b = theano.shared(
+            value=np.zeros(
+                (n_out,),
+                dtype=theano.config.floatX
+            ),
+            name='b',
+            borrow=True
+        )
 
         self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W) + self.b)
 
@@ -212,7 +208,7 @@ class LogisticRegression(object):
 
         self.params = [self.W, self.b]
 
-        #self.input = input
+        self.input = input
 
     def pred(self, y):
         """Returns prediction only
@@ -253,11 +249,11 @@ def drop(input, rng, p=0.5):
     mask = srng.binomial(n=1, p=1.-p, size=input.shape)
     return input * T.cast(mask, theano.config.floatX) / (1.-p)
 
-def relu(x):
-    return theano.tensor.switch(x<0, 0, x)
-
-def prelu(x, alpha):
-    return theano.tensor.switch(x<0, alpha*x, x)
+# def relu(x):
+#     return theano.tensor.switch(x<0, 0, x)
+#
+# def prelu(x, alpha):
+#     return theano.tensor.switch(x<0, alpha*x, x)
 
 class HiddenLayer(object):
     def __init__(self, rng, is_train, input, n_in, n_out, W=None, b=None, alpha=None,
@@ -285,7 +281,7 @@ class HiddenLayer(object):
             b = theano.shared(value=b_values, name='b', borrow=True)
 
         if alpha is None:
-            alpha_value = np.full((n_out), .1,  dtype=theano.config.floatX)
+            alpha_value = np.full((n_out), .3,  dtype=theano.config.floatX)
             alpha = theano.shared(value=alpha_value, name='alpha', borrow=True)
 
         self.W = W
@@ -293,10 +289,23 @@ class HiddenLayer(object):
         self.alpha = alpha
 
         lin_output = T.dot(input, self.W) + self.b
-        output = (
-            lin_output if activation is None
-            else activation(lin_output, self.alpha)
-        )
+        # if (activation == T.tanh) or (activation == relu):
+        #     output = activation(lin_output)
+        #     self.params = [self.W, self.b]
+        #
+        # elif activation == prelu:
+        #     output = activation(lin_output, self.alpha)
+        #     self.params = [self.W, self.b, self.alpha]
+        # else:
+        #     output = lin_output
+
+        output = activation(lin_output, self.alpha)
+        self.params = [self.W, self.b, self.alpha]
+
+        # output = (
+        #     lin_output if activation is None
+        #     else activation(lin_output, self.alpha)
+        # )
 
         #Is droput necessary?
         if dropout==True:
@@ -306,14 +315,17 @@ class HiddenLayer(object):
             self.output = output
 
         # parameters of the model
-        self.params = [self.W, self.b, self.alpha]
+        # if activation == prelu:
+        #     self.params = [self.W, self.b, self.alpha]
+        # else:
+        #     self.params = [self.W, self.b]
 
 class Multiplicative_fusion(object):
     # Performs combinations of two neural layers (drug_input, cell_input) from
     # different sources and output the Multiplicative_fusion layer along with
     # 4 parameters to be learned.
 
-    def __init__(self, drug_input, cell_input, drug_in, cell_in, neural_range,
+    def __init__(self, rng, drug_input, cell_input, drug_in, cell_in, neural_range,
                  cell_alpha=None, drug_alpha=None, cell_beta=None, drug_beta=None):
 
         # neural_range is the neuron range from drug_out
@@ -324,22 +336,41 @@ class Multiplicative_fusion(object):
 
         if cell_alpha is None:
 
-            cell_alpha_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            cell_alpha_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(cell_in)),
+                                                high =  np.sqrt(6. /(cell_in)),
+                                                size = (cell_in)
+                                          ), dtype=theano.config.floatX)
             cell_alpha = theano.shared(value=cell_alpha_value, name='cell_alpha', borrow=True)
 
         if drug_alpha is None:
 
-            drug_alpha_value = np.full((drug_in), .1,  dtype=theano.config.floatX)
+            #drug_alpha_value = np.full((drug_in), .1,  dtype=theano.config.floatX)
+            drug_alpha_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(drug_in)),
+                                                high =  np.sqrt(6. /(drug_in)),
+                                                size = (drug_in)
+                                          ), dtype=theano.config.floatX)
             drug_alpha = theano.shared(value=drug_alpha_value, name='drug_alpha', borrow=True)
 
         if cell_beta is None:
 
-            cell_beta_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            #cell_beta_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            cell_beta_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(cell_in)),
+                                                high =  np.sqrt(6. /(cell_in)),
+                                                size = (cell_in)
+                                          ), dtype=theano.config.floatX)
             cell_beta = theano.shared(value=cell_beta_value, name='cell_beta', borrow=True)
 
         if drug_beta is None:
 
-            drug_beta_value = np.full((drug_in), .1,  dtype=theano.config.floatX)
+            #drug_beta_value = np.full((drug_in), .1,  dtype=theano.config.floatX)
+            drug_beta_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(drug_in)),
+                                                high =  np.sqrt(6. /(drug_in)),
+                                                size = (drug_in)
+                                          ), dtype=theano.config.floatX)
             drug_beta = theano.shared(value=drug_beta_value, name='drug_beta', borrow=True)
 
         self.cell_alpha = cell_alpha
@@ -357,6 +388,7 @@ class Multiplicative_fusion(object):
         #                                axis = 1
         #                             )
         output      = drug_output * cell_output # Keep in mind that both have to have the same number of neurons
+        #output       = T.concatenate([drug_output, cell_output], axis = 1)
         # Output
         self.output = output
 
@@ -368,19 +400,28 @@ class Multiplicative_fusion_zero_drug(object):
     # different sources and output the Multiplicative_fusion layer along with
     # 4 parameters to be learned.
 
-    def __init__(self, cell_input, cell_in,
+    def __init__(self, rng, cell_input, cell_in,
                  cell_alpha=None, cell_beta=None):
 
         self.cell_input = cell_input
 
         if cell_alpha is None:
 
-            cell_alpha_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            cell_alpha_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(cell_in)),
+                                                high =  np.sqrt(6. /(cell_in)),
+                                                size = (cell_in)
+                                          ), dtype=theano.config.floatX)
             cell_alpha = theano.shared(value=cell_alpha_value, name='cell_alpha', borrow=True)
 
         if cell_beta is None:
 
-            cell_beta_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            #cell_beta_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            cell_beta_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(cell_in)),
+                                                high =  np.sqrt(6. /(cell_in)),
+                                                size = (cell_in)
+                                          ), dtype=theano.config.floatX)
             cell_beta = theano.shared(value=cell_beta_value, name='cell_beta', borrow=True)
 
         self.cell_alpha = cell_alpha
@@ -389,11 +430,6 @@ class Multiplicative_fusion_zero_drug(object):
         # Apply linear modifications to both input based on parameters
         cell_output = (cell_input * self.cell_alpha) + self.cell_beta
 
-        # Apply pairwise neuron multiplication
-        # output      = T.concatenate(
-        #                               [drug_output[:, [i]] * cell_output for i in neural_range],
-        #                                axis = 1
-        #                             )
         output      = cell_output
         # Output
         self.output = output
@@ -588,11 +624,13 @@ class Multi_MLP_Regression(object):
 class Multi_MLP_Class(object):
     def __init__(self, rng, cell_input, drug_input, is_train,
                  cell_n_in, drug_n_in, cell_n_hidden, drug_n_hidden, fusion_n_hidden, neural_range,
-                 n_out, p=0.5, dropout=False, input_p=0.1):
+                 n_out,
+                 cell_p=0.5, cell_dropout=False, cell_input_p=0.1,
+                 drug_p=0.5, drug_dropout=False, drug_input_p=0.1):
 
         # PROCESS CELL INPUT FIRST
-        if input_p!=None:
-            self.cell_input_layer = drop(cell_input, rng=rng, p=input_p)
+        if cell_input_p!=None:
+            self.cell_input_layer = drop(cell_input, rng=rng, p=cell_input_p)
             self.cell_input_layer = T.switch(T.neq(is_train, 0), self.cell_input_layer, cell_input)
         else:
             self.cell_input_layer = cell_input
@@ -604,10 +642,10 @@ class Multi_MLP_Class(object):
             input=self.cell_input_layer,
             n_in=cell_n_in,
             n_out=cell_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
-            p=p,
-            dropout=dropout
+            p=cell_p,
+            dropout=cell_dropout
         )
 
         self.params = self.cell_layer_0.params
@@ -623,10 +661,10 @@ class Multi_MLP_Class(object):
                                                     input=getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
                                                     n_in=cell_n_hidden[cell_layer_number-1],
                                                     n_out=cell_n_hidden[cell_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
-                                                    p=p,
-                                                    dropout=dropout
+                                                    p=cell_p,
+                                                    dropout=cell_dropout
                                                 )
 
                 setattr(self, "cell_layer_" + str(cell_layer_number), current_hidden_layer)
@@ -638,8 +676,8 @@ class Multi_MLP_Class(object):
                 cell_layer_number = cell_layer_number + 1
 
         # PROCESS DRUG INPUT NEXT
-        if input_p!=None:
-            self.drug_input_layer = drop(drug_input, rng=rng, p=input_p)
+        if drug_input_p!=None:
+            self.drug_input_layer = drop(drug_input, rng=rng, p=drug_input_p)
             self.drug_input_layer = T.switch(T.neq(is_train, 0), self.drug_input_layer, drug_input)
         else:
             self.drug_input_layer = drug_input
@@ -649,10 +687,10 @@ class Multi_MLP_Class(object):
             input=self.drug_input_layer,
             n_in=drug_n_in,
             n_out=drug_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
-            p=p,
-            dropout=dropout
+            p=drug_p,
+            dropout=drug_dropout
         )
 
         self.params = self.params + self.drug_layer_0.params # Adding to previous cell params
@@ -668,10 +706,10 @@ class Multi_MLP_Class(object):
                                                     input=getattr(self, "drug_layer_" + str(drug_layer_number-1)).output,
                                                     n_in=drug_n_hidden[drug_layer_number-1],
                                                     n_out=drug_n_hidden[drug_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
-                                                    p=p,
-                                                    dropout=dropout
+                                                    p=drug_p,
+                                                    dropout=drug_dropout
                                                 )
 
                 setattr(self, "drug_layer_" + str(drug_layer_number), current_hidden_layer)
@@ -689,7 +727,8 @@ class Multi_MLP_Class(object):
             cell_input = getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
             drug_in  = drug_n_hidden[drug_layer_number-1],
             cell_in  = cell_n_hidden[cell_layer_number-1],
-            neural_range = neural_range
+            neural_range = neural_range,
+            rng = rng
         )
         self.params = self.params + self.multiplicative_input.params
 
@@ -697,12 +736,12 @@ class Multi_MLP_Class(object):
         self.fusion_layer_0 = HiddenLayer(
             rng=rng,
             input=self.multiplicative_input.output,
-            n_in=neural_range, #drug_n_hidden[drug_layer_number-1] * cell_n_hidden[cell_layer_number-1],
+            n_in=neural_range,#drug_n_hidden[drug_layer_number-1] * cell_n_hidden[cell_layer_number-1],
             n_out=fusion_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
-            p=p,
-            dropout=dropout
+            p=cell_p, #MAY CHANGE TO OWN VARIABLE
+            dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
         )
 
         self.params = self.params + self.fusion_layer_0.params # Plus previous separate layer params (drug + cell + mf)
@@ -718,10 +757,10 @@ class Multi_MLP_Class(object):
                                                     input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
                                                     n_in=fusion_n_hidden[fusion_layer_number-1],
                                                     n_out=fusion_n_hidden[fusion_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
-                                                    p=p,
-                                                    dropout=dropout
+                                                    p=cell_p, #MAY CHANGE TO OWN VARIABLE
+                                                    dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
                                                 )
 
                 setattr(self, "fusion_layer_" + str(fusion_layer_number), current_hidden_layer)
@@ -738,8 +777,7 @@ class Multi_MLP_Class(object):
         self.logRegressionLayer = LogisticRegression(
             input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
             n_in=fusion_n_hidden[fusion_layer_number-1],
-            n_out=n_out,
-            rng=rng
+            n_out=n_out
         )
 
         self.params = self.params + self.logRegressionLayer.params
@@ -820,7 +858,8 @@ class Multi_MLP_Class_Zero_Drug(object):
         # Combine single output to obtain Multiplicative fusion layer
         self.multiplicative_input = Multiplicative_fusion_zero_drug(
             cell_input = getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
-            cell_in  = cell_n_hidden[cell_layer_number-1]
+            cell_in  = cell_n_hidden[cell_layer_number-1],
+            rng = rng
         )
         self.params = self.params + self.multiplicative_input.params
 
@@ -870,18 +909,17 @@ class Multi_MLP_Class_Zero_Drug(object):
             input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
             n_in=fusion_n_hidden[fusion_layer_number-1],
             n_out=n_out,
-            rng=rng
         )
 
         self.params = self.params + self.logRegressionLayer.params
 
         #L1 and L2 regularization
         self.L1 = (
-            abs(self.drug_layer_0.W).sum() + abs(self.logRegressionLayer.W).sum()
+            abs(self.cell_layer_0.W).sum() + abs(self.logRegressionLayer.W).sum()
         )
 
         self.L2_sqr = (
-            (self.drug_layer_0.W ** 2).sum() + (self.logRegressionLayer.W ** 2).sum()
+            (self.cell_layer_0.W ** 2).sum() + (self.logRegressionLayer.W ** 2).sum()
         )
 
         self.negative_log_likelihood = (
@@ -1610,9 +1648,12 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
         fusion_n_hidden = fusion_n_hidden,
         neural_range = neural_range, #calculated
         n_out=2,
-        p=p,
-        dropout=dropout,
-        input_p=input_p
+        cell_p=p,
+        cell_dropout=dropout,
+        cell_input_p=input_p,
+        drug_p=0.7,
+        drug_dropout=True,
+        drug_input_p=0.2
     )
 
     cost = (
@@ -1882,7 +1923,7 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
     data_y     = list(index_data.NORM_pIC50)
     shared_y   = theano.shared(np.asarray(data_y, dtype=theano.config.floatX), borrow=True)
 
-    if drug_data!="":
+    if drug_data is not None:
         drug_data     = drug_data.iloc[:,1:]
         drug_index    = list(index_data.drug)
         shared_drug_x = theano.shared(np.asarray(drug_data, dtype=theano.config.floatX), borrow=True)
@@ -1912,7 +1953,7 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
 #     n_epochs = int(sys.argv[2])
 #     out_file = sys.argv[1] + "n_epoch_" + sys.argv[2]
 
-n_epochs = 1200
+n_epochs = 8000
 out_file = sys.argv[1]
 
 if sys.argv[6] != "0":
@@ -1943,6 +1984,8 @@ if sys.argv[6] != "0":
         DRUG_NEURONS = int(sys.argv[2])
         d_neurons    = [DRUG_NEURONS]*1
 
+    print "d_neurons " + str(d_neurons)
+
 CELL_ALL     = int(sys.argv[7])
 CELL_STD     = int(sys.argv[7]) * 2/3
 CELL_THIRD   = int(sys.argv[7]) * 1/3
@@ -1968,8 +2011,11 @@ elif sys.argv[3] == "1_50":
 else :
     CELL_NEURONS = int(sys.argv[3])
     c_neurons    = [CELL_NEURONS]*1
+print "c_neurons " + str(c_neurons)
+
 
 FUSION_NEURONS = int(sys.argv[4])
+print "FUSION_NEURONS " + str(FUSION_NEURONS)
 
 if sys.argv[5] == "T":
     class_mlp = True
@@ -1980,6 +2026,7 @@ if len(sys.argv)==9:
     mf_manual = int(sys.argv[8])
 else:
     mf_manual = "None"
+print mf_manual
 
 #OBTAIN FILES
 file_name     = sys.argv[1]
@@ -2024,8 +2071,8 @@ if sys.argv[6] != "0":
 
         class_mlp_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
-                     cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*1,
-                     p=0.5, dropout=True,
+                     cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*2,
+                     p=0.7, dropout=True,
                      drug_name=out_file,
                      OUT_FOLDER = OUT_FOLDER)
     else:
@@ -2047,9 +2094,9 @@ else:
     test_cell   = pd.read_csv(IN_FOLDER + file_name + "_test_cell", sep="\t")
     test_index  = pd.read_csv(IN_FOLDER + file_name + "_test_index", sep="\t")
 
-    train_cell, train_cell_index, train_set_y = shared_drug_dataset_IC50_mf("", train_cell, train_index, integers=class_mlp)
-    valid_cell, valid_cell_index, valid_set_y = shared_drug_dataset_IC50_mf("", valid_cell, valid_index, integers=class_mlp)
-    test_cell,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf("",  test_cell,  test_index, integers=class_mlp)
+    train_cell, train_cell_index, train_set_y = shared_drug_dataset_IC50_mf(None, train_cell, train_index, integers=class_mlp)
+    valid_cell, valid_cell_index, valid_set_y = shared_drug_dataset_IC50_mf(None, valid_cell, valid_index, integers=class_mlp)
+    test_cell,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf(None,  test_cell,  test_index, integers=class_mlp)
 
     drugval = [(train_cell, train_cell_index, train_set_y),
                (valid_cell, valid_cell_index, valid_set_y),
@@ -2060,7 +2107,7 @@ else:
 
         class_mlp_mf_zero_drug(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
-                     cell_n_hidden=c_neurons, fusion_n_hidden = [FUSION_NEURONS]*1,
+                     cell_n_hidden=c_neurons, fusion_n_hidden = [FUSION_NEURONS]*2,
                      p=0.5, dropout=True,
                      drug_name=out_file,
                      OUT_FOLDER = OUT_FOLDER)

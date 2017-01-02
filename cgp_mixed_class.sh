@@ -6,9 +6,11 @@ met_type=$2
 multiplicative_fusion=$3
 drug_n=$4
 cell_n=$5
-fusion_n=$6
-genes=$7
-mf_manual=$8
+fusion_n=$6 #How many fusion neurons in hidden layer
+genes=$7 #F/T
+batch_norm=$8 #cgp_nci60, cgp_ccle, tcga_brca, tcga_coad, tcga_luad, tcga_stad or None
+pca=$9
+mf_manual=${9} #How many mf weights in mf input layer (needs to be used if last layer of drug_n and cell_n are not equal)
 
 # for samples in FK866 IPA-3 NSC-207895 UNC0638 CX-5461 Trametinib SNX-2112 OSI-027 \
 # QS11 AT-7519 PAC-1 SN-38 PI-103 I-BET-762 5-Fluorouracil PHA-793887 YM201636 \
@@ -19,20 +21,28 @@ mf_manual=$8
 # Shikonin Roscovitine Etoposide Pyrimethamine Methotrexate PAC-1 Temsirolimus Rapamycin Bortezomib \
 # Imatinib Pazopanib Dasatinib Lapatinib Erlotinib Vorinostat Cyclopamine Cisplatin \
 # Elesclomol 17-AAG ATRA Gefitinib Parthenolide
-for samples in all
+
+if [ "$met_type" == "morgan_bits" ]
+then
+  mm="MB"
+else
+  mm="MC"
+fi
+
+for samples in semi_split
 do
-  for c in 200
+  for c in 500 950
   do
-    for d in 0
+    for d in 500 1000
     do
 
       echo $c $d $samples
-      file_name="${samples}_scaled_C_${c}_MB_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}"
+      file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}"
 
       # Prep training sets
       if [ "$multiplicative_fusion" == "T" ]
       then
-        Rscript GIT/cgp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes
+        Rscript GIT/cgp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm
 
         script_name="GIT/cgp_multi_mlp.py"
 
