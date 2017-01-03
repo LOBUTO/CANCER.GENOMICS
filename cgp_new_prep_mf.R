@@ -5,33 +5,49 @@ library(reshape2)
 
 # FUNCTIONS
 Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table, morgan_table, max_cells=10, max_bits=10, pic50_scaled=T,
-                                                                pic50_class=F, genes=F, rebalance=F,
+                                                                pic50_class=F, genes=F, rebalance=F, pca=F, common_genes,
                                                                 nci_spiked, nci_morgan, nci_exp, nci_new){
 
   # Extract most variable cell features
-  if (genes==F){
-    cell_feat <- cor(cgp_exp, method = "spearman")
-    cell_var  <- data.table(cells = colnames(cell_feat),
-                            VAR   = apply(cell_feat, 2, var))
-    top_cells <- cell_var[order(-VAR),]$cells[1:max_cells]
+  if (pca==F){
+    if (genes==F){
+      cell_feat <- cor(cgp_exp, method = "spearman")
+      cell_var  <- data.table(cells = colnames(cell_feat),
+                              VAR   = apply(cell_feat, 2, var))
+      top_cells <- cell_var[order(-VAR),]$cells[1:max_cells]
 
-    cell_feat <- data.table(cell_feat[, top_cells], keep.rownames = T)
-  } else {
-    cgp_exp   <- t(log(cgp_exp))
-    gene_var  <- data.table(genes = colnames(cgp_exp),
-                            VAR   = apply(cgp_exp, 2, var))
-    top_genes <- gene_var[order(-VAR),]$genes[1:max_cells]
+      cell_feat <- data.table(cell_feat[, top_cells], keep.rownames = T)
 
-    cell_feat <- data.table(cgp_exp[,top_genes], keep.rownames = T)
+    } else {
+      cgp_exp   <- t(log(cgp_exp))
+      gene_var  <- data.table(genes = colnames(cgp_exp),
+                              VAR   = apply(cgp_exp, 2, var))
+      top_genes <- gene_var[order(-VAR),]$genes[1:max_cells]
+
+      cell_feat <- data.table(cgp_exp[,top_genes], keep.rownames = T)
+    }
+
+  } else{
+    cgp_pca     <- prcomp(t(cgp_exp[common_genes,]), center=T, scale. = T) # Scaling previously shown to be essential for out of set accuracy
+    cell_feat   <- cgp_pca$x[,1:max_cells]
+    cell_feat   <- data.table(cell_feat, keep.rownames = T)
   }
+
   setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
 
   # Extract most variable drug features
   if (max_bits > 0){
-    top_bits  <- morgan_table[,list(VAR = var(value)), by="bit_pos"][order(-VAR)]$bit_pos[1:max_bits]
-    drug_feat <- morgan_table[bit_pos %in% top_bits, ]
-    drug_feat <- acast(drug_feat, Compound~bit_pos, value.var="value")
-    drug_feat <- data.table(drug_feat, keep.rownames = T)
+    if (pca == F){
+      top_bits  <- morgan_table[,list(VAR = var(value)), by="bit_pos"][order(-VAR)]$bit_pos[1:max_bits]
+      drug_feat <- morgan_table[bit_pos %in% top_bits, ]
+      drug_feat <- acast(drug_feat, Compound~bit_pos, value.var="value")
+      drug_feat <- data.table(drug_feat, keep.rownames = T)
+
+    } else {
+      drug_feat <- acast(morgan_table, Compound~bit_pos, value.var="value")
+      drug_pca  <- prcomp(drug_feat, center=F, scale. = F)
+      drug_feat <- data.table(drug_pca$x[, 1:max_bits], keep.rownames = T)
+    }
 
     setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
   } else {
@@ -161,7 +177,7 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
 }
 
 Function_top_cell_morgan_counts_features_extracted_mf <- function(feats, exp_table, morgan_table, max_cells=10, max_counts=10, met_scaled=F, pic50_scaled=T,
-                                                      pic50_class=F, genes=F, rebalance=F,
+                                                      pic50_class=F, genes=F, rebalance=F, pca=F, common_genes,
                                                       nci_spiked, nci_morgan, nci_exp, nci_new){
   # Constructs feature table using morgan bits and cell correlations as features, but limiting to most variable features
   # Both max_cells and max_counts are based in terms of decreasing variance
@@ -169,32 +185,47 @@ Function_top_cell_morgan_counts_features_extracted_mf <- function(feats, exp_tab
   #       If classification is chosen, pic50-based classes are chosen (1/0), while 2 is discarded
 
   # Extract most variable cell features
-  #cell_feat <- cor(t(scale(log(t(exp_table)))), method = "pearson") #Temporary change
-  if (genes==F){
-    cell_feat <- cor(cgp_exp, method = "spearman")
-    cell_var  <- data.table(cells = colnames(cell_feat),
-                            VAR   = apply(cell_feat, 2, var))
-    top_cells <- cell_var[order(-VAR),]$cells[1:max_cells]
+  if (pca==F){
+    if (genes==F){
+      cell_feat <- cor(cgp_exp, method = "spearman")
+      cell_var  <- data.table(cells = colnames(cell_feat),
+                              VAR   = apply(cell_feat, 2, var))
+      top_cells <- cell_var[order(-VAR),]$cells[1:max_cells]
 
-    cell_feat <- data.table(cell_feat[, top_cells], keep.rownames = T)
-  } else {
-    cgp_exp   <- t(log(cgp_exp))
-    gene_var  <- data.table(genes = colnames(cgp_exp),
-                            VAR   = apply(cgp_exp, 2, var))
-    top_genes <- gene_var[order(-VAR),]$genes[1:max_cells]
+      cell_feat <- data.table(cell_feat[, top_cells], keep.rownames = T)
 
-    cell_feat <- data.table(cgp_exp[,top_genes], keep.rownames = T)
+    } else {
+      cgp_exp   <- t(log(cgp_exp))
+      gene_var  <- data.table(genes = colnames(cgp_exp),
+                              VAR   = apply(cgp_exp, 2, var))
+      top_genes <- gene_var[order(-VAR),]$genes[1:max_cells]
+
+      cell_feat <- data.table(cgp_exp[,top_genes], keep.rownames = T)
+    }
+
+  } else{
+    cgp_pca     <- prcomp(t(cgp_exp[common_genes,]), center=T, scale. = T) # Scaling previously shown to be essential for out of set accuracy
+    cell_feat   <- cgp_pca$x[,1:max_cells]
+    cell_feat   <- data.table(cell_feat, keep.rownames = T)
   }
+
   setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
 
   # Extract most variable drug features (if needed)
   if (max_counts > 0 ){
-    top_counts <- apply(acast(morgan_table, Compound~Substructure, value.var="Counts", fill=0), 2, var)
-    top_counts <- names(sort(top_counts, decreasing = T))[1:max_counts]
+    if (pca==F) {
+      top_counts <- apply(acast(morgan_table, Compound~Substructure, value.var="Counts", fill=0), 2, var)
+      top_counts <- names(sort(top_counts, decreasing = T))[1:max_counts]
 
-    drug_feat  <- morgan_table[Substructure %in% top_counts, ]
-    drug_feat  <- acast(drug_feat, Compound~Substructure, value.var="Counts", fill=0)
-    drug_feat  <- data.table(drug_feat, keep.rownames = T)
+      drug_feat  <- morgan_table[Substructure %in% top_counts, ]
+      drug_feat  <- acast(drug_feat, Compound~Substructure, value.var="Counts", fill=0)
+      drug_feat  <- data.table(drug_feat, keep.rownames = T)
+
+    } else {
+      drug_feat  <- acast(morgan_table, Compound~Substructure, value.var="Counts", fill=0)
+      drug_pca   <- prcomp(drug_feat, center=F, scale. = F)
+      drug_feat  <- data.table(drug_pca$x[, 1:max_counts], keep.rownames = T)
+    }
 
     setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
   } else {
@@ -353,6 +384,9 @@ class_mlp   <- as.logical(args[5])
 samples     <- args[6]
 genes       <- as.logical(args[7])
 batch_norm  <- args[8]
+pca         <- as.logical(args[9])
+radii_set   <- as.numeric(args[10])
+bit_set     <- as.numeric(args[11])
 nci_spiked  <- F#as.logical(args[8])
 
 # if (args[7] == "lab"){
@@ -370,6 +404,8 @@ out_folder   <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/"
 # LOAD DATA
 DRUGS.MET.PROFILE <- readRDS(paste0(in_folder, "082316.DRUG.MET.PROFILE.rds"))
 cgp_new           <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
+ccle_exp          <- readRDS(paste0(in_folder, "121116_ccle_exp.rds"))
+nci_exp           <- readRDS(paste0(in_objects, "121216_nci60_exp.rds"))
 
 if (batch_norm=="cgp_nci60"){
   print("batch_norm nci60")
@@ -400,9 +436,10 @@ if (batch_norm=="cgp_nci60"){
   cgp_exp           <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
 }
 
-morgan_bits       <- fread(paste0(in_morgan, "CGP_MORGAN_BITS.txt"))[radius==8 & bits==2048,]
+common_genes      <- intersect(intersect(rownames(cgp_exp), rownames(nci_exp)), rownames(ccle_exp))
+morgan_bits       <- fread(paste0(in_morgan, "CGP_MORGAN_BITS.txt"))[radius==radii_set & bits==bit_set,]  #8 and 2048 normal setting
 morgan_counts     <- fread(paste0(in_morgan, "CGP_MORGAN_COUNTS.txt"),
-                       colClasses = c("numeric", "character", "numeric", "numeric"))[radius==12,]
+                       colClasses = c("numeric", "character", "numeric", "numeric"))[radius==radii_set,] #12 normal setting
 
 nci_exp           <- c()#readRDS("/tigress/zamalloa/OBJECTS/061916.NCI60.EXP.rds")
 nci_new           <- c()#readRDS("/tigress/zamalloa/OBJECTS/120916_nci60_new.rds")
@@ -421,7 +458,8 @@ if (met_type=="drug_cor"){
                                                           pic50_class = class_mlp, pic50_scaled = T,
                                                           genes = genes, rebalance = F, nci_spiked = nci_spiked,
                                                           nci_morgan = Function_load_morgan_bits(nci_spiked),
-                                                          nci_exp = nci_exp, nci_new = nci_new)
+                                                          nci_exp = nci_exp, nci_new = nci_new,
+                                                          pca = pca, common_genes = common_genes)
 
   drug_sim   <- data.table(melt(cor(acast(morgan_bits, bit_pos~Compound, value.var = "value"))))
   drug_sim   <- drug_sim[Var1!=Var2,]
@@ -432,7 +470,8 @@ if (met_type=="drug_cor"){
                                                           pic50_class = class_mlp, pic50_scaled = T,
                                                           genes = genes, rebalance = F, nci_spiked = nci_spiked,
                                                           nci_morgan = Function_load_morgan_counts(nci_spiked),
-                                                          nci_exp = nci_exp, nci_new = nci_new)
+                                                          nci_exp = nci_exp, nci_new = nci_new,
+                                                          pca = pca, common_genes = common_genes)
 
   drug_sim   <- data.table(melt(cor(acast(morgan_counts, Substructure~Compound, value.var = "Counts", fill = 0))))
   drug_sim   <- drug_sim[Var1!=Var2,]
