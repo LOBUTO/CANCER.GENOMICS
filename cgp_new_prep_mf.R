@@ -509,14 +509,14 @@ if (samples == "all"){
   all_drugs        <- unique(feat_table$feat_table$Compound)
   set.seed(1234)
   #test_drug        <- sample(all_drugs, 5)
-  #test_drug        <- c("GDC0449", "MS-275", "PAC-1", "RDEA119", "TG101348")
-  test_drug        <- c("17-AAG", "BHG712", "Bleomycin", "BX-912", "CEP-701", "CH5424802",
-                        "CMK", "CP724714", "Docetaxel", "EHT 1864", "FR-180204", "FTI-277",
-                        "GSK1070916", "GSK2126458", "IPA-3", "Ispinesib Mesylate", "JQ1",
-                        "KU-55933", "Lapatinib", "LAQ824", "Midostaurin", "NSC-87877",
-                        "NU-7441", "Nutlin-3a (-)", "Parthenolide", "PHA-793887", "Rapamycin",
-                        "Sunitinib", "TAK-715", "Temozolomide", "Tipifarnib", "Trametinib",
-                        "Tubastatin A", "YM201636")
+  test_drug        <- c("GDC0449", "MS-275", "PAC-1", "RDEA119", "TG101348")
+  # test_drug        <- c("17-AAG", "BHG712", "Bleomycin", "BX-912", "CEP-701", "CH5424802",
+  #                       "CMK", "CP724714", "Docetaxel", "EHT 1864", "FR-180204", "FTI-277",
+  #                       "GSK1070916", "GSK2126458", "IPA-3", "Ispinesib Mesylate", "JQ1",
+  #                       "KU-55933", "Lapatinib", "LAQ824", "Midostaurin", "NSC-87877",
+  #                       "NU-7441", "Nutlin-3a (-)", "Parthenolide", "PHA-793887", "Rapamycin",
+  #                       "Sunitinib", "TAK-715", "Temozolomide", "Tipifarnib", "Trametinib",
+  #                       "Tubastatin A", "YM201636")
   testing_drugs    <- setdiff(all_drugs, test_drug)
 
   testing_rows     <- which(feat_table$feat_table$Compound %in% testing_drugs)
@@ -611,34 +611,34 @@ test_index       <- data.table(drug = test_drug_index - 1,
                                NORM_pIC50 = test_target)
 
 # Scale tables with respect to training set (for Multiplicative_fusion, only scale drug features if they are continous variables)
-if (met_type=="drug_cor"){
-  not_scaling <- 1:3
-  scaling     <- (max(not_scaling) + 1):ncol(feat_table)
-
-} else if (met_type=="morgan_bits"){
-  not_scaling <- 1
-  scaling     <- 2:ncol(train_cell_table)
-
-} else if (met_type=="morgan_counts"){
-  not_scaling <- 1
-  scaling     <- 2:ncol(train_cell_table)
-}
-
-scale_train_cell  <- scale(train_cell_table[, scaling, with=F])
-train_cell_table  <- cbind(train_cell_table[, not_scaling, with=F], scale_train_cell)
-
-train_cell_mean   <- attributes(scale_train_cell)$`scaled:center`
-train_cell_sd     <- attributes(scale_train_cell)$`scaled:scale`
-
-valid_cell_scale  <- sweep(valid_cell_table[, scaling, with=F], 2, train_cell_mean, "-")
-valid_cell_scale  <- sweep(valid_cell_scale, 2, train_cell_sd, "/")
-valid_cell_table  <- cbind(valid_cell_table[, not_scaling, with=F],
-                     valid_cell_scale)
-
-test_cell_scale  <- sweep(test_cell_table[, scaling, with=F], 2, train_cell_mean, "-")
-test_cell_scale  <- sweep(test_cell_scale, 2, train_cell_sd, "/")
-test_cell_table  <- cbind(test_cell_table[, not_scaling, with=F],
-                     test_cell_scale)
+# if (met_type=="drug_cor"){
+#   not_scaling <- 1:3
+#   scaling     <- (max(not_scaling) + 1):ncol(feat_table)
+#
+# } else if (met_type=="morgan_bits"){
+#   not_scaling <- 1
+#   scaling     <- 2:ncol(train_cell_table)
+#
+# } else if (met_type=="morgan_counts"){
+#   not_scaling <- 1
+#   scaling     <- 2:ncol(train_cell_table)
+# }
+#
+# scale_train_cell  <- scale(train_cell_table[, scaling, with=F])
+# train_cell_table  <- cbind(train_cell_table[, not_scaling, with=F], scale_train_cell)
+#
+# train_cell_mean   <- attributes(scale_train_cell)$`scaled:center`
+# train_cell_sd     <- attributes(scale_train_cell)$`scaled:scale`
+#
+# valid_cell_scale  <- sweep(valid_cell_table[, scaling, with=F], 2, train_cell_mean, "-")
+# valid_cell_scale  <- sweep(valid_cell_scale, 2, train_cell_sd, "/")
+# valid_cell_table  <- cbind(valid_cell_table[, not_scaling, with=F],
+#                      valid_cell_scale)
+#
+# test_cell_scale  <- sweep(test_cell_table[, scaling, with=F], 2, train_cell_mean, "-")
+# test_cell_scale  <- sweep(test_cell_scale, 2, train_cell_sd, "/")
+# test_cell_table  <- cbind(test_cell_table[, not_scaling, with=F],
+#                      test_cell_scale)
 
 # WRITE TABLES
 write.table(train_index, paste0(out_folder, file_name, "_train_index"),

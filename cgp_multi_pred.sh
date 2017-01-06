@@ -10,7 +10,8 @@ fusion_n=$6
 genes=$7 #F/T
 batch_norm=$8 #cgp_nci60, cgp_ccle, tcga_brca, or None
 bn_external=$9 #T/F
-mf_manual=${10}
+pca=${10} #T/F
+mf_manual=${11}
 
 if [ "$met_type" == "morgan_bits" ]
 then
@@ -21,43 +22,52 @@ fi
 
 for samples in semi_split
 do
-  for cell in 500 950
+  for c in 10 25 50 100 # Number of cell features
   do
-    for drug in 500 1000
+    for d in 10 20 50 100 # Number of drug features
     do
-
-      echo $cell $drug $samples
-
-      file_tag_1="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/${samples}_scaled_C_${cell}_${mm}_${drug}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}"
-      file_tag_2="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/${samples}_scaled_C_${cell}_${mm}_${drug}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}"
-
-      cgp_drug="${file_tag_1}_train_drug"
-      cgp_cell="${file_tag_1}_train_cell"
-      model_file="${file_tag_2}.pkl"
-
-      if [ "$target" == "tcga" ]
-      then
-        for cancer in tcga_luad tcga_brca tcga_stad tcga_coad
+      for r in 1 2 4 8 12 16 # Morgan radii settings
+      do
+        for b in 256 512 1024 2048 # Morgan bit settings (Not needed for morgan counts choice)
         do
-          echo $cancer
-          # Prep data to be predicted on
-          Rscript GIT/cgp_multi_pred.R $cancer $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $bn_external
 
-          module load cudatoolkit
-          module load python
+          echo $c $d  $r $b $samples
 
-          THEANO_FLAGS='mode=FAST_RUN,allow_gc=False,linker=c,device=gpu,lib.cnmem=1,floatX=float32,nvcc.fastmath=True' python GIT/cgp_multi_pred.py $cancer $cgp_drug $model_file $class_mlp $bn_external
-        done
+          file_tag_1="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_radii_${r}_bit_${b}"
+          file_tag_2="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_radii_${r}_bit_${b}"
 
-      else
-        # Prep data to be predicted on
-        Rscript GIT/cgp_multi_pred.R $target $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $bn_external
+          cgp_drug="${file_tag_1}_train_drug"
+          cgp_cell="${file_tag_1}_train_cell"
+          model_file="${file_tag_2}.pkl"
 
-        module load cudatoolkit
-        module load python
+          if [ "$target" == "tcga" ]
+          then
+            for cancer in tcga_luad tcga_brca tcga_stad tcga_coad
+            do
+              echo $cancer
+              # Prep data to be predicted on
+              Rscript GIT/cgp_multi_pred.R $cancer $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $bn_external $pca $r $b
 
-        THEANO_FLAGS='mode=FAST_RUN,allow_gc=False,linker=c,device=gpu,lib.cnmem=1,floatX=float32,nvcc.fastmath=True' python GIT/cgp_multi_pred.py $target $cgp_drug $model_file $class_mlp $bn_external
-      fi
+              script_name="GIT/cgp_multi_pred.py"
+              file_name="$cancer $cgp_drug $model_file $class_mlp $bn_external"
+
+              export script_name file_name
+              sbatch GIT/cgp_mixed_class.cmd
+              echo "Done sending multiplicative_fusion predictive mlp job"
+
+            done
+
+          else
+            # Prep data to be predicted on
+            Rscript GIT/cgp_multi_pred.R $target $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $bn_external $pca $r $b
+
+            script_name="GIT/cgp_multi_pred.py"
+            file_name="$target $cgp_drug $model_file $class_mlp $bn_external"
+
+            export script_name file_name
+            sbatch GIT/cgp_mixed_class.cmd
+            echo "Done sending multiplicative_fusion predictive mlp job"
+          fi
 
     done
   done
