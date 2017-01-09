@@ -68,7 +68,8 @@ do
             sbatch GIT/cgp_mixed_class.cmd
             echo "Done sending multiplicative_fusion predictive mlp job"
           fi
-
+        done
+      done
     done
   done
 done
