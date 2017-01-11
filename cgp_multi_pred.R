@@ -60,7 +60,7 @@ Function_prep_new <- function(target_new, type="", class = F, scaled=T){
   } else if (type=="tcga"){
     target_new    <- target_new[, c("bcr_patient_barcode", "drug_name", "Binary"), with=F]
     target_filter <- target_new[,list(N = length(bcr_patient_barcode)), by="drug_name"]
-    target_filter <- target_filter[N>15,]$drug_name # MAY NEED TO INCREASE THRESHOLD
+    target_filter <- target_filter[N>25,]$drug_name # MAY NEED TO INCREASE THRESHOLD
     target_new    <- target_new[drug_name %in% target_filter,] # NECESSARY FILTER FOR OUT OF SET TESTING
 
     target_new_a  <- copy(target_new)
@@ -439,9 +439,10 @@ if (batch_norm=="cgp_nci60"){
  cgp_exp         <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
  ccle_exp        <- readRDS(paste0(in_folder, "121116_ccle_exp.rds"))
  nci_exp         <- readRDS(paste0(in_objects, "121216_nci60_exp.rds"))
- #tcga_brca_exp   <- readRDS(paste0(tcga_objects, "041715.BRCA.RNASEQ.MATRICES.V2.RSEM.UQ.rds"))[["tumor"]]
- # cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.1"]]
- # tcga_brca_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.2"]]
+ tcga_brca_exp   <- readRDS(paste0(tcga_objects, "041715.BRCA.RNASEQ.MATRICES.V2.RSEM.UQ.rds"))[["tumor"]]
+ tcga_luad_exp   <- readRDS(paste0(tcga_objects, "081915.LUAD.RNASEQ.MATRICES.V2.RSEM.UQ.rds"))[["tumor"]]
+ tcga_ucec_exp   <- readRDS(paste0(tcga_objects, "081915.UCEC.GA.RNASEQ.MATRICES.V2.RSEM.UQ.rds"))[["tumor"]]
+ tcga_stad_exp   <- readRDS(paste0(tcga_objects, "121416.STAD.RNASEQ.MATRICES.rds"))[["tumor"]]
 }
 
 #CCLE
@@ -495,8 +496,12 @@ if (met_type == "morgan_bits"){
                                                                            pca = pca, common_genes = common_genes,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
   } else if (target=="tcga_brca"){
-    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.1"]]
-    tcga_brca_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.2"]]
+    if (as.logical(bn_external)==T){
+      print("bn_external")
+      cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.1"]]
+      tcga_brca_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_brca_exp_b_norm.rds"))[["EXP.2"]]
+    }
+
     feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="BRCA",], type="tcga", class = class_mlp),
                                                                            tcga_brca_exp,
                                                                            morgan_bits,
@@ -505,8 +510,11 @@ if (met_type == "morgan_bits"){
                                                                            pca = pca, common_genes = common_genes,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
   } else if (target=="tcga_coad"){
-    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_coad_exp_b_norm.rds"))[["EXP.1"]]
-    tcga_coad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_coad_exp_b_norm.rds"))[["EXP.2"]]
+    if (as.logical(bn_external)==T){
+      print("bn_external")
+      cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_coad_exp_b_norm.rds"))[["EXP.1"]]
+      tcga_coad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_coad_exp_b_norm.rds"))[["EXP.2"]]
+    }
     feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="COAD",], type="tcga", class = class_mlp),
                                                                            tcga_coad_exp,
                                                                            Function_prep_morgan_bits(Function_load_morgan_bits("tcga"), type="tcga",
@@ -516,8 +524,11 @@ if (met_type == "morgan_bits"){
                                                                            pca = pca, common_genes = common_genes,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
   } else if (target=="tcga_stad"){
-    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_stad_exp_b_norm.rds"))[["EXP.1"]]
-    tcga_stad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_stad_exp_b_norm.rds"))[["EXP.2"]]
+    if (as.logical(bn_external)==T){
+      print("bn_external")
+      cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_stad_exp_b_norm.rds"))[["EXP.1"]]
+      tcga_stad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_stad_exp_b_norm.rds"))[["EXP.2"]]
+    }
     feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="STAD",], type="tcga", class = class_mlp),
                                                                            tcga_stad_exp,
                                                                            Function_prep_morgan_bits(Function_load_morgan_bits("tcga"), type="tcga",
@@ -527,8 +538,11 @@ if (met_type == "morgan_bits"){
                                                                            pca = pca, common_genes = common_genes,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
   } else if (target=="tcga_luad"){
-    cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_luad_exp_b_norm.rds"))[["EXP.1"]]
-    tcga_luad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_luad_exp_b_norm.rds"))[["EXP.2"]]
+    if (as.logical(bn_external)==T){
+      print("bn_external")
+      cgp_exp         <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_luad_exp_b_norm.rds"))[["EXP.1"]]
+      tcga_luad_exp   <- readRDS(paste0(tcga_objects, "121216_cgp_tcga_luad_exp_b_norm.rds"))[["EXP.2"]]
+    }
     feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(tcga_ding[Cancer=="LUAD",], type="tcga", class = class_mlp),
                                                                            tcga_luad_exp,
                                                                            Function_prep_morgan_bits(Function_load_morgan_bits("tcga"), type="tcga",
