@@ -1029,14 +1029,14 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
     )
 
     cost = (
-        classifier.errors(y)
+        classifier.NRMSE(y) #NRMSE is more accurate if we are randomly sampling every mini-batch
         + L1_reg * classifier.L1
         + L2_reg * classifier.L2_sqr
     )
 
     validate_model = theano.function(
         inputs=[index],
-        outputs=classifier.errors(y),
+        outputs=classifier.NRMSE(y),
         givens={
             x_c: valid_cell_x[valid_cell_index_x,],
             x_d: valid_drug_x[valid_drug_index_x,],
@@ -1122,7 +1122,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
 
     train_error = theano.function(
         inputs=[index],
-        outputs=classifier.errors(y),
+        outputs=classifier.NRMSE(y),
         givens={
             x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
             x_d: train_drug_x[train_drug_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
@@ -1980,7 +1980,7 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
 #     n_epochs = int(sys.argv[2])
 #     out_file = sys.argv[1] + "n_epoch_" + sys.argv[2]
 
-n_epochs = 2000
+n_epochs = 1500
 out_file = sys.argv[1]
 
 if sys.argv[6] != "0":
@@ -2106,8 +2106,8 @@ if sys.argv[6] != "0":
 
         regression_mlp_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
-                     cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, fusion_n_hidden = [FUSION_NEURONS]*1,
-                     p=0.5, dropout=True,
+                     cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*2,
+                     p=0.7, dropout=True,
                      drug_name=out_file,
                      OUT_FOLDER = OUT_FOLDER)
 else:

@@ -58,6 +58,7 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
   if(pic50_class==F){
 
     if(pic50_scaled==T){
+      feat_table$NORM.pIC50 <- scale(feat_table$pIC50) # WHOLE RE-SCALED - MODIFIED!!
       feat_table <- feats[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
     } else {
       feat_table <- feats[, c("Compound", "cell_name", "pIC50"), with=F]
@@ -236,6 +237,7 @@ Function_top_cell_morgan_counts_features_extracted_mf <- function(feats, exp_tab
   if(pic50_class==F){
 
     if(pic50_scaled==T){
+      feat_table$NORM.pIC50 <- scale(feat_table$pIC50) # WHOLE RE-SCALED - MODIFIED!!
       feat_table <- feats[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
     } else {
       feat_table <- feats[, c("Compound", "cell_name", "pIC50"), with=F]
