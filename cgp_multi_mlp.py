@@ -17,8 +17,10 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 def pear (x, y):
 
     #Calculate the pearson correlation between 2 vectors
-    pear = pear = ( T.sum(x*y) - (T.sum(x)*T.sum(y))/x.shape[0] )  / (T.sqrt(  ( T.sum(T.sqr(x)) - (T.sqr(T.sum(x)))/x.shape[0] ) * ( T.sum(T.sqr(y)) - (T.sqr(T.sum(y)))/y.shape[0]  ) ))
+    #pear = ( T.sum(x*y) - (T.sum(x)*T.sum(y))/x.shape[0] )  / (T.sqrt(  ( T.sum(T.sqr(x)) - (T.sqr(T.sum(x)))/x.shape[0] ) * ( T.sum(T.sqr(y)) - (T.sqr(T.sum(y)))/y.shape[0]  ) ))
+    pear  = T.sum(((x - T.mean(x)) / T.std(x)) * ((y - T.mean(y)) / T.std(y)))  / x.shape[0]
     return pear
+
 
 class LinearRegression(object):
 
@@ -97,14 +99,6 @@ class LinearRegression(object):
         return(self.y_pred)
 
     def errors(self, y):
-        """Return a float representing the number of errors in the minibatch
-        over the total number of examples of the minibatch ; zero one
-        loss over the size of the minibatch
-
-        :type y: theano.tensor.TensorType
-        :param y: corresponds to a vector that gives for each example the
-                  correct label
-        """
 
         # check if y has same dimension of y_pred
         if y.ndim != self.y_pred.ndim:
@@ -139,15 +133,11 @@ class LinearRegression(object):
     #     else:
     #         raise NotImplementedError()
 
-    def loss(self, y):
-        """Return a float representing the number of errors in the minibatch
-        over the total number of examples of the minibatch ; zero one
-        loss over the size of the minibatch
+    def pear_loss(self, y):
+        #return -pear(y, self.y_pred)
+        return -T.sum(((y - T.mean(y)) / T.std(y)) * ((self.y_pred - T.mean(self.y_pred)) / T.std(self.y_pred)))  / y.shape[0]
 
-        :type y: theano.tensor.TensorType
-        :param y: corresponds to a vector that gives for each example the
-                  correct label
-        """
+    def pear_check(self, y):
 
         # check if y has same dimension of y_pred
         if y.ndim != self.y_pred.ndim:
@@ -161,19 +151,11 @@ class LinearRegression(object):
             # represents a mistake in prediction
 
             #return T.sqrt(T.mean(T.sqr(y-self.y_pred))) / (T.max(y) - T.min(y)) #NRMSE
-            return pear(y, self.y_pred)
+            return T.sum(((y - T.mean(y)) / T.std(y)) * ((self.y_pred - T.mean(self.y_pred)) / T.std(self.y_pred)))  / y.shape[0]
         else:
             raise NotImplementedError()
 
     def NRMSE(self, y):
-        """Return a float representing the number of errors in the minibatch
-        over the total number of examples of the minibatch ; zero one
-        loss over the size of the minibatch
-
-        :type y: theano.tensor.TensorType
-        :param y: corresponds to a vector that gives for each example the
-                  correct label
-        """
 
         # check if y has same dimension of y_pred
         if y.ndim != self.y_pred.ndim:
@@ -478,7 +460,7 @@ class Multi_MLP_Regression(object):
             input=self.cell_input_layer,
             n_in=cell_n_in,
             n_out=cell_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
             p=cell_p,
             dropout=cell_dropout
@@ -497,7 +479,7 @@ class Multi_MLP_Regression(object):
                                                     input=getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
                                                     n_in=cell_n_hidden[cell_layer_number-1],
                                                     n_out=cell_n_hidden[cell_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
                                                     p=cell_p,
                                                     dropout=cell_dropout
@@ -523,7 +505,7 @@ class Multi_MLP_Regression(object):
             input=self.drug_input_layer,
             n_in=drug_n_in,
             n_out=drug_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
             p=drug_p,
             dropout=drug_dropout
@@ -542,7 +524,7 @@ class Multi_MLP_Regression(object):
                                                     input=getattr(self, "drug_layer_" + str(drug_layer_number-1)).output,
                                                     n_in=drug_n_hidden[drug_layer_number-1],
                                                     n_out=drug_n_hidden[drug_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
                                                     p=drug_p,
                                                     dropout=drug_dropout
@@ -574,7 +556,7 @@ class Multi_MLP_Regression(object):
             input=self.multiplicative_input.output,
             n_in=neural_range, #drug_n_hidden[drug_layer_number-1],
             n_out=fusion_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
             p=cell_p, #MAY CHANGE TO OWN VARIABLE
             dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
@@ -593,7 +575,7 @@ class Multi_MLP_Regression(object):
                                                     input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
                                                     n_in=fusion_n_hidden[fusion_layer_number-1],
                                                     n_out=fusion_n_hidden[fusion_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
                                                     p=cell_p, #MAY CHANGE TO OWN VARIABLE
                                                     dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
@@ -628,7 +610,8 @@ class Multi_MLP_Regression(object):
         )
 
         self.errors = self.linearRegressionLayer.errors
-        self.loss = self.linearRegressionLayer.loss
+        self.pear_loss = self.linearRegressionLayer.pear_loss
+        self.pear_check = self.linearRegressionLayer.pear_check
         self.NRMSE = self.linearRegressionLayer.NRMSE
         self.pred = self.linearRegressionLayer.pred
 
@@ -960,9 +943,11 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
     valid_drug_x, valid_cell_x, valid_drug_index_x, valid_cell_index_x, valid_set_y = datasets[1]
     test_drug_x,  test_cell_x,  test_drug_index_x,  test_cell_index_x,  test_set_y = datasets[2]
 
-    valid_batch_size = valid_drug_index_x.eval().shape[0] # Could have been valid_cell_index_x since they are of equal length
+    # valid_batch_size = valid_drug_index_x.eval().shape[0] # Could have been valid_cell_index_x since they are of equal length
+    valid_batch_size = train_batch_size #MODIFIED
     test_batch_size  = test_drug_index_x.eval().shape[0]
     train_samples    = train_drug_index_x.eval().shape[0] # Could have been train_cell_index_x since they are of equal length
+    valid_samples    = valid_drug_index_x.eval().shape[0] #MODIFIED
 
     # Compute input layer for both drug and cell networks
     CELL_N_IN = train_cell_x.get_value(borrow=True).shape[1]
@@ -970,7 +955,8 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
 
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_samples / train_batch_size
-    n_valid_batches = valid_batch_size / valid_batch_size #1
+    n_valid_batches = valid_samples / valid_batch_size #MODIFIED
+    # n_valid_batches = valid_batch_size / valid_batch_size #1
     n_test_batches  = test_batch_size / test_batch_size #1
 
     # compute fusion neural range
@@ -1029,7 +1015,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
     )
 
     cost = (
-        classifier.NRMSE(y) #NRMSE is more accurate if we are randomly sampling every mini-batch
+        classifier.NRMSE(y) #pear_loss, NRMSE is more accurate if we are randomly sampling every mini-batch
         + L1_reg * classifier.L1
         + L2_reg * classifier.L2_sqr
     )
@@ -1038,9 +1024,12 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
         inputs=[index],
         outputs=classifier.NRMSE(y),
         givens={
-            x_c: valid_cell_x[valid_cell_index_x,],
-            x_d: valid_drug_x[valid_drug_index_x,],
-            y: valid_set_y,
+            # x_c: valid_cell_x[valid_cell_index_x,],
+            # x_d: valid_drug_x[valid_drug_index_x,],
+            # y: valid_set_y,
+            x_c: valid_cell_x[valid_cell_index_x[index * valid_batch_size:(index + 1) * valid_batch_size],],
+            x_d: valid_drug_x[valid_drug_index_x[index * valid_batch_size:(index + 1) * valid_batch_size],],
+            y: valid_set_y[index * valid_batch_size:(index + 1) * valid_batch_size],
             is_train: np.cast['int32'](0)
         },
         on_unused_input='warn',
@@ -1048,7 +1037,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
 
     test_cor = theano.function(
         inputs=[index],
-        outputs=classifier.loss(y),
+        outputs=classifier.pear_check(y),
         givens={
             x_c: test_cell_x[test_cell_index_x,],
             x_d: test_drug_x[test_drug_index_x,],
@@ -1122,7 +1111,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
 
     train_error = theano.function(
         inputs=[index],
-        outputs=classifier.NRMSE(y),
+        outputs=classifier.pear_check(y),
         givens={
             x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
             x_d: train_drug_x[train_drug_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
@@ -1144,7 +1133,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
     improvement_threshold = 0.995 # a relative improvement of this much is considered significant (default = 0.995)
     validation_frequency = min(n_train_batches, patience / 2)
 
-    best_validation_loss = np.inf
+    best_validation_loss = np.inf #MODIFIED
     best_iter = 0
     start_time = timeit.default_timer()
 
@@ -1215,7 +1204,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
                                    +"\t" +str(test_pear) + "\t" + str(test_loss))
 
                 # if we got the best validation score until now
-                if this_validation_loss < best_validation_loss:
+                if this_validation_loss < best_validation_loss: #MODIFIED
                     LR_COUNT = 0
 
                     #improve patience if loss improvement is good enough
@@ -1258,7 +1247,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
                     #     MODEL = MODEL + [getattr(classifier, "fusion_layer_" + str(e))]
                     #
                     # MODEL = MODEL + [classifier.linearRegressionLayer]
-                    with open(OUT_FOLDER + "/" + str(epoch) + "_" + drug_name + ".pkl", "wb") as f:
+                    with open(OUT_FOLDER + "/" + drug_name + ".pkl", "wb") as f:
                         cPickle.dump(MODEL, f)
 
                     #Only write if validation improvement

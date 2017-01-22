@@ -29,15 +29,15 @@ else
   mm="MC"
 fi
 
-for samples in semi_split
+for samples in all
 do
-  for c in 10 25 50 100 # Number of cell features
+  for c in 200 400 800 # Number of cell features
   do
-    for d in 10 20 50 100 # Number of drug features
+    for d in 200 400 800 # Number of drug features
     do
-      for r in 1 2 4 8 12 16 # Morgan radii settings
+      for r in 4 # Morgan radii settings
       do
-        for b in 256 512 1024 2048 # Morgan bit settings (Not needed for morgan counts choice)
+        for b in 2048 # Morgan bit settings (Not needed for morgan counts choice)
         do
 
           echo $c $d $samples

@@ -58,7 +58,7 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
   if(pic50_class==F){
 
     if(pic50_scaled==T){
-      feat_table$NORM.pIC50 <- scale(feat_table$pIC50) # WHOLE RE-SCALED - MODIFIED!!
+      feats$NORM.pIC50 <- scale(feats$pIC50) # WHOLE RE-SCALED - MODIFIED!!
       feat_table <- feats[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
     } else {
       feat_table <- feats[, c("Compound", "cell_name", "pIC50"), with=F]
@@ -237,7 +237,7 @@ Function_top_cell_morgan_counts_features_extracted_mf <- function(feats, exp_tab
   if(pic50_class==F){
 
     if(pic50_scaled==T){
-      feat_table$NORM.pIC50 <- scale(feat_table$pIC50) # WHOLE RE-SCALED - MODIFIED!!
+      feats$NORM.pIC50 <- scale(feats$pIC50) # WHOLE RE-SCALED - MODIFIED!!
       feat_table <- feats[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
     } else {
       feat_table <- feats[, c("Compound", "cell_name", "pIC50"), with=F]
@@ -490,6 +490,7 @@ if (samples == "all"){
   valid_rows       <- sample(testing_rows, length(testing_rows)*0.5)
   test_rows        <- setdiff(testing_rows, valid_rows)
 
+
 } else if (samples == "all_split"){
   print("all_split")
 
@@ -511,7 +512,8 @@ if (samples == "all"){
   all_drugs        <- unique(feat_table$feat_table$Compound)
   set.seed(1234)
   #test_drug        <- sample(all_drugs, 5)
-  test_drug        <- c("GDC0449", "MS-275", "PAC-1", "RDEA119", "TG101348")
+  #test_drug        <- c("GDC0449", "MS-275", "PAC-1", "RDEA119", "TG101348")
+  test_drug        <- sample(all_drugs, 0.2*length(all_drugs))
   # test_drug        <- c("17-AAG", "BHG712", "Bleomycin", "BX-912", "CEP-701", "CH5424802",
   #                       "CMK", "CP724714", "Docetaxel", "EHT 1864", "FR-180204", "FTI-277",
   #                       "GSK1070916", "GSK2126458", "IPA-3", "Ispinesib Mesylate", "JQ1",
@@ -616,7 +618,7 @@ test_index       <- data.table(drug = test_drug_index - 1,
 # if (met_type=="drug_cor"){
 #   not_scaling <- 1:3
 #   scaling     <- (max(not_scaling) + 1):ncol(feat_table)
-#
+
 # } else if (met_type=="morgan_bits"){
 #   not_scaling <- 1
 #   scaling     <- 2:ncol(train_cell_table)

@@ -13,9 +13,20 @@ Function_prep_new <- function(target_new, type="", class = F, scaled=T){
 
   if (type=="nci_60"){
 
-    nci_filter <- target_new[act_class!=2,][,list(MEAN=mean(act_class), SUM=sum(act_class), COUNT=length(act_class)), by="NSC"]
-    nci_filter <- nci_filter[MEAN > 0.4 & MEAN < 0.7][COUNT>40,]$NSC
-    # nci_filter <- nci_to_cgp_name$NSC
+    # nci_filter <- target_new[act_class!=2,][,list(MEAN=mean(act_class), SUM=sum(act_class), COUNT=length(act_class)), by="NSC"]
+    # nci_filter <- nci_filter[MEAN > 0.4 & MEAN < 0.7][COUNT>40,]$NSC
+
+    ### CUSTOMIZED FILTER ###
+    nci_cgp    <- c('740','3061','19893','26980','49842','83265','91874','94600','119875','122758','123127','124663','125066',
+                    '125973','141540','157035','174939','180973','203821','226080','226080','252844','287459','330507','330507',
+                    '339555','613327','628503','656576','673596','681239','683864','701554','701852','715055','718781','727989',
+                    '732517','734950','743414','743444','745750','747599','747856','747971','748799','751249','753146','755880',
+                    '756645','756714','757306','757441','757804','758184','758612','758645','759155','759850','759852','759856',
+                    '759877')
+   nci_filter  <- sample(setdiff(unique(target_new$NSC), nci_cgp), 50)
+   nci_filter  <- c(nci_filter, nci_cgp)
+   ##########################
+
     target_new <- target_new[NSC %in% nci_filter,] # NECESSARY FILTER FOR OUT OF SET TESTING
 
     if (class == T){
@@ -23,6 +34,7 @@ Function_prep_new <- function(target_new, type="", class = F, scaled=T){
       target_new <- target_new[act_class!=2,]
     } else {
       if (scaled == T){
+        target_new$SCALE.ACT <- scale(target_new$ACT) # WHOLE RE-SCALED - MODIFIED!!
         target_new <- target_new[,c("NSC", "cell_name", "SCALE.ACT"), with=F] #MAY NEED TO MODIFY!
       } else{
         target_new <- target_new[,c("NSC", "cell_name", "ACT"), with=F] #MAY NEED TO MODIFY!
@@ -40,6 +52,7 @@ Function_prep_new <- function(target_new, type="", class = F, scaled=T){
 
     } else {
       if (scaled == T){
+        target_new$NORM.pIC50 <- scale(target_new$pIC50) # WHOLE RE-SCALED - MODIFIED!!
         target_new <- target_new[,c("Compound", "cell_name", "NORM.pIC50"), with=F]
       } else {
         target_new <- target_new[,c("Compound", "cell_name", "pIC50"), with=F]

@@ -40,38 +40,50 @@ class LinearRegression(object):
         # start-snippet-1
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
         #rng = np.random.RandomState(23455)
-        if W is None:
-            W_values = np.asarray(
-                    rng.uniform(
-                        low=-np.sqrt(6. / (n_in + n_out)),
-                        high=np.sqrt(6. / (n_in + n_out)),
-                        size=(n_in, n_out)
-                    ),
-                    dtype=theano.config.floatX
-                )
-            W = theano.shared(value=W_values, name='W', borrow=True)
-
-        if b is None :
-            b = theano.shared(
-                value=np.zeros(
-                    (n_out,),
-                    dtype=theano.config.floatX
-                ),
-                name='b',
-                borrow=True
-            )
-
-        self.W = W
-        self.b = b
-
+        # if W is None:
+        #     W_values = np.asarray(
+        #             rng.uniform(
+        #                 low=-np.sqrt(6. / (n_in + n_out)),
+        #                 high=np.sqrt(6. / (n_in + n_out)),
+        #                 size=(n_in, n_out)
+        #             ),
+        #             dtype=theano.config.floatX
+        #         )
+        #     W = theano.shared(value=W_values, name='W', borrow=True)
+        #
+        # if b is None :
+        #     b = theano.shared(
+        #         value=np.zeros(
+        #             (n_out,),
+        #             dtype=theano.config.floatX
+        #         ),
+        #         name='b',
+        #         borrow=True
+        #     )
+        #
+        # self.W = W
+        # self.b = b
+        self.W = theano.shared(
+            value=np.zeros(
+                (n_in, n_out),
+                dtype=theano.config.floatX
+            ),
+            name='W',
+            borrow=True
+        )
+        # initialize the biases b as a vector of n_out 0s
+        self.b = theano.shared(
+            value=np.zeros(
+                (n_out,),
+                dtype=theano.config.floatX
+            ),
+            name='b',
+            borrow=True
+        )
 
         self.p_y_given_x = T.dot(input, self.W) + self.b
 
-        # symbolic description of how to compute prediction as class whose
-        # probability is maximal
-        #self.y_pred = T.argmax(self.p_y_given_x, axis=1)
         self.y_pred = self.p_y_given_x[:,0]
-        # end-snippet-1
 
         # parameters of the model
         self.params = [self.W, self.b]
@@ -84,14 +96,6 @@ class LinearRegression(object):
         return(self.y_pred)
 
     def errors(self, y):
-        """Return a float representing the number of errors in the minibatch
-        over the total number of examples of the minibatch ; zero one
-        loss over the size of the minibatch
-
-        :type y: theano.tensor.TensorType
-        :param y: corresponds to a vector that gives for each example the
-                  correct label
-        """
 
         # check if y has same dimension of y_pred
         if y.ndim != self.y_pred.ndim:
@@ -126,15 +130,11 @@ class LinearRegression(object):
     #     else:
     #         raise NotImplementedError()
 
-    def loss(self, y):
-        """Return a float representing the number of errors in the minibatch
-        over the total number of examples of the minibatch ; zero one
-        loss over the size of the minibatch
+    def pear_loss(self, y):
+        #return -pear(y, self.y_pred)
+        return -T.sum(((y - T.mean(y)) / T.std(y)) * ((self.y_pred - T.mean(self.y_pred)) / T.std(self.y_pred)))  / y.shape[0]
 
-        :type y: theano.tensor.TensorType
-        :param y: corresponds to a vector that gives for each example the
-                  correct label
-        """
+    def pear_check(self, y):
 
         # check if y has same dimension of y_pred
         if y.ndim != self.y_pred.ndim:
@@ -148,19 +148,11 @@ class LinearRegression(object):
             # represents a mistake in prediction
 
             #return T.sqrt(T.mean(T.sqr(y-self.y_pred))) / (T.max(y) - T.min(y)) #NRMSE
-            return pear(y, self.y_pred)
+            return T.sum(((y - T.mean(y)) / T.std(y)) * ((self.y_pred - T.mean(self.y_pred)) / T.std(self.y_pred)))  / y.shape[0]
         else:
             raise NotImplementedError()
 
     def NRMSE(self, y):
-        """Return a float representing the number of errors in the minibatch
-        over the total number of examples of the minibatch ; zero one
-        loss over the size of the minibatch
-
-        :type y: theano.tensor.TensorType
-        :param y: corresponds to a vector that gives for each example the
-                  correct label
-        """
 
         # check if y has same dimension of y_pred
         if y.ndim != self.y_pred.ndim:
@@ -384,11 +376,13 @@ def rescale_weights(params, incoming_max):
 class Multi_MLP_Regression(object):
     def __init__(self, rng, cell_input, drug_input, is_train,
                  cell_n_in, drug_n_in, cell_n_hidden, drug_n_hidden, fusion_n_hidden, neural_range,
-                 n_out, p=0.5, dropout=False, input_p=0.1):
+                 n_out,
+                 cell_p=0.5, cell_dropout=False, cell_input_p=0.1,
+                 drug_p=0.5, drug_dropout=False, drug_input_p=0.1):
 
         # PROCESS CELL INPUT FIRST
-        if input_p!=None:
-            self.cell_input_layer = drop(cell_input, rng=rng, p=input_p)
+        if cell_input_p!=None:
+            self.cell_input_layer = drop(cell_input, rng=rng, p=cell_input_p)
             self.cell_input_layer = T.switch(T.neq(is_train, 0), self.cell_input_layer, cell_input)
         else:
             self.cell_input_layer = cell_input
@@ -400,10 +394,10 @@ class Multi_MLP_Regression(object):
             input=self.cell_input_layer,
             n_in=cell_n_in,
             n_out=cell_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
-            p=p,
-            dropout=dropout
+            p=cell_p,
+            dropout=cell_dropout
         )
 
         self.params = self.cell_layer_0.params
@@ -419,10 +413,10 @@ class Multi_MLP_Regression(object):
                                                     input=getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
                                                     n_in=cell_n_hidden[cell_layer_number-1],
                                                     n_out=cell_n_hidden[cell_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
-                                                    p=p,
-                                                    dropout=dropout
+                                                    p=cell_p,
+                                                    dropout=cell_dropout
                                                 )
 
                 setattr(self, "cell_layer_" + str(cell_layer_number), current_hidden_layer)
@@ -434,8 +428,8 @@ class Multi_MLP_Regression(object):
                 cell_layer_number = cell_layer_number + 1
 
         # PROCESS DRUG INPUT NEXT
-        if input_p!=None:
-            self.drug_input_layer = drop(drug_input, rng=rng, p=input_p)
+        if drug_input_p!=None:
+            self.drug_input_layer = drop(drug_input, rng=rng, p=drug_input_p)
             self.drug_input_layer = T.switch(T.neq(is_train, 0), self.drug_input_layer, drug_input)
         else:
             self.drug_input_layer = drug_input
@@ -445,10 +439,10 @@ class Multi_MLP_Regression(object):
             input=self.drug_input_layer,
             n_in=drug_n_in,
             n_out=drug_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
-            p=p,
-            dropout=dropout
+            p=drug_p,
+            dropout=drug_dropout
         )
 
         self.params = self.params + self.drug_layer_0.params # Adding to previous cell params
@@ -464,10 +458,10 @@ class Multi_MLP_Regression(object):
                                                     input=getattr(self, "drug_layer_" + str(drug_layer_number-1)).output,
                                                     n_in=drug_n_hidden[drug_layer_number-1],
                                                     n_out=drug_n_hidden[drug_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
-                                                    p=p,
-                                                    dropout=dropout
+                                                    p=drug_p,
+                                                    dropout=drug_dropout
                                                 )
 
                 setattr(self, "drug_layer_" + str(drug_layer_number), current_hidden_layer)
@@ -485,7 +479,8 @@ class Multi_MLP_Regression(object):
             cell_input = getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
             drug_in  = drug_n_hidden[drug_layer_number-1],
             cell_in  = cell_n_hidden[cell_layer_number-1],
-            neural_range = neural_range
+            neural_range = neural_range,
+            rng =  rng
         )
         self.params = self.params + self.multiplicative_input.params
 
@@ -495,10 +490,10 @@ class Multi_MLP_Regression(object):
             input=self.multiplicative_input.output,
             n_in=neural_range, #drug_n_hidden[drug_layer_number-1],
             n_out=fusion_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
-            p=p,
-            dropout=dropout
+            p=cell_p, #MAY CHANGE TO OWN VARIABLE
+            dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
         )
 
         self.params = self.params + self.fusion_layer_0.params # Plus previous separate layer params (drug + cell + mf)
@@ -514,10 +509,10 @@ class Multi_MLP_Regression(object):
                                                     input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
                                                     n_in=fusion_n_hidden[fusion_layer_number-1],
                                                     n_out=fusion_n_hidden[fusion_layer_number],
-                                                    activation=prelu,
+                                                    activation=relu,
                                                     is_train=is_train,
-                                                    p=p,
-                                                    dropout=dropout
+                                                    p=cell_p, #MAY CHANGE TO OWN VARIABLE
+                                                    dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
                                                 )
 
                 setattr(self, "fusion_layer_" + str(fusion_layer_number), current_hidden_layer)
@@ -529,12 +524,12 @@ class Multi_MLP_Regression(object):
                 fusion_layer_number = fusion_layer_number + 1
 
 
-        # APPLY LOGISTIC REGRESSION
+        # APPLY LINEAR REGRESSION
         self.linearRegressionLayer = LinearRegression(
             input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
             n_in=fusion_n_hidden[fusion_layer_number-1],
             n_out=n_out,
-            rng=rng
+            rng = rng
         )
 
         self.params = self.params + self.linearRegressionLayer.params
@@ -549,7 +544,8 @@ class Multi_MLP_Regression(object):
         )
 
         self.errors = self.linearRegressionLayer.errors
-        self.loss = self.linearRegressionLayer.loss
+        self.pear_loss = self.linearRegressionLayer.pear_loss
+        self.pear_check = self.linearRegressionLayer.pear_check
         self.NRMSE = self.linearRegressionLayer.NRMSE
         self.pred = self.linearRegressionLayer.pred
 
@@ -835,7 +831,7 @@ def model_prediction(model_dict, drug_data, cell_data, classification=True):
         lin_model  = model_dict["linear"]
         lin_layer  = T.dot(input, lin_model.W) + lin_model.b
         prediction = lin_layer[:,0]
-        prediction = prediction.get_value()
+        prediction = prediction.eval()
 
     # Return prediction
     return prediction
