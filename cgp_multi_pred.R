@@ -573,6 +573,9 @@ if (met_type == "morgan_bits"){
                                                                            cgp_exp, genes=F, scaling=F,
                                                                            pca = pca, common_genes = common_genes,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
+  } else {
+    drug_set
+
   }
 
 } else if (met_type == "morgan_counts"){
