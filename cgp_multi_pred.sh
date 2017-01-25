@@ -20,7 +20,7 @@ else
   mm="MC"
 fi
 
-for samples in semi_split
+for samples in whole
 do
   for c in 200 400 800 # Number of cell features
   do
@@ -41,7 +41,7 @@ do
           else
             file_tag_2="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_radii_${r}_bit_${b}"
           fi
-          
+
           cgp_drug="${file_tag_1}_train_drug"
           cgp_cell="${file_tag_1}_train_cell"
           model_file="${file_tag_2}.pkl"

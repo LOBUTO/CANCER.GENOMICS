@@ -65,6 +65,7 @@ Function_prep_new <- function(target_new, type="", class = F, scaled=T){
       target_new <- target_new[pic50_class!=2,]
     } else {
       if (scaled == T){
+        target_new$NORM.pIC50 <- scale(target_new$pIC50) # WHOLE RE-SCALED - MODIFIED!!
         target_new <- target_new[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
       } else {
         target_new <- target_new[, c("Compound", "cell_name", "pIC50"), with=F]
@@ -476,7 +477,7 @@ drug_features <- colnames(drug_features)[2:ncol(drug_features)]
 common_genes  <- intersect(intersect(rownames(cgp_exp), rownames(nci_exp)), rownames(ccle_exp))
 ############################################################################################################
 # EXECUTE
-cgp_new <- cgp_new[Compound %in% c("GDC0449", "MS-275", "PAC-1", "RDEA119", "TG101348"),] #NOTE (Used during testing)
+#cgp_new <- cgp_new[Compound %in% c("GDC0449", "MS-275", "PAC-1", "RDEA119", "TG101348"),] #NOTE (Used during testing)
 
 # Build feat tables
 if (met_type == "morgan_bits"){

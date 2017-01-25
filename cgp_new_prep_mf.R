@@ -58,7 +58,7 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
   if(pic50_class==F){
 
     if(pic50_scaled==T){
-      feats$NORM.pIC50 <- scale(feats$pIC50) # WHOLE RE-SCALED - MODIFIED!!
+      # feats$NORM.pIC50 <- scale(feats$pIC50) # WHOLE RE-SCALED - MODIFIED!!
       feat_table <- feats[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
     } else {
       feat_table <- feats[, c("Compound", "cell_name", "pIC50"), with=F]
@@ -237,7 +237,7 @@ Function_top_cell_morgan_counts_features_extracted_mf <- function(feats, exp_tab
   if(pic50_class==F){
 
     if(pic50_scaled==T){
-      feats$NORM.pIC50 <- scale(feats$pIC50) # WHOLE RE-SCALED - MODIFIED!!
+      # feats$NORM.pIC50 <- scale(feats$pIC50) # WHOLE RE-SCALED - MODIFIED!!
       feat_table <- feats[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
     } else {
       feat_table <- feats[, c("Compound", "cell_name", "pIC50"), with=F]
@@ -490,6 +490,13 @@ if (samples == "all"){
   valid_rows       <- sample(testing_rows, length(testing_rows)*0.5)
   test_rows        <- setdiff(testing_rows, valid_rows)
 
+} else if (samples == "whole"){
+  #AKA all data training
+
+  set.seed(1234)
+  train_rows       <- sample(1:length(feat_table$target), length(feat_table$target)*0.8)
+  valid_rows       <- setdiff(1:length(feat_table$target), train_rows)
+  test_rows        <- valid_rows
 
 } else if (samples == "all_split"){
   print("all_split")
@@ -615,34 +622,34 @@ test_index       <- data.table(drug = test_drug_index - 1,
                                NORM_pIC50 = test_target)
 
 # Scale tables with respect to training set (for Multiplicative_fusion, only scale drug features if they are continous variables)
-# if (met_type=="drug_cor"){
-#   not_scaling <- 1:3
-#   scaling     <- (max(not_scaling) + 1):ncol(feat_table)
+if (met_type=="drug_cor"){
+  not_scaling <- 1:3
+  scaling     <- (max(not_scaling) + 1):ncol(feat_table)
 
-# } else if (met_type=="morgan_bits"){
-#   not_scaling <- 1
-#   scaling     <- 2:ncol(train_cell_table)
-#
-# } else if (met_type=="morgan_counts"){
-#   not_scaling <- 1
-#   scaling     <- 2:ncol(train_cell_table)
-# }
-#
-# scale_train_cell  <- scale(train_cell_table[, scaling, with=F])
-# train_cell_table  <- cbind(train_cell_table[, not_scaling, with=F], scale_train_cell)
-#
-# train_cell_mean   <- attributes(scale_train_cell)$`scaled:center`
-# train_cell_sd     <- attributes(scale_train_cell)$`scaled:scale`
-#
-# valid_cell_scale  <- sweep(valid_cell_table[, scaling, with=F], 2, train_cell_mean, "-")
-# valid_cell_scale  <- sweep(valid_cell_scale, 2, train_cell_sd, "/")
-# valid_cell_table  <- cbind(valid_cell_table[, not_scaling, with=F],
-#                      valid_cell_scale)
-#
-# test_cell_scale  <- sweep(test_cell_table[, scaling, with=F], 2, train_cell_mean, "-")
-# test_cell_scale  <- sweep(test_cell_scale, 2, train_cell_sd, "/")
-# test_cell_table  <- cbind(test_cell_table[, not_scaling, with=F],
-#                      test_cell_scale)
+} else if (met_type=="morgan_bits"){
+  not_scaling <- 1
+  scaling     <- 2:ncol(train_cell_table)
+
+} else if (met_type=="morgan_counts"){
+  not_scaling <- 1
+  scaling     <- 2:ncol(train_cell_table)
+}
+
+scale_train_cell  <- scale(train_cell_table[, scaling, with=F])
+train_cell_table  <- cbind(train_cell_table[, not_scaling, with=F], scale_train_cell)
+
+train_cell_mean   <- attributes(scale_train_cell)$`scaled:center`
+train_cell_sd     <- attributes(scale_train_cell)$`scaled:scale`
+
+valid_cell_scale  <- sweep(valid_cell_table[, scaling, with=F], 2, train_cell_mean, "-")
+valid_cell_scale  <- sweep(valid_cell_scale, 2, train_cell_sd, "/")
+valid_cell_table  <- cbind(valid_cell_table[, not_scaling, with=F],
+                     valid_cell_scale)
+
+test_cell_scale  <- sweep(test_cell_table[, scaling, with=F], 2, train_cell_mean, "-")
+test_cell_scale  <- sweep(test_cell_scale, 2, train_cell_sd, "/")
+test_cell_table  <- cbind(test_cell_table[, not_scaling, with=F],
+                     test_cell_scale)
 
 # WRITE TABLES
 write.table(train_index, paste0(out_folder, file_name, "_train_index"),
