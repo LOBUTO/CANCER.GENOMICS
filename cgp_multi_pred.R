@@ -194,7 +194,7 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       cell_feat <- data.table(exp_table, keep.rownames = T)
     }
   } else {
-    original_exp <- original_exp[common_genes,]
+    original_exp <- original_exp[common_genes, ]
     exp_table    <- exp_table[common_genes, ]
     cgp_pca      <- prcomp(t(original_exp), center = T, scale. = T) # PCA on original to obtain rotation
     cell_feat    <- scale(t(exp_table)) %*% cgp_pca$rotation[,target_cells] # Apply rotation from original data
@@ -288,7 +288,7 @@ Function_target_morgan_counts_features_extracted_mf <- function(target_new, exp_
   # Minor fix to account for common cells
   colnames(cgp_exp) <- paste0("CGP_", colnames(cgp_exp))
   target_cells      <- paste0("CGP_", target_cells)
-  cgp_cell_cor      <- cor(cgp_exp, method = "pearson")
+  cgp_cell_cor      <- cor(cgp_exp, method = "spearman")
 
   # Build based on common ordered cell features
   common_genes   <- intersect(rownames(cgp_exp), rownames(exp_table))
@@ -298,7 +298,7 @@ Function_target_morgan_counts_features_extracted_mf <- function(target_new, exp_
 
   if (genes==F){
     cell_feat <- cbind(exp_table, cgp_exp)
-    cell_feat <- cor(cell_feat, method = "pearson")
+    cell_feat <- cor(cell_feat, method = "spearman")
     cell_feat <- cell_feat[target_samples, target_cells]
 
     cell_feat <- data.table(cell_feat, keep.rownames = T)
@@ -391,8 +391,8 @@ class_mlp   <- as.logical(args[5])
 batch_norm  <- args[6]
 bn_external <- args[7]
 pca         <- as.logical(args[8])
-radii_set   <- args[9]
-bit_set     <- args[10]
+radii_set   <- as.numeric(args[9])
+bit_set     <- as.numeric(args[10])
 out_folder  <- "/tigress/zamalloa/PREDICTIONS/"
 out_file    <- paste0(out_folder, Function_file_out(cgp_drug), "_bn_external_", bn_external)
 print(out_file)
@@ -493,7 +493,7 @@ if (met_type == "morgan_bits"){
                                                                            Function_prep_morgan_bits(Function_load_morgan_bits("nci_60",
                                                                                                     radii_set, bit_set), type="nci_60"),
                                                                            target_cells = cell_features, target_bits = drug_features,
-                                                                           cgp_exp, genes=F, scaling=F,
+                                                                           cgp_exp, genes=F, scaling=T,
                                                                            pca = pca, common_genes = common_genes,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
   } else if (target=="ccle"){
@@ -506,7 +506,7 @@ if (met_type == "morgan_bits"){
                                                                            ccle_exp,
                                                                            morgan_bits,
                                                                            target_cells = cell_features, target_bits = drug_features,
-                                                                           cgp_exp, genes=F, scaling=F,
+                                                                           cgp_exp, genes=F, scaling=T,
                                                                            pca = pca, common_genes = common_genes,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
   } else if (target=="tcga_brca"){
@@ -570,11 +570,35 @@ if (met_type == "morgan_bits"){
                                                                            cgp_exp,
                                                                            morgan_bits,
                                                                            target_cells = cell_features, target_bits = drug_features,
-                                                                           cgp_exp, genes=F, scaling=F,
+                                                                           cgp_exp, genes=F, scaling=T,
                                                                            pca = pca, common_genes = common_genes,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
+                                                                           
+  } else if (target=="tcga_all") {
+
   } else {
-    drug_set
+    # Assumes that in this scenario we have a specific compound belonging to a particular dataset
+
+    drug_set    <- strsplit(target, "_")[[1]][1]
+    drug        <- strsplit(target, "_")[[1]][2]
+
+    set_type    <- ifelse(drug_set == "nci", "nci_60", drug_set)
+    if (drug_set == "ccle") {
+      morgan_bits <- morgan_bits
+    } else{
+      morgan_bits <- Function_prep_morgan_bits(Function_load_morgan_bits(set_type,
+                               radii_set, bit_set), type=set_type)
+    }
+
+    target_new  <- Function_prep_new(get(paste0(drug_set,"_new")), type=set_type, class = class_mlp)
+
+    feat_table  <- Function_target_morgan_bits_features_extracted_mf(target_new,
+                                                                           get(paste0(drug_set,"_exp")),
+                                                                           morgan_bits,
+                                                                           target_cells = cell_features, target_bits = drug_features,
+                                                                           cgp_exp, genes=F, scaling=T,
+                                                                           pca = pca, common_genes = common_genes,
+                                                                           original_exp = cgp_exp, original_bits = morgan_bits)
 
   }
 

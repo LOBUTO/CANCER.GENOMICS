@@ -20,7 +20,7 @@ else
   mm="MC"
 fi
 
-for samples in Nilotinib
+for samples in all
 do
   for c in 900 # Number of cell features
   do
