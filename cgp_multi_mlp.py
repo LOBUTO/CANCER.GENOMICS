@@ -1969,7 +1969,7 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
 #     n_epochs = int(sys.argv[2])
 #     out_file = sys.argv[1] + "n_epoch_" + sys.argv[2]
 
-n_epochs = 5000
+n_epochs = 1500
 out_file = sys.argv[1]
 
 if sys.argv[6] != "0":

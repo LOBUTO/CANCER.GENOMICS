@@ -34,7 +34,7 @@ Function_prep_new <- function(target_new, type="", class = F, scaled=T){
       target_new <- target_new[act_class!=2,]
     } else {
       if (scaled == T){
-        target_new$SCALE.ACT <- scale(target_new$ACT) # WHOLE RE-SCALED - MODIFIED!!
+        # target_new$SCALE.ACT <- scale(target_new$ACT) # WHOLE RE-SCALED - MODIFIED!!
         target_new <- target_new[,c("NSC", "cell_name", "SCALE.ACT"), with=F] #MAY NEED TO MODIFY!
       } else{
         target_new <- target_new[,c("NSC", "cell_name", "ACT"), with=F] #MAY NEED TO MODIFY!
@@ -52,7 +52,7 @@ Function_prep_new <- function(target_new, type="", class = F, scaled=T){
 
     } else {
       if (scaled == T){
-        target_new$NORM.pIC50 <- scale(target_new$pIC50) # WHOLE RE-SCALED - MODIFIED!!
+        # target_new$NORM.pIC50 <- scale(target_new$pIC50) # WHOLE RE-SCALED - MODIFIED!!
         target_new <- target_new[,c("Compound", "cell_name", "NORM.pIC50"), with=F]
       } else {
         target_new <- target_new[,c("Compound", "cell_name", "pIC50"), with=F]
@@ -65,7 +65,7 @@ Function_prep_new <- function(target_new, type="", class = F, scaled=T){
       target_new <- target_new[pic50_class!=2,]
     } else {
       if (scaled == T){
-        target_new$NORM.pIC50 <- scale(target_new$pIC50) # WHOLE RE-SCALED - MODIFIED!!
+        # target_new$NORM.pIC50 <- scale(target_new$pIC50) # WHOLE RE-SCALED - MODIFIED!!
         target_new <- target_new[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
       } else {
         target_new <- target_new[, c("Compound", "cell_name", "pIC50"), with=F]
@@ -77,6 +77,20 @@ Function_prep_new <- function(target_new, type="", class = F, scaled=T){
     target_filter <- target_filter[N>25,]$drug_name # MAY NEED TO INCREASE THRESHOLD
     target_new    <- target_new[drug_name %in% target_filter,] # NECESSARY FILTER FOR OUT OF SET TESTING
 
+    target_new_a  <- copy(target_new)
+    target_new_b  <- copy(target_new)
+    target_new_a$cell_name <- paste0(gsub("-", ".", target_new_a$bcr_patient_barcode), ".01A")
+    target_new_b$cell_name <- paste0(gsub("-", ".", target_new_b$bcr_patient_barcode), ".01B")
+    target_new    <- rbind(target_new_a, target_new_b)
+    target_new    <- target_new[, c("drug_name", "cell_name", "Binary"), with=F]
+
+    target_new$Binary <- ifelse(target_new$Binary == "Effective", 1, 0)
+
+  } else if (type == "tcga_all"){
+    tcga_compounds <- target_new[,list(samples=length(bcr_patient_barcode), cancers=length(unique(Cancer))), by="drug_name"]
+    tcga_compounds <- tcga_compounds[samples>40,]$drug_name
+
+    target_new     <- target_new[drug_name %in% tcga_compounds,]
     target_new_a  <- copy(target_new)
     target_new_b  <- copy(target_new)
     target_new_a$cell_name <- paste0(gsub("-", ".", target_new_a$bcr_patient_barcode), ".01A")
@@ -405,6 +419,7 @@ in_folder         <- "/tigress/zamalloa/CGP_FILES/"
 in_morgan         <- "/tigress/zamalloa/MORGAN_FILES/"
 in_objects        <- "/tigress/zamalloa/OBJECTS/"
 tcga_objects      <- "/tigress/zamalloa/TCGA_FILES/"
+fire_rnaseq       <- "/tigress/zamalloa/OBJECTS/FIREHOSE/RNASEQ/"
 cgp_new           <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
 nci_to_cgp_name   <- readRDS(paste0(in_objects, "080716.nci60_names_to_cgp.rds"))
 tcga_ding         <- readRDS(paste0(in_objects, "121316_ding_tcga.rds"))
@@ -573,8 +588,34 @@ if (met_type == "morgan_bits"){
                                                                            cgp_exp, genes=F, scaling=T,
                                                                            pca = pca, common_genes = common_genes,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
-                                                                           
+
   } else if (target=="tcga_all") {
+
+    tcga_target    <- Function_prep_new(tcga_ding, type="tcga_all")
+    cancer_types   <- c('BLCA','BRCA','CESC','COAD','ESCA','GBM','HNSC',
+                      'KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO',
+                      'OV','PAAD','PCPG','PRAD','READ','SARC','SKCM',
+                      'STAD','TGCT','THCA','UCEC','UCS')
+    tcga_exp       <- lapply(cancer_types, function(x) {
+
+      temp_exp <- readRDS(paste0(fire_rnaseq, x, ".rds"))[["tumor"]]
+      return(temp_exp)
+      })
+
+    common_genes   <- Reduce(intersect, lapply(tcga_exp, function(x) rownames(x)))
+    tcga_exp       <- do.call(cbind,    lapply(tcga_exp, function(x) x[common_genes,]))
+
+    common_samples <- intersect(colnames(tcga_exp), tcga_target$cell_name)
+    tcga_exp       <- tcga_exp[,common_samples]
+
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(tcga_target,
+                                                                   tcga_exp,
+                                                                   Function_prep_morgan_bits(Function_load_morgan_bits("tcga", radii_set, bit_set),
+                                                                                              type="tcga"),
+                                                                   target_cells = cell_features, target_bits = drug_features,
+                                                                   cgp_exp, genes=F, scaling=T,
+                                                                   pca = pca, common_genes = common_genes,
+                                                                   original_exp = cgp_exp, original_bits = morgan_bits)
 
   } else {
     # Assumes that in this scenario we have a specific compound belonging to a particular dataset

@@ -29,7 +29,7 @@ else
   mm="MC"
 fi
 
-for samples in 17-AAG PD-0325901 PLX4720 Nilotinib PD-0332991 Erlotinib Lapatinib PHA-665752 Paclitaxel Sorafenib TAE684
+for samples in all
 do
   for c in 900 # Number of cell features
   do

@@ -1,7 +1,7 @@
 #!/bin/bash
 # cgp_multi_pred.sh
 
-target=$1 #nci_60, ccle, tcga_brca, tcga_luad, tcga_stad, tcga_coad, tcga(for all cancers), self, other
+target=$1 #nci_60, ccle, tcga_brca, tcga_luad, tcga_stad, tcga_coad, tcga_all, self, other
 class_mlp=$2 #T/F
 met_type=$3 #morgan_bits, morgan_counts
 drug_n=$4
