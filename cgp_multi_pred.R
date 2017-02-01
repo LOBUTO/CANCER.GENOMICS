@@ -194,11 +194,11 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
   # target_bits and target_cells have to be in the order that there trained in the input model
   # exp_table has to be as genesxsamples (rows=genes, columns=samples)
 
-  # Minor fix to account for common cells
+  cgp_cell_cor      <- cor(cgp_exp, method = "spearman") # Original cor without filtering cells
+
   if (pca==F){
     colnames(cgp_exp) <- paste0("CGP_", colnames(cgp_exp))
     target_cells      <- paste0("CGP_", target_cells)
-    cgp_cell_cor      <- cor(cgp_exp, method = "spearman")
 
     # Build based on common ordered cell features
     common_genes   <- intersect(rownames(cgp_exp), rownames(exp_table))
@@ -219,11 +219,43 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       cell_feat <- data.table(exp_table, keep.rownames = T)
     }
   } else {
-    original_exp <- original_exp[common_genes, ]
-    exp_table    <- exp_table[common_genes, ]
-    cgp_pca      <- prcomp(t(original_exp), center = T, scale. = T) # PCA on original to obtain rotation
-    cell_feat    <- scale(t(exp_table)) %*% cgp_pca$rotation[,target_cells] # Apply rotation from original data
-    cell_feat    <- data.table(cell_feat, keep.rownames = T)
+    if (genes == F){
+
+      # Get original principal rotation from cgp_exp
+      cgp_cor        <- cor(cgp_exp, method = "spearman")
+      cgp_pca        <- prcomp(cgp_cor, center = T, scale. = T)
+
+      # Prepare target expression to apply PCA to it
+      common_genes   <- intersect(rownames(cgp_exp), rownames(exp_table))
+      feat_cells     <- colnames(cgp_exp)
+      target_samples <- colnames(exp_table)
+      cgp_exp        <- cgp_exp[common_genes, ]
+      exp_table      <- exp_table[common_genes,]
+
+      cell_feat      <- cbind(exp_table, cgp_exp)
+      cell_feat      <- cor(cell_feat, method = "spearman")
+      cell_feat      <- cell_feat[target_samples, feat_cells]
+
+      # Apply scaling to cell_feat prior to rotation by PCA
+      cgp_cor        <- scale(cgp_cor)
+      cgp_cell_mean  <- attributes(cgp_cor)$`scaled:center`
+      cgp_cell_sd    <- attributes(cgp_cor)$`scaled:scale`
+
+      cell_feat_sc   <- sweep(cell_feat, 2, cgp_cell_mean, "-")
+      cell_feat_sc   <- sweep(cell_feat_sc, 2, cgp_cell_sd, "/")
+
+      # Apply rotation
+      cell_feat      <- cell_feat_sc %*% cgp_pca$rotation[,target_cells]
+      cell_feat      <- data.table(cell_feat, keep.rownames = T)
+
+    } else {
+      #FIX!!! ORIGINAL EXPRESSION SHOULD HAVE ORIGINAL GENES TO OBTAIN ORIGINAL PCA ROTATION
+      original_exp <- original_exp[common_genes, ]
+      exp_table    <- exp_table[common_genes, ]
+      cgp_pca      <- prcomp(t(original_exp), center = T, scale. = T) # PCA on original to obtain rotation
+      cell_feat    <- scale(t(exp_table)) %*% cgp_pca$rotation[,target_cells] # Apply rotation from original data
+      cell_feat    <- data.table(cell_feat, keep.rownames = T)
+    }
   }
 
   setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
@@ -232,7 +264,14 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
   # IS SCALING NECESSARY
   if (scaling==T){
 
-    cgp_cell_feat <- data.table(cgp_cell_cor[, target_cells], keep.rownames = T)
+    if (pca==T){
+      if (genes==F){
+        cgp_cell_feat <- data.table(cgp_pca$x[, target_cells], keep.rownames =T)
+      }
+    } else {
+      cgp_cell_feat <- data.table(cgp_cell_cor[, target_cells], keep.rownames = T)
+    }
+
     setnames(cgp_cell_feat, c("cell_name", colnames(cgp_cell_feat)[2:ncol(cgp_cell_feat)]))
 
     not_scaling <- 1
@@ -257,6 +296,7 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       drug_feat     <- morgan_table[bit_pos %in% target_bits,]
       drug_feat     <- acast(drug_feat, Compound~bit_pos, value.var="value")
       drug_feat     <- data.table(drug_feat[, target_bits], keep.rownames = T)
+
     } else {
       original_bits <- acast(original_bits, Compound~bit_pos, value.var="value")
       original_pos  <- colnames(original_bits)
