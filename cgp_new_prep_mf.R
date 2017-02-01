@@ -28,9 +28,17 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
     }
 
   } else{
-    cgp_pca     <- prcomp(t(cgp_exp[common_genes,]), center=T, scale. = T) # Scaling previously shown to be essential for out of set accuracy
-    cell_feat   <- cgp_pca$x[,1:max_cells]
-    cell_feat   <- data.table(cell_feat, keep.rownames = T)
+    if (genes==F){
+      cell_feat   <- cor(cgp_exp, method = "spearman")
+      cell_feat   <- prcomp(cell_feat, center = T, scale. = T)
+      cell_feat   <- cell_feat$x[,1:max_cells]
+      cell_feat   <- data.table(cell_feat, keep.rownames = T)
+
+    } else {
+      cgp_pca     <- prcomp(t(cgp_exp[common_genes,]), center=T, scale. = T) # Scaling previously shown to be essential for out of set accuracy
+      cell_feat   <- cgp_pca$x[,1:max_cells]
+      cell_feat   <- data.table(cell_feat, keep.rownames = T)
+    }
   }
 
   setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
