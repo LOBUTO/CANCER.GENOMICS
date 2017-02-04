@@ -31,7 +31,7 @@ fi
 
 for samples in all
 do
-  for c in 400 600 800 # Number of cell features
+  for c in 500 950 # Number of cell features
   do
     for d in 100 200 290 # Number of drug features
     do

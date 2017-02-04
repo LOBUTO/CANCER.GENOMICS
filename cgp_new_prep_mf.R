@@ -643,21 +643,49 @@ if (met_type=="drug_cor"){
   scaling     <- 2:ncol(train_cell_table)
 }
 
-scale_train_cell  <- scale(train_cell_table[, scaling, with=F])
-train_cell_table  <- cbind(train_cell_table[, not_scaling, with=F], scale_train_cell)
+Function_scaling_tables <- function(train_table, valid_table, test_table, scaling, not_scaling){
 
-train_cell_mean   <- attributes(scale_train_cell)$`scaled:center`
-train_cell_sd     <- attributes(scale_train_cell)$`scaled:scale`
+  scale_train <- scale(train_table[, scaling, with=F])
+  train_table <- cbind(train_table[, not_scaling, with=F], scale_train)
 
-valid_cell_scale  <- sweep(valid_cell_table[, scaling, with=F], 2, train_cell_mean, "-")
-valid_cell_scale  <- sweep(valid_cell_scale, 2, train_cell_sd, "/")
-valid_cell_table  <- cbind(valid_cell_table[, not_scaling, with=F],
-                     valid_cell_scale)
+  train_mean  <- attributes(scale_train)$`scaled:center`
+  train_sd    <- attributes(scale_train)$`scaled:scale`
 
-test_cell_scale  <- sweep(test_cell_table[, scaling, with=F], 2, train_cell_mean, "-")
-test_cell_scale  <- sweep(test_cell_scale, 2, train_cell_sd, "/")
-test_cell_table  <- cbind(test_cell_table[, not_scaling, with=F],
-                     test_cell_scale)
+  valid_scale <- sweep(valid_table[, scaling, with=F], 2, train_mean, "-")
+  valid_scale <- sweep(valid_scale, 2, train_sd, "/")
+  valid_table <- cbind(valid_table[, not_scaling, with=F],
+                       valid_scale)
+
+  test_scale  <- sweep(test_table[, scaling, with=F], 2, train_mean, "-")
+  test_scale  <- sweep(test_scale, 2, train_sd, "/")
+  test_table  <- cbind(test_table[, not_scaling, with=F],
+                       test_scale)
+
+  return(list(train_table = train_table,
+              valid_table = valid_table,
+              test_table  = test_table))
+
+}
+
+cell_scaling     <- Function_scaling_tables(train_cell_table, valid_cell_table, test_cell_table,
+                                            scaling, not_scaling)
+
+train_cell_table <- cell_scaling[["train_table"]]
+valid_cell_table <- cell_scaling[["valid_table"]]
+test_cell_table  <- cell_scaling[["test_table"]]
+
+if (pca==T){
+  drug_not_scaling <- 1
+  drug_scaling     <- 2:ncol(train_drug_table)
+
+  drug_scaling     <- Function_scaling_tables(train_drug_table, valid_drug_table, test_drug_table,
+                                              drug_scaling, drug_not_scaling)
+
+  train_drug_table <- drug_scaling[["train_table"]]
+  valid_drug_table <- drug_scaling[["valid_table"]]
+  test_drug_table  <- drug_scaling[["test_table"]]
+
+}
 
 # WRITE TABLES
 write.table(train_index, paste0(out_folder, file_name, "_train_index"),

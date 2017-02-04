@@ -22,13 +22,13 @@ fi
 
 for samples in all
 do
-  for c in 800 # Number of cell features
+  for c in 900 # Number of cell features
   do
-    for d in 290 # Number of drug features
+    for d in 1000 # Number of drug features
     do
-      for r in 16 # Morgan radii settings
+      for r in 12 # Morgan radii settings
       do
-        for b in 2048 # Morgan bit settings (Not needed for morgan counts choice)
+        for b in 1024 # Morgan bit settings (Not needed for morgan counts choice)
         do
 
           echo $c $d  $r $b $samples

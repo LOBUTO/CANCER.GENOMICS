@@ -156,6 +156,11 @@ Function_prep_morgan_bits <- function(input_morgan, type=""){
     input_morgan <- input_morgan[,c("bits", "radius", "Compound", "position", "value"), with=F]
     setnames(input_morgan, c("bits", "radius", "Compound", "bit_pos", "value"))
 
+    #MODIFIED!!!
+    input_morgan <- input_morgan[!Compound %in% c("Gemcitabine","Doxorubicin","Carboplatin"),]
+    input_morgan <- rbind(input_morgan,
+                          morgan_bits[Compound %in% c("Gemcitabine","Doxorubicin","Carboplatin"),])
+
   } else{
     input_morgan <- input_morgan
   }
@@ -194,11 +199,11 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
   # target_bits and target_cells have to be in the order that there trained in the input model
   # exp_table has to be as genesxsamples (rows=genes, columns=samples)
 
-  cgp_cell_cor      <- cor(cgp_exp, method = "spearman") # Original cor without filtering cells
-
+  ########## EXPRESSION FEATURES ###########
   if (pca==F){
     colnames(cgp_exp) <- paste0("CGP_", colnames(cgp_exp))
     target_cells      <- paste0("CGP_", target_cells)
+    cgp_cell_cor      <- cor(cgp_exp, method = "spearman") # Original cor without filtering cells
 
     # Build based on common ordered cell features
     common_genes   <- intersect(rownames(cgp_exp), rownames(exp_table))
@@ -210,6 +215,7 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       cell_feat <- cbind(exp_table, cgp_exp)
       cell_feat <- cor(cell_feat, method = "spearman")
       cell_feat <- cell_feat[target_samples, target_cells]
+      cell_feat <- scale(cell_feat) # HEAVILY MODIFIED!!!! MODIFIED!!!!!!!
 
       cell_feat <- data.table(cell_feat, keep.rownames = T)
     } else {
@@ -220,10 +226,11 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
     }
   } else {
     if (genes == F){
+      print("Cor exp PCA pre-scaling")
 
       # Get original principal rotation from cgp_exp
       cgp_cor        <- cor(cgp_exp, method = "spearman")
-      cgp_pca        <- prcomp(cgp_cor, center = T, scale. = T)
+      cgp_pca_exp    <- prcomp(cgp_cor, center = T, scale. = T)
 
       # Prepare target expression to apply PCA to it
       common_genes   <- intersect(rownames(cgp_exp), rownames(exp_table))
@@ -235,9 +242,10 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       cell_feat      <- cbind(exp_table, cgp_exp)
       cell_feat      <- cor(cell_feat, method = "spearman")
       cell_feat      <- cell_feat[target_samples, feat_cells]
+      #cell_feat      <- scale(cell_feat) # COULD HEAVILY MODIFY HERE BEFORE APPLYING TRAIN SCALING
 
       # Apply scaling to cell_feat prior to rotation by PCA
-      cgp_cor        <- scale(cgp_cor)
+      cgp_cor        <- scale(cgp_cor) # To obtain original pre-PCA scaling attributes
       cgp_cell_mean  <- attributes(cgp_cor)$`scaled:center`
       cgp_cell_sd    <- attributes(cgp_cor)$`scaled:scale`
 
@@ -245,28 +253,80 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       cell_feat_sc   <- sweep(cell_feat_sc, 2, cgp_cell_sd, "/")
 
       # Apply rotation
-      cell_feat      <- cell_feat_sc %*% cgp_pca$rotation[,target_cells]
+      cell_feat      <- cell_feat_sc %*% cgp_pca_exp$rotation[,target_cells]
       cell_feat      <- data.table(cell_feat, keep.rownames = T)
 
     } else {
       #FIX!!! ORIGINAL EXPRESSION SHOULD HAVE ORIGINAL GENES TO OBTAIN ORIGINAL PCA ROTATION
       original_exp <- original_exp[common_genes, ]
       exp_table    <- exp_table[common_genes, ]
-      cgp_pca      <- prcomp(t(original_exp), center = T, scale. = T) # PCA on original to obtain rotation
-      cell_feat    <- scale(t(exp_table)) %*% cgp_pca$rotation[,target_cells] # Apply rotation from original data
+      cgp_pca_exp  <- prcomp(t(original_exp), center = T, scale. = T) # PCA on original to obtain rotation
+      cell_feat    <- scale(t(exp_table)) %*% cgp_pca_exp$rotation[,target_cells] # Apply rotation from original data
       cell_feat    <- data.table(cell_feat, keep.rownames = T)
     }
   }
 
   setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
 
+  ########## MORGAN FEATURES ###########
+  if (length(target_bits) > 0){
+    if (pca == F){
+      drug_feat     <- morgan_table[bit_pos %in% target_bits,]
+      drug_feat     <- acast(drug_feat, Compound~bit_pos, value.var="value")
+      drug_feat     <- data.table(drug_feat[, target_bits], keep.rownames = T)
+
+    } else {
+      print("Cor morgan PCA")
+
+      # Get original PCA rotation (since it is binary, there is no pre-scaling)
+      original_bits <- acast(original_bits, Compound~bit_pos, value.var="value")
+      original_pos  <- colnames(original_bits)
+      drug_feat     <- acast(morgan_table, Compound~bit_pos, value.var="value")
+      drug_feat     <- drug_feat[,original_pos]
+
+      cgp_pca_bit   <- prcomp(original_bits, center=F, scale. = F)
+
+      # Apply PCA rotation, no need to pre-scaling since original morgan bits were binary and unscaled
+      drug_feat     <- drug_feat %*% cgp_pca_bit$rotation[,target_bits]
+      drug_feat     <- data.table(drug_feat, keep.rownames = T)
+    }
+
+    setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
+
+  } else {
+    drug_feat <- data.table()
+  }
+
   ##################################################################################################
-  # IS SCALING NECESSARY
+  # IS SCALING NECESSARY ?
   if (scaling==T){
 
     if (pca==T){
       if (genes==F){
-        cgp_cell_feat <- data.table(cgp_pca$x[, target_cells], keep.rownames =T)
+        print("Cor exp PCA post-scaling")
+        cgp_cell_feat <- data.table(cgp_pca_exp$x[, target_cells], keep.rownames = T)
+      }
+
+      if (length(target_bits) > 0){
+        print("Cor morgan PCA post-scaling")
+        cgp_drug_feat <- data.table(cgp_pca_bit$x[, target_bits], keep.rownames = T)
+
+        # Do morgan scaling within loop since it is only applicable when PCA==T
+        setnames(cgp_drug_feat, c("Compound", colnames(cgp_drug_feat)[2:ncol(cgp_drug_feat)]))
+
+        not_scaling <- 1
+        scaling     <- 2:ncol(cgp_drug_feat)
+
+        scale_train_drug  <- scale(cgp_drug_feat[, scaling, with=F])
+
+        train_drug_mean   <- attributes(scale_train_drug)$`scaled:center`
+        train_drug_sd     <- attributes(scale_train_drug)$`scaled:scale`
+
+        drug_feat_scaled  <- sweep(drug_feat[, scaling, with=F], 2, train_drug_mean, "-")
+        drug_feat_scaled  <- sweep(drug_feat_scaled, 2, train_drug_sd, "/")
+        drug_feat         <- cbind(drug_feat[, not_scaling, with=F],
+                             drug_feat_scaled)
+        print("morgan scaled")
       }
     } else {
       cgp_cell_feat <- data.table(cgp_cell_cor[, target_cells], keep.rownames = T)
@@ -286,33 +346,10 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
     cell_feat_scaled  <- sweep(cell_feat_scaled, 2, train_cell_sd, "/")
     cell_feat         <- cbind(cell_feat[, not_scaling, with=F],
                          cell_feat_scaled)
-    print("scaled")
+
+    print("cell scaled")
   }
   ##################################################################################################
-
-  # Build based on common ordered drug features
-  if (length(target_bits) > 0){
-    if (pca == F){
-      drug_feat     <- morgan_table[bit_pos %in% target_bits,]
-      drug_feat     <- acast(drug_feat, Compound~bit_pos, value.var="value")
-      drug_feat     <- data.table(drug_feat[, target_bits], keep.rownames = T)
-
-    } else {
-      original_bits <- acast(original_bits, Compound~bit_pos, value.var="value")
-      original_pos  <- colnames(original_bits)
-      drug_feat     <- acast(morgan_table, Compound~bit_pos, value.var="value")
-      drug_feat     <- drug_feat[,original_pos]
-
-      cgp_pca       <- prcomp(original_bits, center=F, scale. = F)
-      drug_feat     <- drug_feat %*% cgp_pca$rotation[,target_bits]
-      drug_feat     <- data.table(drug_feat, keep.rownames = T)
-    }
-
-    setnames(drug_feat, c("Compound", colnames(drug_feat)[2:ncol(drug_feat)]))
-
-  } else {
-    drug_feat <- data.table()
-  }
 
   # Merge to obtain total number of possible combinations
   if (length(target_bits) > 0){
@@ -554,6 +591,9 @@ if (met_type == "morgan_bits"){
       cgp_exp         <- readRDS(paste0(in_objects, "121216_cgp_nci60_exp_b_norm.rds"))[["EXP.1"]]
       nci_exp         <- readRDS(paste0(in_objects, "121216_cgp_nci60_exp_b_norm.rds"))[["EXP.2"]]
     }
+
+    colnames(nci_exp) <- sapply(colnames(nci_exp), function(x)  unique(nci_new[,c("cell_name", "CELL"),with=F])[CELL==x,]$cell_name )
+
     feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(nci_new, type="nci_60", class = class_mlp),
                                                                            nci_exp,
                                                                            Function_prep_morgan_bits(Function_load_morgan_bits("nci_60",
