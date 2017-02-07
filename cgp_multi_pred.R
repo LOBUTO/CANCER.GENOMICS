@@ -97,11 +97,17 @@ Function_prep_new <- function(target_new, type="", class = F, scaled=T){
 
     target_new$Binary <- ifelse(target_new$Binary == "Effective", 1, 0)
 
-  } else if (type == "tcga_all"){
-    tcga_compounds <- target_new[,list(samples=length(bcr_patient_barcode), cancers=length(unique(Cancer))), by="drug_name"]
-    tcga_compounds <- tcga_compounds[samples>40,]$drug_name
+  } else if (type == "tcga_all" | type == "tcga_multi"){
 
-    target_new     <- target_new[drug_name %in% tcga_compounds,]
+    if (type=="tcga_all"){
+      tcga_compounds <- target_new[,list(samples=length(bcr_patient_barcode), cancers=length(unique(Cancer))), by="drug_name"]
+      tcga_compounds <- tcga_compounds[samples>40,]$drug_name
+      target_new     <- target_new[drug_name %in% tcga_compounds,]
+    } else {
+      target_new     <- target_new[,list(drug_name = paste0(sort(drug_name), collapse="+"),
+                                         Binary = unique(Binary)), by="bcr_patient_barcode"]
+    }
+
     target_new_a  <- copy(target_new)
     target_new_b  <- copy(target_new)
     target_new_a$cell_name <- paste0(gsub("-", ".", target_new_a$bcr_patient_barcode), ".01A")
@@ -127,6 +133,11 @@ Function_load_morgan_bits <- function(morgan="nci_60", radii_set, bit_set){
                            colClasses = c("numeric", "numeric", "character", "numeric", "numeric"))[radius==radii_set & bits==bit_set,]
     morgan_nci_bits$position <- paste0("mcf_", morgan_nci_bits$position)
 
+  } else if ("tcga_multi"){
+    morgan_nci_bits   <- fread(paste0(tcga_objects, "TCGA_MULTI_MORGAN_BITS_r_", radii_set ,"_b_", bit_set ,".txt"),
+                           colClasses = c("numeric", "numeric", "character", "numeric", "numeric"))[radius==radii_set & bits==bit_set,]
+    morgan_nci_bits$position <- paste0("mcf_", morgan_nci_bits$position)
+
   } else{
     morgan_nci_bits   <- c()
   }
@@ -143,7 +154,10 @@ Function_load_morgan_counts <- function(morgan="nci_60", radii_set){
     morgan_nci_counts <- fread(paste0(tcga_objects, "TCGA_MORGAN_COUNTS.txt"),
                            colClasses = c("numeric", "character", "character", "numeric"))[radius==radii_set,]
 
-  }else{
+  } else if (morgan=="tcga_multi"){
+    morgan_nci_counts <- fread(paste0(tcga_objects, "TCGA_MULTI_MORGAN_COUNTS.txt"),
+                           colClasses = c("numeric", "character", "character", "numeric"))[radius==radii_set,]MULTI_
+  } else{
     morgan_nci_counts <- c()
   }
 
@@ -152,7 +166,7 @@ Function_load_morgan_counts <- function(morgan="nci_60", radii_set){
 
 Function_prep_morgan_bits <- function(input_morgan, type=""){
 
-  if (type == "nci_60" | type == "tcga"){
+  if (type == "nci_60" | type == "tcga" | type == "tcga_multi"){
     input_morgan <- input_morgan[,c("bits", "radius", "Compound", "position", "value"), with=F]
     setnames(input_morgan, c("bits", "radius", "Compound", "bit_pos", "value"))
 
@@ -170,7 +184,7 @@ Function_prep_morgan_bits <- function(input_morgan, type=""){
 
 Function_prep_morgan_counts <- function(input_morgan, type=""){
 
-  if (type == "nci_60" | type == "tcga"){
+  if (type == "nci_60" | type == "tcga" | type == "tcga_multi"){
     setnames(input_morgan, c("radius", "Compound", "Substructure", "Counts"))
 
     input_morgan <- rbind(input_morgan, morgan_counts[,c("radius", "Compound", "Substructure", "Counts"),with=F]) #Global morgan_counts
@@ -242,7 +256,7 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       cell_feat      <- cbind(exp_table, cgp_exp)
       cell_feat      <- cor(cell_feat, method = "spearman")
       cell_feat      <- cell_feat[target_samples, feat_cells]
-      #cell_feat      <- scale(cell_feat) # COULD HEAVILY MODIFY HERE BEFORE APPLYING TRAIN SCALING
+      cell_feat      <- scale(cell_feat) # COULD HEAVILY MODIFY HERE BEFORE APPLYING TRAIN SCALING
 
       # Apply scaling to cell_feat prior to rotation by PCA
       cgp_cor        <- scale(cgp_cor) # To obtain original pre-PCA scaling attributes
@@ -511,6 +525,7 @@ fire_rnaseq       <- "/tigress/zamalloa/OBJECTS/FIREHOSE/RNASEQ/"
 cgp_new           <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
 nci_to_cgp_name   <- readRDS(paste0(in_objects, "080716.nci60_names_to_cgp.rds"))
 tcga_ding         <- readRDS(paste0(in_objects, "121316_ding_tcga.rds"))
+tcga_multi_ding   <- readRDS(paste0(in_objects, "020717_ding_multi.rds"))
 morgan_bits       <- fread(paste0(in_morgan, "CGP_MORGAN_BITS.txt"))[radius==radii_set & bits==bit_set,]
 morgan_counts     <- fread(paste0(in_morgan, "CGP_MORGAN_COUNTS.txt"),
                        colClasses = c("numeric", "character", "numeric", "numeric"))[radius==radii_set,] #TO BE DECIDED
@@ -680,9 +695,16 @@ if (met_type == "morgan_bits"){
                                                                            pca = pca, common_genes = common_genes,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
 
-  } else if (target=="tcga_all") {
+  } else if (target=="tcga_all" | target=="tcga_multi") {
 
-    tcga_target    <- Function_prep_new(tcga_ding, type="tcga_all")
+    if (target=="tcga_all"){
+      tcga_target    <- Function_prep_new(tcga_ding, type=target)
+      morgan_type    <- "tcga"
+    } else {
+      tcga_target    <- Function_prep_new(tcga_multi_ding, type=target)
+      morgan_type    <- "tcga_multi"
+    }
+
     cancer_types   <- c('BLCA','BRCA','CESC','COAD','ESCA','GBM','HNSC',
                       'KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO',
                       'OV','PAAD','PCPG','PRAD','READ','SARC','SKCM',
@@ -701,8 +723,8 @@ if (met_type == "morgan_bits"){
 
     feat_table <- Function_target_morgan_bits_features_extracted_mf(tcga_target,
                                                                    tcga_exp,
-                                                                   Function_prep_morgan_bits(Function_load_morgan_bits("tcga", radii_set, bit_set),
-                                                                                              type="tcga"),
+                                                                   Function_prep_morgan_bits(Function_load_morgan_bits(morgan_type, radii_set, bit_set),
+                                                                                              type=morgan_type),
                                                                    target_cells = cell_features, target_bits = drug_features,
                                                                    cgp_exp, genes=F, scaling=T,
                                                                    pca = pca, common_genes = common_genes,
