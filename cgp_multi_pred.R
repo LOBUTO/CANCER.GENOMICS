@@ -133,9 +133,13 @@ Function_load_morgan_bits <- function(morgan="nci_60", radii_set, bit_set){
                            colClasses = c("numeric", "numeric", "character", "numeric", "numeric"))[radius==radii_set & bits==bit_set,]
     morgan_nci_bits$position <- paste0("mcf_", morgan_nci_bits$position)
 
-  } else if ("tcga_multi"){
+  } else if (morgan=="tcga_multi"){
     morgan_nci_bits   <- fread(paste0(tcga_objects, "TCGA_MULTI_MORGAN_BITS_r_", radii_set ,"_b_", bit_set ,".txt"),
                            colClasses = c("numeric", "numeric", "character", "numeric", "numeric"))[radius==radii_set & bits==bit_set,]
+    morgan_add        <- fread(paste0(tcga_objects, "TCGA_MORGAN_BITS_r_", radii_set ,"_b_", bit_set ,".txt"),
+                           colClasses = c("numeric", "numeric", "character", "numeric", "numeric"))[radius==radii_set & bits==bit_set,]
+    morgan_nci_bits   <- rbind(morgan_nci_bits, morgan_add)
+
     morgan_nci_bits$position <- paste0("mcf_", morgan_nci_bits$position)
 
   } else{
@@ -156,7 +160,11 @@ Function_load_morgan_counts <- function(morgan="nci_60", radii_set){
 
   } else if (morgan=="tcga_multi"){
     morgan_nci_counts <- fread(paste0(tcga_objects, "TCGA_MULTI_MORGAN_COUNTS.txt"),
-                           colClasses = c("numeric", "character", "character", "numeric"))[radius==radii_set,]MULTI_
+                           colClasses = c("numeric", "character", "character", "numeric"))[radius==radii_set,]
+    morgan_add        <- fread(paste0(tcga_objects, "TCGA_MORGAN_COUNTS.txt"),
+                           colClasses = c("numeric", "character", "character", "numeric"))[radius==radii_set,]
+    morgan_nci_counts <- rbind(morgan_nci_counts, morgan_add)
+
   } else{
     morgan_nci_counts <- c()
   }
