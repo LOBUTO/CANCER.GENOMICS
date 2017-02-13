@@ -250,14 +250,17 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
     if (genes == F){
       print("Cor exp PCA pre-scaling")
 
+      # Modify names
+      colnames(cgp_exp) <- paste0("CGP_", colnames(cgp_exp))
+
       # Get original principal rotation from cgp_exp
       cgp_cor        <- cor(cgp_exp, method = "spearman")
       cgp_pca_exp    <- prcomp(cgp_cor, center = T, scale. = T)
 
       # Prepare target expression to apply PCA to it
       common_genes   <- intersect(rownames(cgp_exp), rownames(exp_table))
-      feat_cells     <- colnames(cgp_exp)
-      target_samples <- colnames(exp_table)
+      feat_cells     <- colnames(cgp_exp) # NEED TO RENAME ORIGINAL
+      target_samples <- colnames(exp_table) # NEED TO RENAME ORIGINAL IN CASE THEY HAVE SAME CELLS, THEN IT DOESN'T KNOW WHAT TO PICK
       cgp_exp        <- cgp_exp[common_genes, ]
       exp_table      <- exp_table[common_genes,]
 

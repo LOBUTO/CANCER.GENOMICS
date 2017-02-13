@@ -562,7 +562,26 @@ if (samples == "all"){
   valid_rows       <- which(feat_table$feat_table$Compound %in% valid_drug)
   test_rows        <- which(feat_table$feat_table$Compound %in% test_drug)
 
-} else {
+} else if(grepl("zero_")==T) {
+  print ("zero morgan target compound")
+  # Uses zero morgan features and splits dataset for specific compound
+  temp_rows        <- which(feat_table$feat_table$Compound == samples)
+
+  train_rows       <- sample(temp_rows, length(temp_rows)*0.7)
+  testing_rows     <- setdiff(temp_rows, train_rows)
+
+  valid_rows       <- sample(testing_rows, length(testing_rows)*0.5)
+  test_rows        <- setdiff(testing_rows, vaid_rows)
+
+} else if (grepl("zeroall_")==T) {
+  print ("zero morgan target compound - all data")
+  # Uses zero morgan features and splits dataset for specific compound, trains on all data
+  temp_rows        <- which(feat_table$feat_table$Compound == samples)
+  train_rows       <- sample(temp_rows, length(temp_rows)*0.8)
+  valid_rows       <- setdiff(temp_rows, train_rows)
+  test_rows        <- valid_rows
+
+}else {
 
   test_rows        <- which(feat_table$feat_table$Compound == samples)
   testing_rows     <- which(feat_table$feat_table$Compound != samples)
