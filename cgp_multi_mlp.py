@@ -390,9 +390,9 @@ class Multiplicative_fusion(object):
         self.params = [self.cell_alpha, self.drug_alpha, self.cell_beta, self.drug_beta]
 
 class Multiplicative_fusion_zero_drug(object):
-    # Performs combinations of two neural layers (drug_input, cell_input) from
-    # different sources and output the Multiplicative_fusion layer along with
-    # 4 parameters to be learned.
+    # Performs synthetic combination cell input layer
+    # and output the Multiplicative_fusion layer along with
+    # 2 parameters to be learned.
 
     def __init__(self, rng, cell_input, cell_in,
                  cell_alpha=None, cell_beta=None):
@@ -614,6 +614,137 @@ class Multi_MLP_Regression(object):
         self.pear_check = self.linearRegressionLayer.pear_check
         self.NRMSE = self.linearRegressionLayer.NRMSE
         self.pred = self.linearRegressionLayer.pred
+
+        self.param_to_scale = param_to_scale
+
+        self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
+
+class Multi_MLP_Regression_Zero_Drug(object):
+    def __init__(self, rng, cell_input, is_train,
+                 cell_n_in, cell_n_hidden, fusion_n_hidden,
+                 n_out, p=0.5, dropout=False, input_p=0.1):
+
+        # PROCESS CELL INPUT FIRST
+        if input_p!=None:
+            self.cell_input_layer = drop(cell_input, rng=rng, p=input_p)
+            self.cell_input_layer = T.switch(T.neq(is_train, 0), self.cell_input_layer, cell_input)
+        else:
+            self.cell_input_layer = cell_input
+
+        param_to_scale = [] #To scale weights to square length of 15
+
+        self.cell_layer_0 = HiddenLayer(
+            rng=rng,
+            input=self.cell_input_layer,
+            n_in=cell_n_in,
+            n_out=cell_n_hidden[0],
+            activation=prelu,
+            is_train=is_train,
+            p=p,
+            dropout=dropout
+        )
+
+        self.params = self.cell_layer_0.params
+        param_to_scale = param_to_scale + [self.cell_layer_0.params[0]]
+
+        cell_layer_number = 1
+        if len(cell_n_hidden)>1:
+
+            for layer in cell_n_hidden[1:]:
+
+                current_hidden_layer = HiddenLayer(
+                                                    rng=rng,
+                                                    input=getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
+                                                    n_in=cell_n_hidden[cell_layer_number-1],
+                                                    n_out=cell_n_hidden[cell_layer_number],
+                                                    activation=relu,
+                                                    is_train=is_train,
+                                                    p=p,
+                                                    dropout=dropout
+                                                )
+
+                setattr(self, "cell_layer_" + str(cell_layer_number), current_hidden_layer)
+
+                self.params = self.params + getattr(self, "cell_layer_" + str(cell_layer_number)).params
+
+                param_to_scale = param_to_scale + [getattr(self, "cell_layer_" + str(cell_layer_number)).params[0]]
+
+                cell_layer_number = cell_layer_number + 1
+
+
+        # APPLY FUSION
+        # Combine single output to obtain Multiplicative fusion layer
+        self.multiplicative_input = Multiplicative_fusion_zero_drug(
+            cell_input = getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
+            cell_in  = cell_n_hidden[cell_layer_number-1],
+            rng = rng
+        )
+        self.params = self.params + self.multiplicative_input.params
+
+        # PROCESS FUSION LAYERS
+        self.fusion_layer_0 = HiddenLayer(
+            rng=rng,
+            input=self.multiplicative_input.output,
+            n_in=cell_n_hidden[cell_layer_number-1],
+            n_out=fusion_n_hidden[0],
+            activation=relu,
+            is_train=is_train,
+            p=p,
+            dropout=dropout
+        )
+
+        self.params = self.params + self.fusion_layer_0.params # Plus previous separate layer params (drug + cell + mf)
+        param_to_scale = param_to_scale + [self.fusion_layer_0.params[0]]
+
+        fusion_layer_number = 1
+        if len(fusion_n_hidden)>1:
+
+            for layer in fusion_n_hidden[1:]:
+
+                current_hidden_layer = HiddenLayer(
+                                                    rng=rng,
+                                                    input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
+                                                    n_in=fusion_n_hidden[fusion_layer_number-1],
+                                                    n_out=fusion_n_hidden[fusion_layer_number],
+                                                    activation=relu,
+                                                    is_train=is_train,
+                                                    p=p,
+                                                    dropout=dropout
+                                                )
+
+                setattr(self, "fusion_layer_" + str(fusion_layer_number), current_hidden_layer)
+
+                self.params = self.params + getattr(self, "fusion_layer_" + str(fusion_layer_number)).params
+
+                param_to_scale = param_to_scale + [getattr(self, "fusion_layer_" + str(fusion_layer_number)).params[0]]
+
+                fusion_layer_number = fusion_layer_number + 1
+
+
+        # APPLY LINEAR REGRESSION
+        self.linearRegressionLayer = LinearRegression(
+            input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
+            n_in=fusion_n_hidden[fusion_layer_number-1],
+            n_out=n_out,
+            rng = rng
+        )
+
+        self.params = self.params + self.linearRegressionLayer.params
+
+        #L1 and L2 regularization
+        self.L1 = (
+            abs(self.cell_layer_0.W).sum() + abs(self.linearRegressionLayer.W).sum()
+        )
+
+        self.L2_sqr = (
+            (self.cell_layer_0.W ** 2).sum() + (self.linearRegressionLayer.W ** 2).sum()
+        )
+
+        self.errors = self.linearRegressionLayer.errors
+        self.pear_loss = self.linearRegressionLayer.pear_loss
+        self.pear_check = self.linearRegressionLayer.pear_check
+        self.NRMSE = self.linearRegressionLayer.NRMSE
+        self.pred = self.logRegressionLayer.pred
 
         self.param_to_scale = param_to_scale
 
@@ -1354,16 +1485,27 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
         inputs=[index],
         outputs=classifier.NRMSE(y),
         givens={
-            x_c: valid_cell_x[valid_cell_index_x,],
-            y: valid_set_y,
+            x_c: valid_cell_x[valid_cell_index_x[index * valid_batch_size:(index + 1) * valid_batch_size],],
+            y: valid_set_y[index * valid_batch_size:(index + 1) * valid_batch_size],
             is_train: np.cast['int32'](0)
         },
         on_unused_input='warn',
     )
 
-    test_model = theano.function(
+    test_cor = theano.function(
         inputs=[index],
-        outputs=classifier.errors(y),
+        outputs=classifier.pear_check(y),
+        givens={
+            x_c: test_cell_x[test_cell_index_x,],
+            y: test_set_y,
+            is_train: np.cast['int32'](0)
+        },
+        on_unused_input='warn',
+    )
+
+    test_nrmse = theano.function(
+        inputs=[index],
+        outputs=classifier.NRMSE(y),
         givens={
             x_c: test_cell_x[test_cell_index_x,],
             y: test_set_y,
@@ -1422,7 +1564,7 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
 
     train_error = theano.function(
         inputs=[index],
-        outputs=classifier.errors(y),
+        outputs=classifier.pear_check(y),
         givens={
             x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
             y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
@@ -1450,10 +1592,11 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
     epoch = 0
     done_looping = False
     test_loss = 1
+    test_pear = 0
     LR_COUNT = 1
 
     FILE_OUT =  open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "w")
-    FILE_OUT.write("EPOCH" + "\t" + "TRAIN"+ "\t"+"VALID.ERROR" + "\t" + "TEST.ERROR")
+    FILE_OUT.write("EPOCH" + "\t" + "TRAIN"+ "\t"+"VALID.ERROR" + "\t" + "TEST.COR" + "\t" + "TEST.ERROR")
     FILE_OUT.close()
 
     FILE_OUT_val = open(OUT_FOLDER + "/combined_D_values." + drug_name + ".txt", "w")
@@ -1510,7 +1653,7 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
 
                 with open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "a") as FILE_OUT:
                     FILE_OUT.write("\n"+ str(epoch) + "\t" + str(this_train_error) + "\t"+ str(this_validation_loss) \
-                                   + "\t" + str(test_loss))
+                                   +"\t" +str(test_pear) + "\t" + str(test_loss))
 
                 # if we got the best validation score until now
                 if this_validation_loss < best_validation_loss:
@@ -1527,12 +1670,15 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
                     best_iter = iter
 
                     # test it on the test set
-                    test_losses = [test_model(i) for i in xrange(n_test_batches)]
+                    test_losses = [test_nrmse(i) for i in xrange(n_test_batches)]
                     test_loss = np.mean(test_losses)
 
+                    test_pears = [test_cor(i) for i in xrange(n_test_batches)]
+                    test_pear = np.mean(test_pears)
+
                     log = ((' epoch %i, minibatch %i/%i, test error of '
-                        'best loss %f %%') %
-                        (epoch, minibatch_index + 1, EPOCH_SIZE, test_loss))
+                        'best nrmse and pear %f,%f %%') %
+                        (epoch, minibatch_index + 1, EPOCH_SIZE, test_loss, test_pear))
                     # print(log)
                     with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
                         logfile.write(log + "\n")
@@ -1542,7 +1688,7 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
                     MODEL["cell_n_hidden"]   = [getattr(classifier, "cell_layer_" + str(e)) for e in xrange(len(cell_n_hidden))]
                     MODEL["multiplicative"]  = classifier.multiplicative_input
                     MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
-                    MODEL["logistic"]        = classifier.logRegressionLayer
+                    MODEL["linear"]          = classifier.linearRegressionLayer
 
                     # MODEL = []
                     # for e in xrange(len(cell_n_hidden)):
@@ -1557,7 +1703,7 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
                         cPickle.dump(MODEL, f)
 
                     #Only write if validation improvement
-                    ACTUAL = test_set_y.eval()
+                    ACTUAL = test_set_y.get_value()
                     PREDICTED = [test_pred(i) for i in xrange(n_test_batches)][0]
 
                     with open(OUT_FOLDER + "/combined_D_values." + drug_name + ".txt", "a") as FILE_OUT_val:
@@ -2436,7 +2582,7 @@ else:
 
         regression_mlp_mf_zero_drug(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
-                     cell_n_hidden=c_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*2,
+                     cell_n_hidden=c_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*1,
                      p=0.7, dropout=True,
                      drug_name=out_file,
                      OUT_FOLDER = OUT_FOLDER)
