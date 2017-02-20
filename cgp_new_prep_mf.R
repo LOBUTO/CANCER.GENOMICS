@@ -69,7 +69,9 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
       # feats$NORM.pIC50 <- scale(feats$pIC50) # WHOLE RE-SCALED - MODIFIED!!
       feat_table <- feats[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
     } else {
-      feat_table <- feats[, c("Compound", "cell_name", "pIC50"), with=F]
+      # feat_table <- feats[, c("Compound", "cell_name", "pIC50"), with=F] MODIFIED
+      feat_table <- feats[, c("Compound", "cell_name", "AUC"), with=F]
+      feat_table$AUC <- (1 - feat_table$AUC)*10
     }
 
   } else{
@@ -161,7 +163,7 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
     feat_extra <- do.call(rbind, feat_extra)
 
     feat_table <- rbind(feat_table, feat_extra)
-    feat_table$N <- NULL
+    feat_table <- feat_table[,-c("N"),with=F]
 
   }
 
@@ -395,8 +397,9 @@ samples     <- args[6]
 genes       <- as.logical(args[7])
 batch_norm  <- args[8]
 pca         <- as.logical(args[9])
-radii_set   <- as.numeric(args[10])
-bit_set     <- as.numeric(args[11])
+rebalance   <- as.logical(args[10])
+radii_set   <- as.numeric(args[11])
+bit_set     <- as.numeric(args[12])
 nci_spiked  <- F#as.logical(args[8])
 
 # if (args[7] == "lab"){
@@ -465,8 +468,8 @@ if (met_type=="drug_cor"){
 } else if (met_type=="morgan_bits"){
   feat_table <- Function_top_cell_morgan_bits_features_extracted_mf(cgp_new, cgp_exp, morgan_bits,
                                                           max_cells = max_cells, max_bits = max_drugs,
-                                                          pic50_class = class_mlp, pic50_scaled = T,
-                                                          genes = genes, rebalance = F, nci_spiked = nci_spiked,
+                                                          pic50_class = class_mlp, pic50_scaled = F, #MODIFIED
+                                                          genes = genes, rebalance = rebalance, nci_spiked = nci_spiked,
                                                           nci_morgan = Function_load_morgan_bits(nci_spiked),
                                                           nci_exp = nci_exp, nci_new = nci_new,
                                                           pca = pca, common_genes = common_genes)
@@ -477,8 +480,8 @@ if (met_type=="drug_cor"){
 } else if (met_type=="morgan_counts"){
   feat_table <- Function_top_cell_morgan_counts_features_extracted_mf(cgp_new, cgp_exp, morgan_counts,
                                                           max_cells = max_cells, max_counts = max_drugs,
-                                                          pic50_class = class_mlp, pic50_scaled = T,
-                                                          genes = genes, rebalance = F, nci_spiked = nci_spiked,
+                                                          pic50_class = class_mlp, pic50_scaled = F, #MODIFIED
+                                                          genes = genes, rebalance = rebalance, nci_spiked = nci_spiked,
                                                           nci_morgan = Function_load_morgan_counts(nci_spiked),
                                                           nci_exp = nci_exp, nci_new = nci_new,
                                                           pca = pca, common_genes = common_genes)
@@ -562,26 +565,30 @@ if (samples == "all"){
   valid_rows       <- which(feat_table$feat_table$Compound %in% valid_drug)
   test_rows        <- which(feat_table$feat_table$Compound %in% test_drug)
 
-} else if(grepl("zero_")==T) {
+} else if(grepl("zero_", samples)==T) {
   print ("zero morgan target compound")
   # Uses zero morgan features and splits dataset for specific compound
-  temp_rows        <- which(feat_table$feat_table$Compound == samples)
+  temp_rows        <- which(feat_table$feat_table$Compound == gsub("zero_", "", samples))
 
+  set.seed(1234)
   train_rows       <- sample(temp_rows, length(temp_rows)*0.7)
   testing_rows     <- setdiff(temp_rows, train_rows)
 
+  set.seed(1234)
   valid_rows       <- sample(testing_rows, length(testing_rows)*0.5)
-  test_rows        <- setdiff(testing_rows, vaid_rows)
+  test_rows        <- setdiff(testing_rows, valid_rows)
 
-} else if (grepl("zeroall_")==T) {
+} else if (grepl("zeroall_", samples)==T) {
   print ("zero morgan target compound - all data")
   # Uses zero morgan features and splits dataset for specific compound, trains on all data
-  temp_rows        <- which(feat_table$feat_table$Compound == samples)
+  temp_rows        <- which(feat_table$feat_table$Compound == gsub("zeroall_", "", samples))
+
+  set.seed(1234)
   train_rows       <- sample(temp_rows, length(temp_rows)*0.8)
   valid_rows       <- setdiff(temp_rows, train_rows)
   test_rows        <- valid_rows
 
-}else {
+} else {
 
   test_rows        <- which(feat_table$feat_table$Compound == samples)
   testing_rows     <- which(feat_table$feat_table$Compound != samples)

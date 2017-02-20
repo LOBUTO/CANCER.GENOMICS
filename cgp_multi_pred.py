@@ -735,40 +735,36 @@ class Multi_MLP_Class(object):
 
 def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True):
 
-    drug_data  = drug_data.iloc[:,1:]
-    cell_data  = cell_data.iloc[:,1:]
+    cell_data     = cell_data.iloc[:,1:]
+    cell_index    = list(index_data.cell)
 
-    drug_index = list(index_data.drug)
-    cell_index = list(index_data.cell)
-    data_y     = list(index_data.target)
-
-    # if target=="AUC":
-    #     data_y=list(drug_data.NORM_AUC)
-    # elif target=="pIC50":
-    #     data_y=list(drug_data.NORM_pIC50)
-    # elif target=="IC50":
-    #     data_y=list(drug_data.NORM_IC50)
-    # elif target=="LIVED":
-    #     data_y=list(drug_data.LIVED)
-    # elif target=="CLASS":
-    #     data_y=list(drug_data.CLASS)
-    # elif target=="PCA":
-    #     data_y=list(drug_data.PCA)
-
-    shared_drug_x = theano.shared(np.asarray(drug_data, dtype=theano.config.floatX), borrow=True)
     shared_cell_x = theano.shared(np.asarray(cell_data, dtype=theano.config.floatX), borrow=True)
-    shared_drug_i = theano.shared(np.asarray(drug_index, dtype=theano.config.floatX), borrow=True)
     shared_cell_i = theano.shared(np.asarray(cell_index, dtype=theano.config.floatX), borrow=True)
 
-    shared_drug_i = T.cast(shared_drug_i, 'int32')
-    shared_cell_i = T.cast(shared_cell_i, 'int32')
+    data_y        = list(index_data.target)
+    shared_y      = theano.shared(np.asarray(data_y, dtype=theano.config.floatX), borrow=True)
 
-    shared_y = theano.shared(np.asarray(data_y, dtype=theano.config.floatX), borrow=True)
+    if drug_data is not None:
+        drug_data     = drug_data.iloc[:,1:]
+        drug_index    = list(index_data.drug)
 
-    if integers==True:
-        return shared_drug_x, shared_cell_x, shared_drug_i, shared_cell_i, T.cast(shared_y, 'int32')
+        shared_drug_x = theano.shared(np.asarray(drug_data, dtype=theano.config.floatX), borrow=True)
+        shared_drug_i = theano.shared(np.asarray(drug_index, dtype=theano.config.floatX), borrow=True)
+
+        shared_drug_i = T.cast(shared_drug_i, 'int32')
+        shared_cell_i = T.cast(shared_cell_i, 'int32')
+
+        if integers==True:
+            return shared_drug_x, shared_cell_x, shared_drug_i, shared_cell_i, T.cast(shared_y, 'int32')
+        else:
+            return shared_drug_x, shared_cell_x, shared_drug_i, shared_cell_i, shared_y
+
     else:
-        return shared_drug_x, shared_cell_x, shared_drug_i, shared_cell_i, shared_y
+        if integers==True:
+            return shared_cell_x, shared_cell_i, T.cast(shared_y, 'int32')
+        else:
+            return shared_cell_x, shared_cell_i, shared_y
+
 
 def model_prediction(model_dict, drug_data, cell_data, classification=True):
 
@@ -836,6 +832,58 @@ def model_prediction(model_dict, drug_data, cell_data, classification=True):
     # Return prediction
     return prediction
 
+def model_prediction_zero(model_dict, cell_data, classification=True):
+
+    # Apply cell model
+    cell_model = model_dict["cell_n_hidden"]
+    cell_input = cell_data
+    for l in xrange(len(cell_model)):
+
+        # cell_input = prelu(
+        #                     T.dot(cell_input, cell_model[l].W) + cell_model[l].b,
+        #                     cell_model[l].alpha
+        #                    )
+        cell_input = relu(
+                            T.dot(cell_input, cell_model[l].W) + cell_model[l].b,
+                           cell_model[l].alpha)
+
+    # Combine to multiplicative fusion layer
+    mf_fusion  = model_dict["multiplicative"]
+    cell_input = (cell_input * mf_fusion.cell_alpha) + mf_fusion.cell_beta
+    input      = cell_input
+
+    # Apply multiplicative fussion model layers
+    mf_model  = model_dict["fusion_n_hidden"]
+    for l in xrange(len(mf_model)):
+
+        # input = prelu(
+        #                 T.dot(input , mf_model[l].W) + mf_model[l].b,
+        #                 mf_model[l].alpha
+        #               )
+        input = relu(
+                        T.dot(input , mf_model[l].W) + mf_model[l].b,
+                      mf_model[l].alpha)
+
+    # Finally, apply linearity/non-linearity
+    if classification == True:
+
+        log_model  = model_dict["logistic"]
+        log_layer  = T.nnet.softmax(
+                                    T.dot(input, log_model.W) + log_model.b
+                                  )
+        prediction = T.argmax(log_layer, axis=1)
+        prediction = prediction.eval()
+
+    else :
+
+        lin_model  = model_dict["linear"]
+        lin_layer  = T.dot(input, lin_model.W) + lin_model.b
+        prediction = lin_layer[:,0]
+        prediction = prediction.eval()
+
+    # Return prediction
+    return prediction
+
 ######################################### PREDICTION #########################################
 
 # Load arguments
@@ -847,6 +895,7 @@ if sys.argv[4] == "T":
 else:
     class_mlp = False
 bn_external = sys.argv[5]
+drug_feat   = sys.argv[6]
 
 IN_FOLDER   = "/tigress/zamalloa/PREDICTIONS/"
 OUT_FOLDER  = "/tigress/zamalloa/PREDICTIONS/"
@@ -863,10 +912,16 @@ test_cell     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external 
 test_index    = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_test_index", sep="\t")
 test_feat     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_feat_table", sep="\t", dtype={"Compound":str})
 
-test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf(test_drug,  test_cell,  test_index, integers=class_mlp)
+if drug_feat! = "0":
+
+    test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf(test_drug,  test_cell,  test_index, integers=class_mlp)
+    prediction = model_prediction(model_dict, test_drug[test_drug_index,], test_cell[test_cell_index,], classification = class_mlp)
+
+else:
+    test_cell, test_cell_index, test_set_y = shared_drug_dataset_IC50_mf(None, test_cell, test_index, integers=class_mlp)
+    prediction = model_prediction_zero(model_dict, test_cell[test_cell_index,], classification = class_mlp)
 
 # Obtain prediction
-prediction = model_prediction(model_dict, test_drug[test_drug_index,], test_cell[test_cell_index,], classification = class_mlp)
 if class_mlp == True:
     actual = test_set_y.eval()
 else:

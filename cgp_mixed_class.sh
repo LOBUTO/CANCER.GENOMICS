@@ -10,7 +10,8 @@ fusion_n=$6 #How many fusion neurons in hidden layer
 genes=$7 #F/T
 batch_norm=$8 #cgp_nci60, cgp_ccle, tcga_brca, tcga_coad, tcga_luad, tcga_stad or None
 pca=$9
-mf_manual=${10} #How many mf weights in mf input layer (needs to be used if last layer of drug_n and cell_n are not equal)
+rebalance=${10} #F/T
+mf_manual=${11} #How many mf weights in mf input layer (needs to be used if last layer of drug_n and cell_n are not equal)
 
 # for samples in FK866 IPA-3 NSC-207895 UNC0638 CX-5461 Trametinib SNX-2112 OSI-027 \
 # QS11 AT-7519 PAC-1 SN-38 PI-103 I-BET-762 5-Fluorouracil PHA-793887 YM201636 \
@@ -29,11 +30,15 @@ else
   mm="MC"
 fi
 
+# for samples in zero_17-AAG zero_Nilotinib zero_PD-0325901 zero_PD-0332991 zero_PLX4720 zero_Erlotinib \
+# zero_Lapatinib zero_PHA-665752 zero_Paclitaxel zero_Sorafenib zero_TAE684 \
+# zeroall_17-AAG zeroall_Nilotinib zeroall_PD-0325901 zeroall_PD-0332991 zeroall_PLX4720 zeroall_Erlotinib \
+# zeroall_Lapatinib zeroall_PHA-665752 zeroall_Paclitaxel zeroall_Sorafenib zeroall_TAE684
 for samples in all
 do
-  for c in 500 950 # Number of cell features
+  for c in 950 # Number of cell features
   do
-    for d in 100 200 290 # Number of drug features
+    for d in 2048 # Number of drug features
     do
       for r in 16 # Morgan radii settings
       do
@@ -41,12 +46,12 @@ do
         do
 
           echo $c $d $samples
-          file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_radii_${r}_bit_${b}"
+          file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_radii_${r}_bit_${b}"
 
           # Prep training sets
           if [ "$multiplicative_fusion" == "T" ]
           then
-            Rscript GIT/cgp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $pca $r $b
+            Rscript GIT/cgp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $pca $rebalance $r $b
 
             script_name="GIT/cgp_multi_mlp.py"
 

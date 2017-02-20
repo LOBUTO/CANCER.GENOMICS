@@ -11,7 +11,8 @@ genes=$7 #F/T
 batch_norm=$8 #cgp_nci60, cgp_ccle, tcga_brca, or None
 bn_external=$9 #T/F
 pca=${10} #T/F
-mf_manual=${11}
+rebalance=${11} #T/F
+mf_manual=${12}
 
 if [ "$met_type" == "morgan_bits" ]
 then
@@ -20,11 +21,12 @@ else
   mm="MC"
 fi
 
-for samples in all
+# zero_PHA-665752 zero_PD-0325901
+for samples in zero_PHA-665752 zero_PD-0325901
 do
   for c in 950 # Number of cell features
   do
-    for d in 290 # Number of drug features
+    for d in 0 # Number of drug features
     do
       for r in 16 # Morgan radii settings
       do
@@ -33,13 +35,13 @@ do
 
           echo $c $d  $r $b $samples
 
-          file_tag_1="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_radii_${r}_bit_${b}"
+          file_tag_1="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_radii_${r}_bit_${b}"
 
           if [ "$class_mlp" == "T" ]
           then
-            file_tag_2="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_radii_${r}_bit_${b}"
+            file_tag_2="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_radii_${r}_bit_${b}"
           else
-            file_tag_2="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_radii_${r}_bit_${b}"
+            file_tag_2="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_radii_${r}_bit_${b}"
           fi
 
           cgp_drug="${file_tag_1}_train_drug"
@@ -55,7 +57,7 @@ do
               Rscript GIT/cgp_multi_pred.R $cancer $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $bn_external $pca $r $b
 
               script_name="GIT/cgp_multi_pred.py"
-              file_name="$cancer $cgp_drug $model_file $class_mlp $bn_external"
+              file_name="$cancer $cgp_drug $model_file $class_mlp $bn_external $d"
 
               export script_name file_name
               sbatch GIT/cgp_mixed_class.cmd
@@ -68,7 +70,7 @@ do
             Rscript GIT/cgp_multi_pred.R $target $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $bn_external $pca $r $b
 
             script_name="GIT/cgp_multi_pred.py"
-            file_name="$target $cgp_drug $model_file $class_mlp $bn_external"
+            file_name="$target $cgp_drug $model_file $class_mlp $bn_external $d"
 
             export script_name file_name
             sbatch GIT/cgp_mixed_class.cmd

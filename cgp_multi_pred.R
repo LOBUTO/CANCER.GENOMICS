@@ -66,7 +66,8 @@ Function_prep_new <- function(target_new, type="", class = F, scaled=T){
         # target_new$NORM.pIC50 <- scale(target_new$pIC50) # WHOLE RE-SCALED - MODIFIED!!
         target_new <- target_new[,c("Compound", "cell_name", "NORM.pIC50"), with=F]
       } else {
-        target_new <- target_new[,c("Compound", "cell_name", "pIC50"), with=F]
+        # target_new <- target_new[,c("Compound", "cell_name", "pIC50"), with=F] #MODIFED
+        target_new <- target_new[,c("Compound", "cell_name", "ActArea"), with=F] #MODIFIED
       }
     }
 
@@ -380,6 +381,8 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
   if (length(target_bits) > 0){
     feat_table <- merge(target_new, drug_feat[, 1:2, with=F], by="Compound", allow.cartesian=TRUE)
 
+  } else {
+    feat_table <- target_new
   }
   feat_table <- merge(feat_table, cell_feat[, 1:2, with=F], by="cell_name", allow.cartesian=TRUE)
 
@@ -390,7 +393,7 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
   if (length(target_bits) > 0){
     drug_index <- sapply(feat_table$Compound,  function(x)  which(x==drug_feat$Compound))
   } else {
-    drug_index <- c()
+    drug_index <- 0
   }
 
   cell_index <- sapply(feat_table$cell_name, function(x)  which(x==cell_feat$cell_name))
@@ -597,13 +600,19 @@ nci_new     <- readRDS(paste0(in_objects, "120916_nci60_new.rds"))
 #TCGA
 
 #MODEL FEATURES
-cell_features <- fread(cgp_cell, header=T, sep="\t")
-cell_features <- colnames(cell_features)[2:ncol(cell_features)]
+cell_features  <- fread(cgp_cell, header=T, sep="\t")
+cell_features  <- colnames(cell_features)[2:ncol(cell_features)]
 
-drug_features <- fread(cgp_drug, header=T, sep="\t")
-drug_features <- colnames(drug_features)[2:ncol(drug_features)]
+info_drug_file <- file.info(cgp_drug)
+if (info_drug_file$size > 1){
+  drug_features  <- fread(cgp_drug, header=T, sep="\t")
+  drug_features  <- colnames(drug_features)[2:ncol(drug_features)]
+} else{
+  drug_features  <- c()
+}
 
-common_genes  <- intersect(intersect(rownames(cgp_exp), rownames(nci_exp)), rownames(ccle_exp))
+
+common_genes   <- intersect(intersect(rownames(cgp_exp), rownames(nci_exp)), rownames(ccle_exp))
 ############################################################################################################
 # EXECUTE
 #cgp_new <- cgp_new[Compound %in% c("GDC0449", "MS-275", "PAC-1", "RDEA119", "TG101348"),] #NOTE (Used during testing)
@@ -620,7 +629,7 @@ if (met_type == "morgan_bits"){
 
     colnames(nci_exp) <- sapply(colnames(nci_exp), function(x)  unique(nci_new[,c("cell_name", "CELL"),with=F])[CELL==x,]$cell_name )
 
-    feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(nci_new, type="nci_60", class = class_mlp),
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(nci_new, type="nci_60", class = class_mlp, scaled=F),
                                                                            nci_exp,
                                                                            Function_prep_morgan_bits(Function_load_morgan_bits("nci_60",
                                                                                                     radii_set, bit_set), type="nci_60"),
@@ -634,7 +643,7 @@ if (met_type == "morgan_bits"){
       cgp_exp         <- readRDS(paste0(in_objects, "121216_cgp_ccle_exp_b_norm.rds"))[["EXP.1"]]
       ccle_exp        <- readRDS(paste0(in_objects, "121216_cgp_ccle_exp_b_norm.rds"))[["EXP.2"]]
     }
-    feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(ccle_new, type="ccle", class = class_mlp),
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(Function_prep_new(ccle_new, type="ccle", class = class_mlp, scaled=F),
                                                                            ccle_exp,
                                                                            morgan_bits,
                                                                            target_cells = cell_features, target_bits = drug_features,

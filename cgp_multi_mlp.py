@@ -638,7 +638,7 @@ class Multi_MLP_Regression_Zero_Drug(object):
             input=self.cell_input_layer,
             n_in=cell_n_in,
             n_out=cell_n_hidden[0],
-            activation=prelu,
+            activation=relu,
             is_train=is_train,
             p=p,
             dropout=dropout
@@ -744,7 +744,7 @@ class Multi_MLP_Regression_Zero_Drug(object):
         self.pear_loss = self.linearRegressionLayer.pear_loss
         self.pear_check = self.linearRegressionLayer.pear_check
         self.NRMSE = self.linearRegressionLayer.NRMSE
-        self.pred = self.logRegressionLayer.pred
+        self.pred = self.linearRegressionLayer.pred
 
         self.param_to_scale = param_to_scale
 
@@ -1442,7 +1442,7 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
 
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_samples / train_batch_size
-    n_valid_batches = valid_sample / valid_batch_size #MODIFIED
+    n_valid_batches = valid_samples / valid_batch_size #MODIFIED
     n_test_batches  = test_batch_size / test_batch_size #1
 
     ######################
@@ -2421,7 +2421,7 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
 #     n_epochs = int(sys.argv[2])
 #     out_file = sys.argv[1] + "n_epoch_" + sys.argv[2]
 
-n_epochs = 1000
+n_epochs = 2000
 out_file = sys.argv[1]
 
 if sys.argv[6] != "0":
@@ -2552,6 +2552,7 @@ if sys.argv[6] != "0":
                      OUT_FOLDER = OUT_FOLDER)
 else:
 
+    print("zero drug neurons")
     train_cell  = pd.read_csv(IN_FOLDER + file_name + "_train_cell", sep="\t")
     train_index = pd.read_csv(IN_FOLDER + file_name + "_train_index", sep="\t")
 
