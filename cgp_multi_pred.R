@@ -238,7 +238,7 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       cell_feat <- cbind(exp_table, cgp_exp)
       cell_feat <- cor(cell_feat, method = "spearman")
       cell_feat <- cell_feat[target_samples, target_cells]
-      cell_feat <- scale(cell_feat) # HEAVILY MODIFIED!!!! MODIFIED!!!!!!!
+      # cell_feat <- scale(cell_feat) # HEAVILY MODIFIED!!!! MODIFIED!!!!!!!
 
       cell_feat <- data.table(cell_feat, keep.rownames = T)
     } else {
@@ -251,7 +251,7 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
     if (genes == F){
       print("Cor exp PCA pre-scaling")
 
-      # Modify names
+      # Modify names in case target exp has same cells
       colnames(cgp_exp) <- paste0("CGP_", colnames(cgp_exp))
 
       # Get original principal rotation from cgp_exp
@@ -268,7 +268,7 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       cell_feat      <- cbind(exp_table, cgp_exp)
       cell_feat      <- cor(cell_feat, method = "spearman")
       cell_feat      <- cell_feat[target_samples, feat_cells]
-      cell_feat      <- scale(cell_feat) # COULD HEAVILY MODIFY HERE BEFORE APPLYING TRAIN SCALING
+      # cell_feat      <- scale(cell_feat) # COULD HEAVILY MODIFY HERE BEFORE APPLYING TRAIN SCALING
 
       # Apply scaling to cell_feat prior to rotation by PCA
       cgp_cor        <- scale(cgp_cor) # To obtain original pre-PCA scaling attributes

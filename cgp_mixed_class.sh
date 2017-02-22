@@ -32,8 +32,8 @@ fi
 
 # for samples in zero_17-AAG zero_Nilotinib zero_PD-0325901 zero_PD-0332991 zero_PLX4720 zero_Erlotinib \
 # zero_Lapatinib zero_PHA-665752 zero_Paclitaxel zero_Sorafenib zero_TAE684 \
-# zeroall_17-AAG zeroall_Nilotinib zeroall_PD-0325901 zeroall_PD-0332991 zeroall_PLX4720 zeroall_Erlotinib \
-# zeroall_Lapatinib zeroall_PHA-665752 zeroall_Paclitaxel zeroall_Sorafenib zeroall_TAE684
+# zero_Crizotinib zero_Nutlin-3 zero_Saracatinib zero_selumetinib
+# for samples in zero_5-Fluorouracil zero_Cisplatin zero_Gemcitabine zero_Temozolomide
 for samples in all
 do
   for c in 950 # Number of cell features

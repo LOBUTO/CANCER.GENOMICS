@@ -567,8 +567,17 @@ if (samples == "all"){
 
 } else if(grepl("zero_", samples)==T) {
   print ("zero morgan target compound")
+
+  if (grepl("^", samples)==T){
+    drug_name <- gsub("^", " ", samples, fixed=T)
+    drug_name <- gsub("zero_", "", drug_name)
+
+  } else{
+    drug_name <- gsub("zero_", "", samples)
+  }
+
   # Uses zero morgan features and splits dataset for specific compound
-  temp_rows        <- which(feat_table$feat_table$Compound == gsub("zero_", "", samples))
+  temp_rows        <- which(feat_table$feat_table$Compound == drug_name)
 
   set.seed(1234)
   train_rows       <- sample(temp_rows, length(temp_rows)*0.7)

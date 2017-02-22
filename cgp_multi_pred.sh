@@ -21,8 +21,11 @@ else
   mm="MC"
 fi
 
-# zero_PHA-665752 zero_PD-0325901
-for samples in zero_PHA-665752 zero_PD-0325901
+# for samples in all
+# for samples in zero_17-AAG zero_Nilotinib zero_PD-0325901 zero_PD-0332991 zero_PLX4720 zero_Erlotinib \
+# zero_Lapatinib zero_PHA-665752 zero_Paclitaxel zero_Sorafenib zero_TAE684 \
+# zero_Crizotinib zero_Nutlin-3 zero_Saracatinib zero_selumetinib
+for samples in zero_5-Fluorouracil zero_Cisplatin zero_Gemcitabine zero_Temozolomide
 do
   for c in 950 # Number of cell features
   do

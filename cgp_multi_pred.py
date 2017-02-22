@@ -365,6 +365,48 @@ class Multiplicative_fusion(object):
         # Parameters of the fusion
         self.params = [self.cell_alpha, self.drug_alpha, self.cell_beta, self.drug_beta]
 
+class Multiplicative_fusion_zero_drug(object):
+    # Performs synthetic combination cell input layer
+    # and output the Multiplicative_fusion layer along with
+    # 2 parameters to be learned.
+
+    def __init__(self, rng, cell_input, cell_in,
+                 cell_alpha=None, cell_beta=None):
+
+        self.cell_input = cell_input
+
+        if cell_alpha is None:
+
+            cell_alpha_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(cell_in)),
+                                                high =  np.sqrt(6. /(cell_in)),
+                                                size = (cell_in)
+                                          ), dtype=theano.config.floatX)
+            cell_alpha = theano.shared(value=cell_alpha_value, name='cell_alpha', borrow=True)
+
+        if cell_beta is None:
+
+            #cell_beta_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            cell_beta_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(cell_in)),
+                                                high =  np.sqrt(6. /(cell_in)),
+                                                size = (cell_in)
+                                          ), dtype=theano.config.floatX)
+            cell_beta = theano.shared(value=cell_beta_value, name='cell_beta', borrow=True)
+
+        self.cell_alpha = cell_alpha
+        self.cell_beta  = cell_beta
+
+        # Apply linear modifications to both input based on parameters
+        cell_output = (cell_input * self.cell_alpha) + self.cell_beta
+
+        output      = cell_output
+        # Output
+        self.output = output
+
+        # Parameters of the fusion
+        self.params = [self.cell_alpha, self.cell_beta]
+
 def rescale_weights(params, incoming_max):
     incoming_max = np.cast[theano.config.floatX](incoming_max)
     for p in params:
@@ -740,6 +782,7 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
 
     shared_cell_x = theano.shared(np.asarray(cell_data, dtype=theano.config.floatX), borrow=True)
     shared_cell_i = theano.shared(np.asarray(cell_index, dtype=theano.config.floatX), borrow=True)
+    shared_cell_i = T.cast(shared_cell_i, 'int32')
 
     data_y        = list(index_data.target)
     shared_y      = theano.shared(np.asarray(data_y, dtype=theano.config.floatX), borrow=True)
@@ -750,9 +793,7 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
 
         shared_drug_x = theano.shared(np.asarray(drug_data, dtype=theano.config.floatX), borrow=True)
         shared_drug_i = theano.shared(np.asarray(drug_index, dtype=theano.config.floatX), borrow=True)
-
         shared_drug_i = T.cast(shared_drug_i, 'int32')
-        shared_cell_i = T.cast(shared_cell_i, 'int32')
 
         if integers==True:
             return shared_drug_x, shared_cell_x, shared_drug_i, shared_cell_i, T.cast(shared_y, 'int32')
@@ -907,12 +948,13 @@ OUT_FILE    = OUT_FOLDER + in_file + "_bn_external_" + bn_external + "_" + targe
 # Load model and process input
 model_dict  = cPickle.load(open(model_file, "rb"))
 
-test_drug     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_test_drug", sep="\t")
 test_cell     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_test_cell", sep="\t")
 test_index    = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_test_index", sep="\t")
 test_feat     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_feat_table", sep="\t", dtype={"Compound":str})
 
-if drug_feat! = "0":
+if drug_feat!= "0":
+
+    test_drug     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_test_drug", sep="\t")
 
     test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf(test_drug,  test_cell,  test_index, integers=class_mlp)
     prediction = model_prediction(model_dict, test_drug[test_drug_index,], test_cell[test_cell_index,], classification = class_mlp)
