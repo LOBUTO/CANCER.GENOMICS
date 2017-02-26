@@ -943,7 +943,12 @@ OUT_FOLDER  = "/tigress/zamalloa/PREDICTIONS/"
 
 in_file     = drug_file.split("/")[-1]
 in_file     = in_file.replace("_train_drug", "")
-OUT_FILE    = OUT_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_PREDICTION"
+
+out_file    = model_file.split("/")[-1]
+print(out_file)
+out_file    = out_file.replace(".pkl", "")
+print(out_file)
+OUT_FILE    = OUT_FOLDER + out_file + "_bn_external_" + bn_external + "_" + target + "_PREDICTION"
 
 # Load model and process input
 model_dict  = cPickle.load(open(model_file, "rb"))

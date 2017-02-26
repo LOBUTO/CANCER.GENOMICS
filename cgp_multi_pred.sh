@@ -21,15 +21,16 @@ else
   mm="MC"
 fi
 
-# for samples in all
 # for samples in zero_17-AAG zero_Nilotinib zero_PD-0325901 zero_PD-0332991 zero_PLX4720 zero_Erlotinib \
 # zero_Lapatinib zero_PHA-665752 zero_Paclitaxel zero_Sorafenib zero_TAE684 \
 # zero_Crizotinib zero_Nutlin-3 zero_Saracatinib zero_selumetinib
-for samples in zero_5-Fluorouracil zero_Cisplatin zero_Gemcitabine zero_Temozolomide
+# for samples in percent_all_50 percent_all_20 percent_all_10 percent_all_70
+for samples in act_rebalance_5 act_rebalance_4 act_rebalance_3 act_rebalance_2 act_rebalance_1 \
+act_rebalance_1.5 act_rebalance_2.5 act_rebalance_3.5 act_rebalance_4.5
 do
   for c in 950 # Number of cell features
   do
-    for d in 0 # Number of drug features
+    for d in 2048 # Number of drug features
     do
       for r in 16 # Morgan radii settings
       do
@@ -49,7 +50,7 @@ do
 
           cgp_drug="${file_tag_1}_train_drug"
           cgp_cell="${file_tag_1}_train_cell"
-          model_file="${file_tag_2}.pkl"
+          # model_file="${file_tag_2}.pkl"
 
           if [ "$target" == "tcga" ]
           then
@@ -72,12 +73,22 @@ do
             # Prep data to be predicted on
             Rscript GIT/cgp_multi_pred.R $target $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $bn_external $pca $r $b
 
-            script_name="GIT/cgp_multi_pred.py"
-            file_name="$target $cgp_drug $model_file $class_mlp $bn_external $d"
+            model_files="${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_radii_${r}_bit_${b}"
+            model_files=$( ls CGP_FILES/REGRESSION_RESULTS/ | grep $model_files | grep -v combined | grep -v log | grep -v 2048.pkl)
 
-            export script_name file_name
-            sbatch GIT/cgp_mixed_class.cmd
-            echo "Done sending multiplicative_fusion predictive mlp job"
+            for model in $model_files
+            do
+
+              model_file="CGP_FILES/REGRESSION_RESULTS/${model}"
+              echo $model_file
+
+              script_name="GIT/cgp_multi_pred.py"
+              file_name="$target $cgp_drug $model_file $class_mlp $bn_external $d"
+
+              export script_name file_name
+              sbatch GIT/cgp_mixed_class.cmd
+              echo "Done sending multiplicative_fusion predictive mlp job"
+            done
           fi
         done
       done

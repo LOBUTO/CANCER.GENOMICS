@@ -501,6 +501,79 @@ if (samples == "all"){
   valid_rows       <- sample(testing_rows, length(testing_rows)*0.5)
   test_rows        <- setdiff(testing_rows, valid_rows)
 
+} else if (grepl("act_rebalance_", samples)==T){
+
+  th_rebalance <- as.numeric(gsub("act_rebalance_", "", samples))
+
+  extra_rows   <- which(feat_table$target >= th_rebalance)
+  non_rows     <- which(feat_table$target < th_rebalance)
+
+  needed_rows  <- length(non_rows) - length(extra_rows)
+  extra_rows   <- sample(extra_rows, needed_rows, replace=T)
+
+  all_rows     <- 1:length(feat_table$target)
+  all_rows     <- c(all_rows, extra_rows)
+
+  set.seed(1234)
+  train_rows   <- sample(all_rows, length(all_rows)*0.6)
+
+  testing_rows <- setdiff(all_rows, train_rows)
+  set.seed(1234)
+  valid_rows   <- sample(testing_rows, length(testing_rows)*0.5)
+  test_rows    <- setdiff(testing_rows, valid_rows)
+
+} else if (grepl("act_rebalance_top_", samples)==T){
+
+  print("act_rebalance_top_")
+  th_rebalance <- as.numeric(gsub("act_rebalance_top_", "", samples))
+
+  drugs        <- unique(feat_table$feat_table$Compound)
+
+  extra_rows   <- lapply(drugs, function(x) {
+    temp_th    <- feat_table$feat_table[Compound==x,][order(-NORM_pIC50),]
+    temp_th    <- temp_th$NORM_pIC50[1:th_rebalance]
+    temp_th    <- min(temp_th)
+
+    temp_rows  <- which(feat_table$feat_table$Compound == x & feat_table$feat_table$NORM_pIC50 >=temp_th)
+
+    return(temp_rows)
+    })
+  extra_rows   <- as.vector(unlist(extra_rows))
+
+  non_rows     <- setdiff(1:length(feat_table$target), extra_rows)
+
+  needed_rows  <- length(non_rows) - length(extra_rows)
+  extra_rows   <- sample(extra_rows, needed_rows, replace=T)
+
+  all_rows     <- 1:length(feat_table$target)
+  all_rows     <- c(all_rows, extra_rows)
+
+  set.seed(1234)
+  train_rows   <- sample(all_rows, length(all_rows)*0.6)
+
+  testing_rows <- setdiff(all_rows, train_rows)
+  set.seed(1234)
+  valid_rows   <- sample(testing_rows, length(testing_rows)*0.5)
+  test_rows    <- setdiff(testing_rows, valid_rows)
+  print("act_rebalance_top_")
+
+} else if (grepl("percent_all_", samples)==T){
+
+  portion  <- as.numeric(gsub("percent_all_", "", samples))
+  portion  <- portion/100
+  print(portion)
+
+  set.seed(1234)
+  all_rows     <- sample(1:length(feat_table$target), length(feat_table$target)* portion )
+
+  set.seed(1234)
+  train_rows   <- sample(all_rows, length(all_rows)*0.7)
+
+  testing_rows <- setdiff(all_rows, train_rows)
+  set.seed(1234)
+  valid_rows   <- sample(testing_rows, length(testing_rows)*0.5)
+  test_rows    <- setdiff(testing_rows, valid_rows)
+
 } else if (samples == "whole"){
   #AKA all data training
 

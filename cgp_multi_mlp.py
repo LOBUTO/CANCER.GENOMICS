@@ -1370,15 +1370,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
                     MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
                     MODEL["linear"]          = classifier.linearRegressionLayer
 
-                    # for e in xrange(len(cell_n_hidden)):
-                    #     MODEL = MODEL + [getattr(classifier, "cell_layer_" + str(e))]
-                    # for e in xrange(len(drug_n_hidden)):
-                    #     MODEL = MODEL + [getattr(classifier, "drug_layer_" + str(e))]
-                    # for e in xrange(len(fusion_n_hidden)):
-                    #     MODEL = MODEL + [getattr(classifier, "fusion_layer_" + str(e))]
-                    #
-                    # MODEL = MODEL + [classifier.linearRegressionLayer]
-                    with open(OUT_FOLDER + "/" + drug_name + ".pkl", "wb") as f:
+                    with open(OUT_FOLDER + "/" + drug_name + "_" + str(epoch) + ".pkl", "wb") as f:
                         cPickle.dump(MODEL, f)
 
                     #Only write if validation improvement
