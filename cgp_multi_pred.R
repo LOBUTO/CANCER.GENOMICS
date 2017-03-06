@@ -750,6 +750,46 @@ if (met_type == "morgan_bits"){
                                                                    pca = pca, common_genes = common_genes,
                                                                    original_exp = cgp_exp, original_bits = morgan_bits)
 
+  } else if (grepl("geeleher_", target)==T){
+
+    gee_folder <- "/tigress/zamalloa/OBJECTS/GEELEHER/"
+
+    if (target=="geeleher_cisplatin"){
+      cis <- readRDS(paste0(gee_folder, "030217_GEE_CISPLATIN.rds"))
+      target_table <- cis$feat_table
+      exp_table    <- cis$exp_table
+
+    } else if (target=="geeleher_docetaxel"){
+      doc <- readRDS(paste0(gee_folder, "030217_GEE_DOCETAXEL.rds"))
+      target_table <- doc$feat_table
+      exp_table    <- doc$exp_table
+
+    } else if (target=="geeleher_bortezomib_a"){
+      bor <- readRDS(paste0(gee_folder, "030417_GEE_BORTEZOMIB_DEXAMETHASONE.rds"))
+      target_table <- bor$feat_table_a
+      exp_table    <- bor$exp_table_a
+
+    } else if (target=="geeleher_bortezomib_b"){
+      bor <- readRDS(paste0(gee_folder, "030417_GEE_BORTEZOMIB_DEXAMETHASONE.rds"))
+      target_table <- bor$feat_table_b
+      exp_table    <- bor$exp_table_b
+
+    } else if (target=="geeheler_erlotinib"){
+      erl <- readRDS(paste0(gee_folder, "030417_GEE_ERLOTINIB.rds"))
+      target_table <- erl$feat_table
+      exp_table    <- erl$exp_table
+    }
+
+    exp_table <- exp_table[,target_table$cell_name]
+
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(target_table,
+                                                                   exp_table,
+                                                                   morgan_bits,
+                                                                   target_cells = cell_features, target_bits = drug_features,
+                                                                   cgp_exp, genes=F, scaling=T,
+                                                                   pca = pca, common_genes = common_genes,
+                                                                   original_exp = cgp_exp, original_bits = morgan_bits)
+
   } else {
     # Assumes that in this scenario we have a specific compound belonging to a particular dataset
 

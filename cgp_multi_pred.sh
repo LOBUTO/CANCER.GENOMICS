@@ -25,8 +25,11 @@ fi
 # zero_Lapatinib zero_PHA-665752 zero_Paclitaxel zero_Sorafenib zero_TAE684 \
 # zero_Crizotinib zero_Nutlin-3 zero_Saracatinib zero_selumetinib
 # for samples in percent_all_50 percent_all_20 percent_all_10 percent_all_70
-for samples in act_rebalance_5 act_rebalance_4 act_rebalance_3 act_rebalance_2 act_rebalance_1 \
-act_rebalance_1.5 act_rebalance_2.5 act_rebalance_3.5 act_rebalance_4.5
+# for samples in act_rebalance_5 act_rebalance_4 act_rebalance_3 act_rebalance_2 act_rebalance_1 \
+# act_rebalance_1.5 act_rebalance_2.5 act_rebalance_3.5 act_rebalance_4.5
+# for samples in act_rebalancetop_10 act_rebalancetop_20 act_rebalancetop_40 act_rebalancetop_50 \
+# act_rebalancetop_60 act_rebalancetop_80 act_rebalancetop_100
+for samples in all
 do
   for c in 950 # Number of cell features
   do
