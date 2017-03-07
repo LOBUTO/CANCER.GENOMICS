@@ -774,7 +774,7 @@ if (met_type == "morgan_bits"){
       target_table <- bor$feat_table_b
       exp_table    <- bor$exp_table_b
 
-    } else if (target=="geeheler_erlotinib"){
+    } else if (target=="geeleher_erlotinib"){
       erl <- readRDS(paste0(gee_folder, "030417_GEE_ERLOTINIB.rds"))
       target_table <- erl$feat_table
       exp_table    <- erl$exp_table

@@ -76,21 +76,38 @@ do
             # Prep data to be predicted on
             Rscript GIT/cgp_multi_pred.R $target $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $bn_external $pca $r $b
 
+            # model_file="${file_tag_2}.pkl"
+            #
+            # script_name="GIT/cgp_multi_pred.py"
+            # file_name="$target $cgp_drug $model_file $class_mlp $bn_external $d"
+            #
+            # export script_name file_name
+            # sbatch GIT/cgp_mixed_class.cmd
+            # echo "Done sending multiplicative_fusion predictive mlp job"
+
             model_files="${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_radii_${r}_bit_${b}"
             model_files=$( ls CGP_FILES/REGRESSION_RESULTS/ | grep $model_files | grep -v combined | grep -v log | grep -v 2048.pkl)
 
             for model in $model_files
             do
 
-              model_file="CGP_FILES/REGRESSION_RESULTS/${model}"
-              echo $model_file
+              exists=${model/.pkl/}
+              exists="${exists}_bn_external_${bn_external}_${target}_PREDICTION"
+              exists="/tigress/zamalloa/PREDICTIONS/${exists}"
+              echo $exists
 
-              script_name="GIT/cgp_multi_pred.py"
-              file_name="$target $cgp_drug $model_file $class_mlp $bn_external $d"
+              if [ ! -f "$exists" ]
+              then
+                model_file="CGP_FILES/REGRESSION_RESULTS/${model}"
+                echo $model_file
 
-              export script_name file_name
-              sbatch GIT/cgp_mixed_class.cmd
-              echo "Done sending multiplicative_fusion predictive mlp job"
+                script_name="GIT/cgp_multi_pred.py"
+                file_name="$target $cgp_drug $model_file $class_mlp $bn_external $d"
+
+                export script_name file_name
+                sbatch GIT/cgp_mixed_class.cmd
+                echo "Done sending multiplicative_fusion predictive mlp job"
+              fi
             done
           fi
         done
