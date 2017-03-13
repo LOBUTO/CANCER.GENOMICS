@@ -1556,7 +1556,7 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
 
     train_error = theano.function(
         inputs=[index],
-        outputs=classifier.pear_check(y),
+        outputs=classifier.NRMSE(y),
         givens={
             x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
             y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
@@ -1691,7 +1691,7 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
                     #     MODEL = MODEL + [getattr(classifier, "fusion_layer_" + str(e))]
                     #
                     # MODEL = MODEL + [classifier.logRegressionLayer]
-                    with open(OUT_FOLDER + "/" + drug_name + ".pkl", "wb") as f:
+                    with open(OUT_FOLDER + "/" + drug_name + "_" + str(epoch) + ".pkl", "wb") as f:
                         cPickle.dump(MODEL, f)
 
                     #Only write if validation improvement
