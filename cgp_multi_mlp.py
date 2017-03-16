@@ -621,7 +621,7 @@ class Multi_MLP_Regression(object):
 
 class Multi_MLP_Regression_Zero_Drug(object):
     def __init__(self, rng, cell_input, is_train,
-                 cell_n_in, cell_n_hidden, fusion_n_hidden,
+                 cell_n_in, cell_n_hidden,
                  n_out, p=0.5, dropout=False, input_p=0.1):
 
         # PROCESS CELL INPUT FIRST
@@ -671,60 +671,11 @@ class Multi_MLP_Regression_Zero_Drug(object):
 
                 cell_layer_number = cell_layer_number + 1
 
-
-        # APPLY FUSION
-        # Combine single output to obtain Multiplicative fusion layer
-        self.multiplicative_input = Multiplicative_fusion_zero_drug(
-            cell_input = getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
-            cell_in  = cell_n_hidden[cell_layer_number-1],
-            rng = rng
-        )
-        self.params = self.params + self.multiplicative_input.params
-
-        # PROCESS FUSION LAYERS
-        self.fusion_layer_0 = HiddenLayer(
-            rng=rng,
-            input=self.multiplicative_input.output,
-            n_in=cell_n_hidden[cell_layer_number-1],
-            n_out=fusion_n_hidden[0],
-            activation=relu,
-            is_train=is_train,
-            p=p,
-            dropout=dropout
-        )
-
-        self.params = self.params + self.fusion_layer_0.params # Plus previous separate layer params (drug + cell + mf)
-        param_to_scale = param_to_scale + [self.fusion_layer_0.params[0]]
-
-        fusion_layer_number = 1
-        if len(fusion_n_hidden)>1:
-
-            for layer in fusion_n_hidden[1:]:
-
-                current_hidden_layer = HiddenLayer(
-                                                    rng=rng,
-                                                    input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
-                                                    n_in=fusion_n_hidden[fusion_layer_number-1],
-                                                    n_out=fusion_n_hidden[fusion_layer_number],
-                                                    activation=relu,
-                                                    is_train=is_train,
-                                                    p=p,
-                                                    dropout=dropout
-                                                )
-
-                setattr(self, "fusion_layer_" + str(fusion_layer_number), current_hidden_layer)
-
-                self.params = self.params + getattr(self, "fusion_layer_" + str(fusion_layer_number)).params
-
-                param_to_scale = param_to_scale + [getattr(self, "fusion_layer_" + str(fusion_layer_number)).params[0]]
-
-                fusion_layer_number = fusion_layer_number + 1
-
-
+        # NO FUSION #
         # APPLY LINEAR REGRESSION
         self.linearRegressionLayer = LinearRegression(
-            input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
-            n_in=fusion_n_hidden[fusion_layer_number-1],
+            input=getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
+            n_in=cell_n_hidden[cell_layer_number-1],
             n_out=n_out,
             rng = rng
         )
@@ -1413,7 +1364,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
 
 def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
              datasets="datasets", train_batch_size=20,
-             cell_n_hidden=[500,200,100], mf_manual = "None", fusion_n_hidden = [500,200,100],
+             cell_n_hidden=[500,200,100], mf_manual = "None",
              p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"
              ):
 
@@ -1460,7 +1411,6 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
         cell_input = x_c, #needed
         cell_n_in = CELL_N_IN, #calculated
         cell_n_hidden = cell_n_hidden, #calculated
-        fusion_n_hidden = fusion_n_hidden,
         n_out=1,
         p=p,
         dropout=dropout,
@@ -1678,8 +1628,6 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
                     #ONLY SAVE MODEL if validation improves
                     MODEL = {}
                     MODEL["cell_n_hidden"]   = [getattr(classifier, "cell_layer_" + str(e)) for e in xrange(len(cell_n_hidden))]
-                    MODEL["multiplicative"]  = classifier.multiplicative_input
-                    MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
                     MODEL["linear"]          = classifier.linearRegressionLayer
 
                     # MODEL = []
@@ -2574,8 +2522,8 @@ else:
     else:
 
         regression_mlp_mf_zero_drug(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
-                     datasets=drugval, train_batch_size=50,
-                     cell_n_hidden=c_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*1,
+                     datasets=drugval, train_batch_size=10,
+                     cell_n_hidden=c_neurons, mf_manual=mf_manual,
                      p=0.7, dropout=True,
                      drug_name=out_file,
                      OUT_FOLDER = OUT_FOLDER)

@@ -294,15 +294,15 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       #NOTE If PCA==T and genes==T, then it is assumed that expression matrices contain equal ordered sets of genes
       # original_exp   <- original_exp[common_genes, ]
       # exp_table      <- exp_table[common_genes, ]
-      cgp_pca_exp    <- prcomp(t(original_exp), center = F, scale. = F) # PCA on original to obtain rotation
+      cgp_pca_exp    <- prcomp(t(original_exp), center = T, scale. = T) # PCA on original to obtain rotation
 
       original_scale <- scale(t(original_exp))
       original_mean  <- attributes(original_scale)$`scaled:center`
       original_sd    <- attributes(original_scale)$`scaled:scale`
 
       cell_feat_sc   <- t(exp_table)
-      # cell_feat_sc   <- sweep(cell_feat_sc, 2, original_mean, "-")
-      # cell_feat_sc   <- sweep(cell_feat_sc, 2, original_sd, "/")
+      cell_feat_sc   <- sweep(cell_feat_sc, 2, original_mean, "-")
+      cell_feat_sc   <- sweep(cell_feat_sc, 2, original_sd, "/")
 
       cell_feat      <- cell_feat_sc %*% cgp_pca_exp$rotation[,target_cells] # Apply rotation from original data
       cell_feat      <- data.table(cell_feat, keep.rownames = T)

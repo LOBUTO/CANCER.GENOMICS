@@ -12,7 +12,8 @@ batch_norm=$8 #cgp_nci60, cgp_ccle, tcga_brca, tcga_coad, tcga_luad, tcga_stad o
 pca=$9
 rebalance=${10} #F/T
 gene_target=${11} #Specific to target dataset: ccle, geeleher_cisplatin, geeleher_docetaxel or None
-mf_manual=${12} #How many mf weights in mf input layer (needs to be used if last layer of drug_n and cell_n are not equal)
+fold=${12}
+mf_manual=${13} #How many mf weights in mf input layer (needs to be used if last layer of drug_n and cell_n are not equal)
 
 # for samples in FK866 IPA-3 NSC-207895 UNC0638 CX-5461 Trametinib SNX-2112 OSI-027 \
 # QS11 AT-7519 PAC-1 SN-38 PI-103 I-BET-762 5-Fluorouracil PHA-793887 YM201636 \
@@ -41,56 +42,85 @@ fi
 # for samples in act_rebalancetop_10 act_rebalancetop_20 act_rebalancetop_40 act_rebalancetop_50 \
 # act_rebalancetop_60 act_rebalancetop_80 act_rebalancetop_100
 # for samples in zero_Docetaxel zero_Cisplatin zero_Bortezomib zero_Erlotinib
-for samples in zero_Bortezomib
+# for cell_n in manual_950 manual_950_950 manual_50_50 manual_50_50_50 manual_50 manual_100 manual_100_100 manual_100_100_100 \
+# manual_200 manual_200_200 manual_200_200_200 manual_500 manual_500_500 manual_500_500_500 manual_750 manual_750_750_750
+# for cell_n in manual_500 manual_500_500 manual_50_50 manual_50_50_50 manual_50 manual_100 manual_100_100 manual_100_100_100 \
+# manual_200 manual_200_200 manual_200_200_200
+for cell_n in manual_50_50 manual_50_50_50 manual_50 manual_100 manual_100_100 manual_100_100_100 \
+manual_200 manual_200_200 manual_200_200_200
 do
-  for c in 100 # Number of cell features
+  for samples in zero_Bortezomib
   do
-    for d in 0 # Number of drug features
+    for c in 50 # Number of cell features
     do
-      for r in 16 # Morgan radii settings
+      for d in 0 # Number of drug features
       do
-        for b in 2048 # Morgan bit settings (Not needed for morgan counts choice)
+        for r in 16 # Morgan radii settings
         do
+          for b in 2048 # Morgan bit settings (Not needed for morgan counts choice)
+          do
+            echo $c $d $samples
 
-          echo $c $d $samples
-          file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_radii_${r}_bit_${b}"
-
-          # Prep training sets
-          if [ "$multiplicative_fusion" == "T" ]
-          then
-            Rscript GIT/cgp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $pca $rebalance $r $b $gene_target
-
-            script_name="GIT/cgp_multi_mlp.py"
-
-            file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${mf_manual}"
-
-            export script_name file_name
-            sbatch GIT/cgp_mixed_class.cmd
-            echo "Done sending multiplicative_fusion mlp job"
-
-          else
-            Rscript GIT/cgp_new_prep.R $c $d $file_name $met_type $class_mlp $samples $genes
-
-            file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n}"
-
-            if [ "$class_mlp" == "T" ]
+            # Prep training sets
+            if [ "$multiplicative_fusion" == "T" ]
             then
 
-              script_name="GIT/cgp_mixed_class.py"
+              if [ "$fold" == "fold_none" ]
+              then
+                echo "fold_all"
+                file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_fold_${fold}_radii_${r}_bit_${b}"
 
-              export script_name file_name
-              sbatch GIT/cgp_mixed_class.cmd
-              echo "Done sending non-mf class mlp job"
+                Rscript GIT/cgp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $pca $rebalance $r $b $gene_target $fold
+
+                script_name="GIT/cgp_multi_mlp.py"
+
+                file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${mf_manual}"
+
+                export script_name file_name
+                sbatch GIT/cgp_mixed_class.cmd
+                echo "Done sending multiplicative_fusion mlp job"
+              else
+                for fold in fold_1 fold_2 fold_3 fold_3 fold_4 fold_5 fold_6 fold_7 fold_8 fold_9 fold_10
+                do
+                  echo "$fold"
+                  file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_fold_${fold}_radii_${r}_bit_${b}"
+
+                  Rscript GIT/cgp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $pca $rebalance $r $b $gene_target $fold
+
+                  script_name="GIT/cgp_multi_mlp.py"
+
+                  file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${mf_manual}"
+
+                  export script_name file_name
+                  sbatch GIT/cgp_mixed_class.cmd
+                  echo "Done sending multiplicative_fusion mlp job"
+                done
+              fi
 
             else
+              Rscript GIT/cgp_new_prep.R $c $d $file_name $met_type $class_mlp $samples $genes
 
-              script_name="GIT/cgp_mixed_reg.py"
+              file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n}"
 
-              export file_name script_name
-              sbatch GIT/cgp_mixed_class.cmd
-              echo "Done sending non-mf regression mlp job"
+              if [ "$class_mlp" == "T" ]
+              then
+
+                script_name="GIT/cgp_mixed_class.py"
+
+                export script_name file_name
+                sbatch GIT/cgp_mixed_class.cmd
+                echo "Done sending non-mf class mlp job"
+
+              else
+
+                script_name="GIT/cgp_mixed_reg.py"
+
+                export file_name script_name
+                sbatch GIT/cgp_mixed_class.cmd
+                echo "Done sending non-mf regression mlp job"
+              fi
             fi
-          fi
+          done
         done
       done
     done

@@ -888,22 +888,9 @@ def model_prediction_zero(model_dict, cell_data, classification=True):
                             T.dot(cell_input, cell_model[l].W) + cell_model[l].b,
                            cell_model[l].alpha)
 
+    # NO FUSION #
     # Combine to multiplicative fusion layer
-    mf_fusion  = model_dict["multiplicative"]
-    cell_input = (cell_input * mf_fusion.cell_alpha) + mf_fusion.cell_beta
     input      = cell_input
-
-    # Apply multiplicative fussion model layers
-    mf_model  = model_dict["fusion_n_hidden"]
-    for l in xrange(len(mf_model)):
-
-        # input = prelu(
-        #                 T.dot(input , mf_model[l].W) + mf_model[l].b,
-        #                 mf_model[l].alpha
-        #               )
-        input = relu(
-                        T.dot(input , mf_model[l].W) + mf_model[l].b,
-                      mf_model[l].alpha)
 
     # Finally, apply linearity/non-linearity
     if classification == True:

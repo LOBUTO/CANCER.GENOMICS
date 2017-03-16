@@ -42,7 +42,7 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
 
     } else {
       print("genes==T")
-      cgp_pca     <- prcomp(t(cgp_exp), center=F, scale. = F) # Scaling previously shown to be essential for out of set accuracy
+      cgp_pca     <- prcomp(t(cgp_exp), center=T, scale. = T) #NOTE: Scaling previously shown to be essential for out of set accuracy
       cell_feat   <- cgp_pca$x[,1:max_cells]
       cell_feat   <- data.table(cell_feat, keep.rownames = T)
     }
@@ -449,6 +449,7 @@ rebalance   <- as.logical(args[10])
 radii_set   <- as.numeric(args[11])
 bit_set     <- as.numeric(args[12])
 gene_target <- args[13]
+fold        <- args[14]
 nci_spiked  <- F#as.logical(args[8])
 
 # if (args[7] == "lab"){
@@ -553,13 +554,14 @@ if (met_type=="drug_cor"){
 }
 
 # Split tables depending on all or drug samples
+#UPDATE: Take folding into account
 if (samples == "all"){
 
   set.seed(1234)
-  train_rows       <- sample(1:length(feat_table$target), length(feat_table$target)*0.7)
+  train_rows       <- sample(1:length(feat_table$target), length(feat_table$target)*0.4)
   testing_rows     <- setdiff(1:length(feat_table$target), train_rows)
   set.seed(1234)
-  valid_rows       <- sample(testing_rows, length(testing_rows)*0.5)
+  valid_rows       <- sample(testing_rows, length(testing_rows)*0.33)
   test_rows        <- setdiff(testing_rows, valid_rows)
 
 } else if (grepl("act_rebalance_", samples)==T){
@@ -717,13 +719,28 @@ if (samples == "all"){
   # Uses zero morgan features and splits dataset for specific compound
   temp_rows        <- which(feat_table$feat_table$Compound == drug_name)
 
-  set.seed(1234)
-  train_rows       <- sample(temp_rows, length(temp_rows)*0.7)
-  testing_rows     <- setdiff(temp_rows, train_rows)
+  if (fold=="fold_none"){
+    # NOTE:Train with all data???
+    set.seed(1234)
+    train_rows       <- sample(temp_rows, length(temp_rows)*0.7)
+    testing_rows     <- setdiff(temp_rows, train_rows)
 
-  set.seed(1234)
-  valid_rows       <- sample(testing_rows, length(testing_rows)*0.5)
-  test_rows        <- setdiff(testing_rows, valid_rows)
+    set.seed(1234)
+    valid_rows       <- sample(testing_rows, length(testing_rows)*0.5)
+    test_rows        <- setdiff(testing_rows, valid_rows)
+
+  } else{
+    print(fold)
+    split_fold       <- as.numeric(strsplit(fold, "_")[[1]][2])
+    print(split_fold)
+    splits           <- split(temp_rows, 1:10)
+    test_rows        <- splits[[split_fold]]
+
+    testing_rows     <- setdiff(temp_rows, test_rows)
+    set.seed(1234)
+    train_rows       <- sample(testing_rows, length(testing_rows)*0.6)
+    valid_rows       <- setdiff(testing_rows, train_rows)
+  }
 
 } else if (grepl("zeroall_", samples)==T) {
   print ("zero morgan target compound - all data")
