@@ -1314,15 +1314,15 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
                         logfile.write(log + "\n")
 
                     #ONLY SAVE MODEL if validation improves
-                    MODEL = {}
-                    MODEL["cell_n_hidden"]   = [getattr(classifier, "cell_layer_" + str(e)) for e in xrange(len(cell_n_hidden))]
-                    MODEL["drug_n_hidden"]   = [getattr(classifier, "drug_layer_" + str(e)) for e in xrange(len(drug_n_hidden))]
-                    MODEL["multiplicative"]  = classifier.multiplicative_input
-                    MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
-                    MODEL["linear"]          = classifier.linearRegressionLayer
-
-                    with open(OUT_FOLDER + "/" + drug_name + "_" + str(epoch) + ".pkl", "wb") as f:
-                        cPickle.dump(MODEL, f)
+                    # MODEL = {}
+                    # MODEL["cell_n_hidden"]   = [getattr(classifier, "cell_layer_" + str(e)) for e in xrange(len(cell_n_hidden))]
+                    # MODEL["drug_n_hidden"]   = [getattr(classifier, "drug_layer_" + str(e)) for e in xrange(len(drug_n_hidden))]
+                    # MODEL["multiplicative"]  = classifier.multiplicative_input
+                    # MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
+                    # MODEL["linear"]          = classifier.linearRegressionLayer
+                    #
+                    # with open(OUT_FOLDER + "/" + drug_name + "_" + str(epoch) + ".pkl", "wb") as f:
+                    #     cPickle.dump(MODEL, f)
 
                     #Only write if validation improvement
                     ACTUAL = test_set_y.get_value()
@@ -1506,7 +1506,7 @@ def regression_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, 
 
     train_error = theano.function(
         inputs=[index],
-        outputs=classifier.NRMSE(y),
+        outputs=classifier.pear_check(y),
         givens={
             x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
             y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
@@ -2484,9 +2484,9 @@ if sys.argv[6] != "0":
                      OUT_FOLDER = OUT_FOLDER)
     else:
 
-        regression_mlp_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
+        regression_mlp_mf(learning_rate=1.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=50,
-                     cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*2,
+                     cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*1,
                      p=0.7, dropout=True,
                      drug_name=out_file,
                      OUT_FOLDER = OUT_FOLDER)
@@ -2521,7 +2521,7 @@ else:
                      OUT_FOLDER = OUT_FOLDER)
     else:
 
-        regression_mlp_mf_zero_drug(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
+        regression_mlp_mf_zero_drug(learning_rate=0.1, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                      datasets=drugval, train_batch_size=10,
                      cell_n_hidden=c_neurons, mf_manual=mf_manual,
                      p=0.7, dropout=True,

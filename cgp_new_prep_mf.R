@@ -60,7 +60,7 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
 
     } else {
       drug_feat <- acast(morgan_table, Compound~bit_pos, value.var="value")
-      drug_pca  <- prcomp(drug_feat, center=F, scale. = F)
+      drug_pca  <- prcomp(drug_feat, center=F, scale. = F) #Bits, being binary don't need to be scaled (Assumption)
       drug_feat <- data.table(drug_pca$x[, 1:max_bits], keep.rownames = T)
     }
 
@@ -433,6 +433,152 @@ Function_gene_target <- function(gene_target, cgp_exp){
   return(cgp_exp[selected_genes,])
 }
 
+Function_write_tables <- function(feat_table, train_rows, valid_rows, test_rows, max_drugs, pca, out_folder, file_name, scale_tables=F){
+
+  train_drug       <- unique(names(feat_table$drug_index[train_rows]))
+  valid_drug       <- unique(names(feat_table$drug_index[valid_rows]))
+  test_drug        <- unique(names(feat_table$drug_index[test_rows]))
+
+  train_cell       <- unique(names(feat_table$cell_index[train_rows]))
+  valid_cell       <- unique(names(feat_table$cell_index[valid_rows]))
+  test_cell        <- unique(names(feat_table$cell_index[test_rows]))
+
+  if (max_drugs > 0){
+    train_drug_table <- feat_table$drug_feat[Compound %in% train_drug,]
+    valid_drug_table <- feat_table$drug_feat[Compound %in% valid_drug,]
+    test_drug_table  <- feat_table$drug_feat[Compound %in% test_drug,]
+  } else{
+    train_drug_table <- data.table()
+    valid_drug_table <- data.table()
+    test_drug_table  <- data.table()
+  }
+
+  train_cell_table <- feat_table$cell_feat[cell_name %in% train_cell,]
+  valid_cell_table <- feat_table$cell_feat[cell_name %in% valid_cell,]
+  test_cell_table  <- feat_table$cell_feat[cell_name %in% test_cell,]
+
+  # Obtain new index
+  train_feat_table <- feat_table$feat_table[train_rows,]
+  valid_feat_table <- feat_table$feat_table[valid_rows,]
+  test_feat_table  <- feat_table$feat_table[test_rows,]
+
+  if (max_drugs > 0){
+    train_drug_index <- unlist(sapply(train_feat_table$Compound, function(x) which(x==train_drug_table$Compound)))
+    valid_drug_index <- unlist(sapply(valid_feat_table$Compound, function(x) which(x==valid_drug_table$Compound)))
+    test_drug_index  <- unlist(sapply(test_feat_table$Compound,  function(x) which(x==test_drug_table$Compound)))
+  } else {
+    train_drug_index <- 0
+    valid_drug_index <- 0
+    test_drug_index  <- 0
+  }
+
+  train_cell_index <- unlist(sapply(train_feat_table$cell_name, function(x) which(x==train_cell_table$cell_name)))
+  valid_cell_index <- unlist(sapply(valid_feat_table$cell_name, function(x) which(x==valid_cell_table$cell_name)))
+  test_cell_index  <- unlist(sapply(test_feat_table$cell_name,  function(x) which(x==test_cell_table$cell_name)))
+
+  train_target     <- train_feat_table$NORM_pIC50
+  valid_target     <- valid_feat_table$NORM_pIC50
+  test_target      <- test_feat_table$NORM_pIC50
+
+  train_index      <- data.table(drug = train_drug_index - 1,
+                                 cell = train_cell_index - 1,
+                                 NORM_pIC50 = train_target)
+
+  valid_index      <- data.table(drug = valid_drug_index - 1,
+                                 cell = valid_cell_index - 1,
+                                 NORM_pIC50 = valid_target)
+
+  test_index       <- data.table(drug = test_drug_index - 1,
+                                 cell = test_cell_index - 1,
+                                 NORM_pIC50 = test_target)
+
+  # Scale tables with respect to training set (for Multiplicative_fusion, only scale drug features if they are continous variables)
+  if (met_type=="drug_cor"){
+    not_scaling <- 1:3
+    scaling     <- (max(not_scaling) + 1):ncol(feat_table)
+
+  } else if (met_type=="morgan_bits"){
+    not_scaling <- 1
+    scaling     <- 2:ncol(train_cell_table)
+
+  } else if (met_type=="morgan_counts"){
+    not_scaling <- 1
+    scaling     <- 2:ncol(train_cell_table)
+  }
+
+  if (scale_tables==T){
+    print("scaling training cell tables")
+    cell_scaling     <- Function_scaling_tables(train_cell_table, valid_cell_table, test_cell_table,
+                                                scaling, not_scaling)
+
+    train_cell_table <- cell_scaling[["train_table"]]
+    valid_cell_table <- cell_scaling[["valid_table"]]
+    test_cell_table  <- cell_scaling[["test_table"]]
+
+    if (pca==T & max_drugs>0){
+      print("scaling training drug tables")
+      drug_not_scaling <- 1
+      drug_scaling     <- 2:ncol(train_drug_table)
+
+      drug_scaling     <- Function_scaling_tables(train_drug_table, valid_drug_table, test_drug_table,
+                                                  drug_scaling, drug_not_scaling)
+
+      train_drug_table <- drug_scaling[["train_table"]]
+      valid_drug_table <- drug_scaling[["valid_table"]]
+      test_drug_table  <- drug_scaling[["test_table"]]
+    }
+  }
+
+  # WRITE TABLES
+  write.table(train_index, paste0(out_folder, file_name, "_train_index"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+  write.table(valid_index, paste0(out_folder, file_name, "_valid_index"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+  write.table(test_index,  paste0(out_folder, file_name, "_test_index"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+
+  write.table(train_drug_table, paste0(out_folder, file_name, "_train_drug"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+  write.table(valid_drug_table, paste0(out_folder, file_name, "_valid_drug"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+  write.table(test_drug_table, paste0(out_folder, file_name,  "_test_drug"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+
+  write.table(train_cell_table, paste0(out_folder, file_name, "_train_cell"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+  write.table(valid_cell_table, paste0(out_folder, file_name, "_valid_cell"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+  write.table(test_cell_table, paste0(out_folder, file_name,  "_test_cell"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+
+  print("Done writing sel tables")
+
+}
+
+Function_scaling_tables <- function(train_table, valid_table, test_table, scaling, not_scaling){
+
+  scale_train <- scale(train_table[, scaling, with=F])
+  train_table <- cbind(train_table[, not_scaling, with=F], scale_train)
+
+  train_mean  <- attributes(scale_train)$`scaled:center`
+  train_sd    <- attributes(scale_train)$`scaled:scale`
+
+  valid_scale <- sweep(valid_table[, scaling, with=F], 2, train_mean, "-")
+  valid_scale <- sweep(valid_scale, 2, train_sd, "/")
+  valid_table <- cbind(valid_table[, not_scaling, with=F],
+                       valid_scale)
+
+  test_scale  <- sweep(test_table[, scaling, with=F], 2, train_mean, "-")
+  test_scale  <- sweep(test_scale, 2, train_sd, "/")
+  test_table  <- cbind(test_table[, not_scaling, with=F],
+                       test_scale)
+
+  return(list(train_table = train_table,
+              valid_table = valid_table,
+              test_table  = test_table))
+
+}
+
 # LOAD INPUT
 args        <- commandArgs(trailingOnly = TRUE)
 
@@ -557,12 +703,39 @@ if (met_type=="drug_cor"){
 #UPDATE: Take folding into account
 if (samples == "all"){
 
-  set.seed(1234)
-  train_rows       <- sample(1:length(feat_table$target), length(feat_table$target)*0.4)
-  testing_rows     <- setdiff(1:length(feat_table$target), train_rows)
-  set.seed(1234)
-  valid_rows       <- sample(testing_rows, length(testing_rows)*0.33)
-  test_rows        <- setdiff(testing_rows, valid_rows)
+  # set.seed(1234)
+  # train_rows       <- sample(1:length(feat_table$target), length(feat_table$target)*0.4)
+  # testing_rows     <- setdiff(1:length(feat_table$target), train_rows)
+  # set.seed(1234)
+  # valid_rows       <- sample(testing_rows, length(testing_rows)*0.33)
+  # test_rows        <- setdiff(testing_rows, valid_rows)
+  temp_rows          <- 1:length(feat_table$target)
+
+  if (fold=="fold_none"){
+    # NOTE:Train with all data (For the time being, use early stopping of 25%)
+    set.seed(1234)
+    train_rows       <- sample(temp_rows, length(temp_rows)*0.75)
+    valid_rows       <- setdiff(temp_rows, train_rows)
+    test_rows        <- valid_rows #Simple early stopping
+
+  } else if (fold=="fold_all"){
+    for (split_fold in 1:5){
+      print(fold)
+      print(split_fold)
+      splits           <- split(temp_rows, 1:5)
+      test_rows        <- splits[[split_fold]]
+
+      testing_rows     <- setdiff(temp_rows, test_rows)
+      set.seed(1234)
+      train_rows       <- sample(testing_rows, length(testing_rows)*0.75)
+      valid_rows       <- setdiff(testing_rows, train_rows)
+
+      print(file_name)
+      print(gsub("fold_all", split_fold, file_name))
+      Function_write_tables(feat_table, train_rows, valid_rows, test_rows, max_drugs, pca, out_folder,
+                            gsub("fold_all", split_fold, file_name), scale_tables=F)
+    }
+  }
 
 } else if (grepl("act_rebalance_", samples)==T){
 
@@ -729,17 +902,23 @@ if (samples == "all"){
     valid_rows       <- sample(testing_rows, length(testing_rows)*0.5)
     test_rows        <- setdiff(testing_rows, valid_rows)
 
-  } else{
-    print(fold)
-    split_fold       <- as.numeric(strsplit(fold, "_")[[1]][2])
-    print(split_fold)
-    splits           <- split(temp_rows, 1:10)
-    test_rows        <- splits[[split_fold]]
+  } else if (fold=="fold_all"){
+    for (split_fold in 1:10){
+      print(fold)
+      print(split_fold)
+      splits           <- split(temp_rows, 1:10)
+      test_rows        <- splits[[split_fold]]
 
-    testing_rows     <- setdiff(temp_rows, test_rows)
-    set.seed(1234)
-    train_rows       <- sample(testing_rows, length(testing_rows)*0.6)
-    valid_rows       <- setdiff(testing_rows, train_rows)
+      testing_rows     <- setdiff(temp_rows, test_rows)
+      set.seed(1234)
+      train_rows       <- sample(testing_rows, length(testing_rows)*0.66)
+      valid_rows       <- setdiff(testing_rows, train_rows)
+
+      print(file_name)
+      print(gsub("fold_all", split_fold, file_name))
+      Function_write_tables(feat_table, train_rows, valid_rows, test_rows, max_drugs, pca, out_folder,
+                            gsub("fold_all", split_fold, file_name), scale_tables=F)
+    }
   }
 
 } else if (grepl("zeroall_", samples)==T) {
@@ -748,9 +927,12 @@ if (samples == "all"){
   temp_rows        <- which(feat_table$feat_table$Compound == gsub("zeroall_", "", samples))
 
   set.seed(1234)
-  train_rows       <- sample(temp_rows, length(temp_rows)*0.8)
+  train_rows       <- sample(temp_rows, length(temp_rows)*0.66)
   valid_rows       <- setdiff(temp_rows, train_rows)
   test_rows        <- valid_rows
+
+  Function_write_tables(feat_table, train_rows, valid_rows, test_rows, max_drugs, pca, out_folder,
+                        file_name, scale_tables=F)
 
 } else {
 
@@ -761,142 +943,3 @@ if (samples == "all"){
   train_rows       <- sample(testing_rows, length(testing_rows)*0.8)
   valid_rows       <- setdiff(testing_rows, train_rows)
 }
-
-train_drug       <- unique(names(feat_table$drug_index[train_rows]))
-valid_drug       <- unique(names(feat_table$drug_index[valid_rows]))
-test_drug        <- unique(names(feat_table$drug_index[test_rows]))
-
-train_cell       <- unique(names(feat_table$cell_index[train_rows]))
-valid_cell       <- unique(names(feat_table$cell_index[valid_rows]))
-test_cell        <- unique(names(feat_table$cell_index[test_rows]))
-
-if (max_drugs > 0){
-  train_drug_table <- feat_table$drug_feat[Compound %in% train_drug,]
-  valid_drug_table <- feat_table$drug_feat[Compound %in% valid_drug,]
-  test_drug_table  <- feat_table$drug_feat[Compound %in% test_drug,]
-} else{
-  train_drug_table <- data.table()
-  valid_drug_table <- data.table()
-  test_drug_table  <- data.table()
-}
-
-train_cell_table <- feat_table$cell_feat[cell_name %in% train_cell,]
-valid_cell_table <- feat_table$cell_feat[cell_name %in% valid_cell,]
-test_cell_table  <- feat_table$cell_feat[cell_name %in% test_cell,]
-
-# Obtain new index
-train_feat_table <- feat_table$feat_table[train_rows,]
-valid_feat_table <- feat_table$feat_table[valid_rows,]
-test_feat_table  <- feat_table$feat_table[test_rows,]
-
-if (max_drugs > 0){
-  train_drug_index <- unlist(sapply(train_feat_table$Compound, function(x) which(x==train_drug_table$Compound)))
-  valid_drug_index <- unlist(sapply(valid_feat_table$Compound, function(x) which(x==valid_drug_table$Compound)))
-  test_drug_index  <- unlist(sapply(test_feat_table$Compound,  function(x) which(x==test_drug_table$Compound)))
-} else {
-  train_drug_index <- 0
-  valid_drug_index <- 0
-  test_drug_index  <- 0
-}
-
-train_cell_index <- unlist(sapply(train_feat_table$cell_name, function(x) which(x==train_cell_table$cell_name)))
-valid_cell_index <- unlist(sapply(valid_feat_table$cell_name, function(x) which(x==valid_cell_table$cell_name)))
-test_cell_index  <- unlist(sapply(test_feat_table$cell_name,  function(x) which(x==test_cell_table$cell_name)))
-
-train_target     <- train_feat_table$NORM_pIC50
-valid_target     <- valid_feat_table$NORM_pIC50
-test_target      <- test_feat_table$NORM_pIC50
-
-train_index      <- data.table(drug = train_drug_index - 1,
-                               cell = train_cell_index - 1,
-                               NORM_pIC50 = train_target)
-
-valid_index      <- data.table(drug = valid_drug_index - 1,
-                               cell = valid_cell_index - 1,
-                               NORM_pIC50 = valid_target)
-
-test_index       <- data.table(drug = test_drug_index - 1,
-                               cell = test_cell_index - 1,
-                               NORM_pIC50 = test_target)
-
-# Scale tables with respect to training set (for Multiplicative_fusion, only scale drug features if they are continous variables)
-if (met_type=="drug_cor"){
-  not_scaling <- 1:3
-  scaling     <- (max(not_scaling) + 1):ncol(feat_table)
-
-} else if (met_type=="morgan_bits"){
-  not_scaling <- 1
-  scaling     <- 2:ncol(train_cell_table)
-
-} else if (met_type=="morgan_counts"){
-  not_scaling <- 1
-  scaling     <- 2:ncol(train_cell_table)
-}
-
-Function_scaling_tables <- function(train_table, valid_table, test_table, scaling, not_scaling){
-
-  scale_train <- scale(train_table[, scaling, with=F])
-  train_table <- cbind(train_table[, not_scaling, with=F], scale_train)
-
-  train_mean  <- attributes(scale_train)$`scaled:center`
-  train_sd    <- attributes(scale_train)$`scaled:scale`
-
-  valid_scale <- sweep(valid_table[, scaling, with=F], 2, train_mean, "-")
-  valid_scale <- sweep(valid_scale, 2, train_sd, "/")
-  valid_table <- cbind(valid_table[, not_scaling, with=F],
-                       valid_scale)
-
-  test_scale  <- sweep(test_table[, scaling, with=F], 2, train_mean, "-")
-  test_scale  <- sweep(test_scale, 2, train_sd, "/")
-  test_table  <- cbind(test_table[, not_scaling, with=F],
-                       test_scale)
-
-  return(list(train_table = train_table,
-              valid_table = valid_table,
-              test_table  = test_table))
-
-}
-
-# cell_scaling     <- Function_scaling_tables(train_cell_table, valid_cell_table, test_cell_table,
-#                                             scaling, not_scaling)
-#
-# train_cell_table <- cell_scaling[["train_table"]]
-# valid_cell_table <- cell_scaling[["valid_table"]]
-# test_cell_table  <- cell_scaling[["test_table"]]
-
-if (pca==T & max_drugs>0){
-  drug_not_scaling <- 1
-  drug_scaling     <- 2:ncol(train_drug_table)
-
-  drug_scaling     <- Function_scaling_tables(train_drug_table, valid_drug_table, test_drug_table,
-                                              drug_scaling, drug_not_scaling)
-
-  train_drug_table <- drug_scaling[["train_table"]]
-  valid_drug_table <- drug_scaling[["valid_table"]]
-  test_drug_table  <- drug_scaling[["test_table"]]
-
-}
-
-# WRITE TABLES
-write.table(train_index, paste0(out_folder, file_name, "_train_index"),
-            quote=F, sep="\t", row.names=F, col.names=T)
-write.table(valid_index, paste0(out_folder, file_name, "_valid_index"),
-            quote=F, sep="\t", row.names=F, col.names=T)
-write.table(test_index,  paste0(out_folder, file_name, "_test_index"),
-            quote=F, sep="\t", row.names=F, col.names=T)
-
-write.table(train_drug_table, paste0(out_folder, file_name, "_train_drug"),
-            quote=F, sep="\t", row.names=F, col.names=T)
-write.table(valid_drug_table, paste0(out_folder, file_name, "_valid_drug"),
-            quote=F, sep="\t", row.names=F, col.names=T)
-write.table(test_drug_table, paste0(out_folder, file_name,  "_test_drug"),
-            quote=F, sep="\t", row.names=F, col.names=T)
-
-write.table(train_cell_table, paste0(out_folder, file_name, "_train_cell"),
-            quote=F, sep="\t", row.names=F, col.names=T)
-write.table(valid_cell_table, paste0(out_folder, file_name, "_valid_cell"),
-            quote=F, sep="\t", row.names=F, col.names=T)
-write.table(test_cell_table, paste0(out_folder, file_name,  "_test_cell"),
-            quote=F, sep="\t", row.names=F, col.names=T)
-
-print("Done writing sel tables")
