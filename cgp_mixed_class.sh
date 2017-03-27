@@ -46,17 +46,17 @@ fi
 # manual_200 manual_200_200 manual_200_200_200 manual_500 manual_500_500 manual_500_500_500 manual_750 manual_750_750_750
 # for cell_n in manual_500 manual_500_500 manual_50_50 manual_50_50_50 manual_50 manual_100 manual_100_100 manual_100_100_100 \
 # manual_200 manual_200_200 manual_200_200_200
-for samples in all
+for samples in zero_Erlotinib
 do
-  for c in 100 200 400 # Number of cell features
+  for c in 10 20 50 60 70 80 90 100 150 200 250 500 750 950 # Number of cell features (500 900)
   do
     cn=$c
-    for cell_n in "manual_${cn}" "manual_${cn}_${cn}"
+    for cell_n in "manual_${cn}" #"manual_${cn}_${cn}"
     do
-    for d in 50 100 290 # Number of drug features
+    for d in 0 # Number of drug features (100 290)
     do
       dn=$d
-      for drug_n in "manual_${dn}" "manual_${dn}_${dn}"
+      for drug_n in "manual_${dn}" #"manual_${dn}_${dn}"
       do
       for r in 16 # Morgan radii settings
       do
@@ -77,7 +77,7 @@ do
 
               script_name="GIT/cgp_multi_mlp.py"
 
-              file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${mf_manual}"
+              file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${fold} ${mf_manual}"
 
               export script_name file_name
               sbatch GIT/cgp_mixed_class.cmd
@@ -96,7 +96,7 @@ do
                 echo "$cell_n"
 
                 file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_fold_${split_fold}_radii_${r}_bit_${b}"
-                file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${mf_manual}"
+                file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${fold} ${mf_manual}"
 
                 export script_name file_name
                 sbatch GIT/cgp_mixed_class.cmd

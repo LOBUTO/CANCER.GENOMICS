@@ -555,6 +555,47 @@ Function_write_tables <- function(feat_table, train_rows, valid_rows, test_rows,
 
 }
 
+Function_write_train_tables <- function(feat_table, train_rows, max_drugs, pca, out_folder, file_name){
+
+  train_drug       <- unique(names(feat_table$drug_index[train_rows]))
+  train_cell       <- unique(names(feat_table$cell_index[train_rows]))
+
+  if (max_drugs > 0){
+    train_drug_table <- feat_table$drug_feat[Compound %in% train_drug,]
+  } else{
+    train_drug_table <- data.table()
+  }
+
+  train_cell_table <- feat_table$cell_feat[cell_name %in% train_cell,]
+
+  # Obtain new index
+  train_feat_table <- feat_table$feat_table[train_rows,]
+
+  if (max_drugs > 0){
+    train_drug_index <- unlist(sapply(train_feat_table$Compound, function(x) which(x==train_drug_table$Compound)))
+  } else {
+    train_drug_index <- 0
+  }
+
+  train_cell_index <- unlist(sapply(train_feat_table$cell_name, function(x) which(x==train_cell_table$cell_name)))
+  train_target     <- train_feat_table$NORM_pIC50
+
+  train_index      <- data.table(drug = train_drug_index - 1,
+                                 cell = train_cell_index - 1,
+                                 NORM_pIC50 = train_target)
+
+  # Since we are only building the training table there are no tables to scale (valid or test)
+  # WRITE TABLES
+  write.table(train_index, paste0(out_folder, file_name, "_train_index"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+  write.table(train_drug_table, paste0(out_folder, file_name, "_train_drug"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+  write.table(train_cell_table, paste0(out_folder, file_name, "_train_cell"),
+              quote=F, sep="\t", row.names=F, col.names=T)
+
+  print("Done writing sel train only tables")
+}
+
 Function_scaling_tables <- function(train_table, valid_table, test_table, scaling, not_scaling){
 
   scale_train <- scale(train_table[, scaling, with=F])
@@ -648,6 +689,14 @@ if (batch_norm=="cgp_nci60"){
   print("geeleher_bortezomib_b")
   cgp_exp         <- readRDS(paste0(in_objects, "030917_cgp_gee_bor_b_exp_norm.rds"))[["EXP.1"]]
 
+} else if (batch_norm=="geeleher_docetaxel"){
+  print("geeleher_docetaxel")
+  cgp_exp         <- readRDS(paste0(in_objects, "032717_cgp_gee_doc_exp_norm.rds"))[["EXP.1"]]
+
+} else if (batch_norm=="geeleher_erlotinib") {
+  print("geeleher_erlotinib")
+  cgp_exp         <- readRDS(paste0(in_objects, "032717_cgp_gee_erlo_exp_norm.rds"))[["EXP.1"]]
+  
 } else{
   print("None")
   cgp_exp           <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
@@ -703,20 +752,24 @@ if (met_type=="drug_cor"){
 #UPDATE: Take folding into account
 if (samples == "all"){
 
-  # set.seed(1234)
-  # train_rows       <- sample(1:length(feat_table$target), length(feat_table$target)*0.4)
-  # testing_rows     <- setdiff(1:length(feat_table$target), train_rows)
-  # set.seed(1234)
-  # valid_rows       <- sample(testing_rows, length(testing_rows)*0.33)
-  # test_rows        <- setdiff(testing_rows, valid_rows)
   temp_rows          <- 1:length(feat_table$target)
 
-  if (fold=="fold_none"){
+  if (fold=="fold_early"){
     # NOTE:Train with all data (For the time being, use early stopping of 25%)
     set.seed(1234)
     train_rows       <- sample(temp_rows, length(temp_rows)*0.75)
-    valid_rows       <- setdiff(temp_rows, train_rows)
-    test_rows        <- valid_rows #Simple early stopping
+    valid_rows       <- setdiff(temp_rows, train_rows) #For early stopping
+    test_rows        <- valid_rows  #Same as valid
+
+    Function_write_tables(feat_table, train_rows, valid_rows, test_rows, max_drugs, pca, out_folder,
+                          file_name, scale_tables=F)
+
+  } else if(fold=="fold_none"){
+    # NOTE:Train with all data, literally, no split done for early stopping
+    train_rows       <- 1:length(feat_table$target)
+
+    Function_write_train_tables(feat_table, train_rows, max_drugs, pca, out_folder,
+                                file_name)
 
   } else if (fold=="fold_all"){
     for (split_fold in 1:5){
@@ -892,15 +945,22 @@ if (samples == "all"){
   # Uses zero morgan features and splits dataset for specific compound
   temp_rows        <- which(feat_table$feat_table$Compound == drug_name)
 
-  if (fold=="fold_none"){
-    # NOTE:Train with all data???
-    set.seed(1234)
-    train_rows       <- sample(temp_rows, length(temp_rows)*0.7)
-    testing_rows     <- setdiff(temp_rows, train_rows)
+  if (fold=="fold_early"){
+    # NOTE:Train with all data using early stopping
 
-    set.seed(1234)
-    valid_rows       <- sample(testing_rows, length(testing_rows)*0.5)
-    test_rows        <- setdiff(testing_rows, valid_rows)
+    train_rows       <- sample(temp_rows, length(temp_rows)*0.75)
+    valid_rows       <- setdiff(temp_rows, train_rows)
+    test_rows        <- valid_rows # Sample as valid rows for comparisson
+
+    Function_write_tables(feat_table, train_rows, valid_rows, test_rows, max_drugs, pca, out_folder,
+                          file_name, scale_tables=F)
+
+  } else if (fold=="fold_none"){
+    # NOTE:Train with all data, literally, no split done for early stopping
+    train_rows       <- temp_rows
+
+    Function_write_train_tables(feat_table, train_rows, max_drugs, pca, out_folder,
+                                file_name)
 
   } else if (fold=="fold_all"){
     for (split_fold in 1:10){

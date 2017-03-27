@@ -296,13 +296,13 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       # exp_table      <- exp_table[common_genes, ]
       cgp_pca_exp    <- prcomp(t(original_exp), center = T, scale. = T) # PCA on original to obtain rotation
 
-      # original_scale <- scale(t(original_exp))
-      # original_mean  <- attributes(original_scale)$`scaled:center`
-      # original_sd    <- attributes(original_scale)$`scaled:scale`
+      original_scale <- scale(t(original_exp))
+      original_mean  <- attributes(original_scale)$`scaled:center`
+      original_sd    <- attributes(original_scale)$`scaled:scale`
 
       cell_feat_sc   <- t(exp_table)
-      # cell_feat_sc   <- sweep(cell_feat_sc, 2, original_mean, "-")
-      # cell_feat_sc   <- sweep(cell_feat_sc, 2, original_sd, "/")
+      cell_feat_sc   <- sweep(cell_feat_sc, 2, original_mean, "-")
+      cell_feat_sc   <- sweep(cell_feat_sc, 2, original_sd, "/")
 
       cell_feat      <- cell_feat_sc %*% cgp_pca_exp$rotation[,target_cells] # Apply rotation from original data
       cell_feat      <- data.table(cell_feat, keep.rownames = T)
@@ -653,6 +653,14 @@ if (batch_norm=="cgp_nci60"){
   print("geeleher_bortezomib_b")
   cgp_exp         <- readRDS(paste0(in_objects, "030917_cgp_gee_bor_b_exp_norm.rds"))[["EXP.1"]]
 
+} else if (batch_norm=="geeleher_docetaxel"){
+  print("geeleher_docetaxel")
+  cgp_exp         <- readRDS(paste0(in_objects, "032717_cgp_gee_doc_exp_norm.rds"))[["EXP.1"]]
+
+} else if (batch_norm=="geeleher_erlotinib") {
+  print("geeleher_erlotinib")
+  cgp_exp         <- readRDS(paste0(in_objects, "032717_cgp_gee_erlo_exp_norm.rds"))[["EXP.1"]]
+
 } else{
  print("None")
  cgp_exp         <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
@@ -707,7 +715,7 @@ if (met_type == "morgan_bits"){
                                                                            Function_prep_morgan_bits(Function_load_morgan_bits("nci_60",
                                                                                                     radii_set, bit_set), type="nci_60"),
                                                                            target_cells = cell_features, target_bits = drug_features,
-                                                                           cgp_exp, genes=genes, scaling=T,
+                                                                           cgp_exp, genes=genes, scaling=F,
                                                                            pca = pca,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
   } else if (target=="ccle"){
@@ -720,7 +728,7 @@ if (met_type == "morgan_bits"){
                                                                            ccle_exp,
                                                                            morgan_bits,
                                                                            target_cells = cell_features, target_bits = drug_features,
-                                                                           cgp_exp, genes=genes, scaling=T,
+                                                                           cgp_exp, genes=genes, scaling=F,
                                                                            pca = pca,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
   } else if (target=="tcga_brca"){
@@ -819,7 +827,7 @@ if (met_type == "morgan_bits"){
                                                                    Function_prep_morgan_bits(Function_load_morgan_bits(morgan_type, radii_set, bit_set),
                                                                                               type=morgan_type),
                                                                    target_cells = cell_features, target_bits = drug_features,
-                                                                   cgp_exp, genes=genes, scaling=T,
+                                                                   cgp_exp, genes=genes, scaling=F,
                                                                    pca = pca,
                                                                    original_exp = cgp_exp, original_bits = morgan_bits)
 
@@ -835,7 +843,12 @@ if (met_type == "morgan_bits"){
     } else if (target=="geeleher_docetaxel"){
       doc <- readRDS(paste0(gee_folder, "030217_GEE_DOCETAXEL.rds"))
       target_table <- doc$feat_table
-      exp_table    <- doc$exp_table
+
+      if(batch_norm=="geeleher_docetaxel"){
+        exp_table  <- readRDS(paste0(in_objects, "032717_cgp_gee_doc_exp_norm.rds"))[["EXP.2"]]
+      } else{
+        exp_table  <- doc$exp_table
+      }
 
     } else if (target=="geeleher_bortezomib_a"){
       bor <- readRDS(paste0(gee_folder, "030417_GEE_BORTEZOMIB_DEXAMETHASONE.rds"))
@@ -860,7 +873,12 @@ if (met_type == "morgan_bits"){
     } else if (target=="geeleher_erlotinib"){
       erl <- readRDS(paste0(gee_folder, "030417_GEE_ERLOTINIB.rds"))
       target_table <- erl$feat_table
-      exp_table    <- erl$exp_table
+
+      if (batch_norm=="geeleher_erlotinib"){
+        exp_table  <- readRDS(paste0(in_objects, "032717_cgp_gee_erlo_exp_norm.rds"))[["EXP.2"]]
+      } else{
+        exp_table    <- erl$exp_table
+      }
     }
 
     exp_table <- exp_table[,target_table$cell_name]

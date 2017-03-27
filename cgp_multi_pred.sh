@@ -12,8 +12,9 @@ batch_norm=$8 #cgp_nci60, cgp_ccle, tcga_brca, or None
 bn_external=$9 #T/F
 pca=${10} #T/F
 rebalance=${11} #T/F
-gene_target=${12} #Specific to target dataset: ccle, geeleher_cisplatin, geeleher_docetaxel
-mf_manual=${13}
+gene_target=${12} #Specific to target dataset: ccle, geeleher_cisplatin, geeleher_docetaxel or None
+fold=${13}
+mf_manual=${14}
 
 if [ "$met_type" == "morgan_bits" ]
 then
@@ -30,12 +31,16 @@ fi
 # act_rebalance_1.5 act_rebalance_2.5 act_rebalance_3.5 act_rebalance_4.5
 # for samples in act_rebalancetop_10 act_rebalancetop_20 act_rebalancetop_40 act_rebalancetop_50 \
 # act_rebalancetop_60 act_rebalancetop_80 act_rebalancetop_100
-for samples in zero_Bortezomib
+for samples in zero_Erlotinib
 do
-  for c in 50 100 # Number of cell features
+  for c in 10 20 50 60 70 80 90 100 150 200 250 500 750 950 # Number of cell features
   do
+    cn=$c
+    cell_n="manual_${cn}"
     for d in 0 # Number of drug features
     do
+      dn=$d
+      drug_n="manual_${dn}"
       for r in 16 # Morgan radii settings
       do
         for b in 2048 # Morgan bit settings (Not needed for morgan counts choice)
@@ -43,13 +48,13 @@ do
 
           echo $c $d  $r $b $samples
 
-          file_tag_1="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_radii_${r}_bit_${b}"
+          file_tag_1="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_fold_${fold}_radii_${r}_bit_${b}"
 
           if [ "$class_mlp" == "T" ]
           then
-            file_tag_2="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_radii_${r}_bit_${b}"
+            file_tag_2="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_fold_${fold}_radii_${r}_bit_${b}"
           else
-            file_tag_2="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_radii_${r}_bit_${b}"
+            file_tag_2="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_fold_${fold}_radii_${r}_bit_${b}"
           fi
 
           cgp_drug="${file_tag_1}_train_drug"
@@ -86,7 +91,7 @@ do
             # sbatch GIT/cgp_mixed_class.cmd
             # echo "Done sending multiplicative_fusion predictive mlp job"
 
-            model_files="${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_radii_${r}_bit_${b}"
+            model_files="${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_fold_${fold}_radii_${r}_bit_${b}"
             model_files=$( ls CGP_FILES/REGRESSION_RESULTS/ | grep $model_files | grep -v combined | grep -v log | grep -v 2048.pkl)
 
             for model in $model_files
