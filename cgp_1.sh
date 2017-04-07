@@ -66,7 +66,7 @@ do
 
               file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${fold} ${mf_manual}"
 
-              THEANO_FLAGS='mode=FAST_RUN,allow_gc=True,linker=c,device=gpu,lib.cnmem=1.0,floatX=float32,nvcc.fastmath=True' python ${script_name} ${file_name}
+              THEANO_FLAGS='mode=FAST_RUN,allow_gc=True,linker=c,device=gpu,lib.cnmem=0.9,floatX=float32,nvcc.fastmath=True' python ${script_name} ${file_name}
 
               echo "Done sending multiplicative_fusion mlp job"
             else
