@@ -150,8 +150,9 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
   }
   feat_table <- merge(feat_table, cell_feat[, 1:2, with=F], by="cell_name", allow.cartesian=TRUE)
 
-  setkey(feat_table)
-  feat_table <- unique(feat_table)
+  setkey(feat_table) #NOTE, may need to remove when "all_rebalance"
+  feat_table <- unique(feat_table) #NOTE, may need to remove when "all_rebalance"
+  print(paste0("actual total number of samples ", nrow(feat_table)))
 
   # Do we need to rebalance based on compound counts
   if (rebalance == T){
@@ -620,6 +621,66 @@ Function_scaling_tables <- function(train_table, valid_table, test_table, scalin
 
 }
 
+Function_rebalance <- function(cgp_table, th){
+  # Rebalance compound count in term of number of samples and activity
+
+  # First rebalance by activity
+  print("balancing by activity")
+  cgp_table     <- cgp_table[,-c("Site"),with=F] #To reduce overhead
+  all_compounds <- unique(cgp_table$Compound)
+  reb_1         <- data.table()
+
+  for (drug in all_compounds){
+    temp_table  <- cgp_table[Compound==drug,]
+
+    above_table <- temp_table[((1-AUC)*10)>=th,]
+    below_table <- temp_table[((1-AUC)*10)<th,]
+
+    if (nrow(above_table)>0){
+
+      if (nrow(below_table) > nrow(above_table)){
+        needed_rows <- nrow(below_table) - nrow(above_table)
+        set.seed(1234)
+        above_table <- rbind(above_table,
+                             above_table[sample(1:nrow(above_table), needed_rows, replace=T),])
+      } else{
+        needed_rows <- nrow(above_table) - nrow(below_table)
+        set.seed(1234)
+        below_table <- rbind(below_table,
+                             below_table[sample(1:nrow(below_table), needed_rows, replace=T),])
+      }
+      reb_1       <- rbind(reb_1,
+                           rbind(below_table, above_table))
+    } else{
+      reb_1       <- rbind(reb_1, below_table)
+    }
+  }
+
+  # Then rebalance by count
+  print("balancing by count")
+  drug_count    <- reb_1[,list(N=length(cell_name)), by="Compound"]
+  max_count     <- max(drug_count$N)
+
+  reb_2         <- data.table()
+
+  for (drug in all_compounds){
+    temp_table  <- reb_1[Compound==drug,]
+
+    if (nrow(temp_table) < max_count){
+      needed_count    <- max_count - nrow(temp_table)
+      set.seed(1234)
+      temp_table      <- rbind(temp_table,
+                               temp_table[sample(1:nrow(temp_table), needed_count, replace=T),])
+    }
+
+    reb_2       <- rbind(reb_2, temp_table)
+  }
+
+  # Return
+  print(paste0("Approximate total number of samples = ", nrow(reb_2)))
+  return(reb_2)
+}
+
 # LOAD INPUT
 args        <- commandArgs(trailingOnly = TRUE)
 
@@ -639,23 +700,24 @@ gene_target <- args[13]
 fold        <- args[14]
 nci_spiked  <- F#as.logical(args[8])
 
-# if (args[7] == "lab"){
-#   in_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/" #For lab
-#   in_morgan   <- "/home/zamalloa/Documents/FOLDER/MORGAN_FILES/"
-#   out_folder  <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
-# } else{
-in_folder    <- "/tigress/zamalloa/CGP_FILES/" #For tigress
-in_morgan    <- "/tigress/zamalloa/MORGAN_FILES/"
-in_objects   <- "/tigress/zamalloa/OBJECTS/"
-tcga_objects <- "/tigress/zamalloa/TCGA_FILES/"
-out_folder   <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/"
-# }
+
+in_folder    <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/" #For lab
+in_morgan    <- "/home/zamalloa/Documents/FOLDER/MORGAN_FILES/"
+in_objects   <- "/home/zamalloa/Documents/FOLDER/OBJECTS/"
+tcga_objects <- "/home/zamalloa/Documents/FOLDER/TCGA_FILE/"
+out_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
+
+# in_folder    <- "/tigress/zamalloa/CGP_FILES/" #For tigress
+# in_morgan    <- "/tigress/zamalloa/MORGAN_FILES/"
+# in_objects   <- "/tigress/zamalloa/OBJECTS/"
+# tcga_objects <- "/tigress/zamalloa/TCGA_FILES/"
+# out_folder   <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/"
 
 # LOAD DATA
 DRUGS.MET.PROFILE <- readRDS(paste0(in_folder, "082316.DRUG.MET.PROFILE.rds"))
 cgp_new           <- readRDS(paste0(in_folder, "082916_cgp_new.rds"))
-ccle_exp          <- readRDS(paste0(in_folder, "121116_ccle_exp.rds"))
-nci_exp           <- readRDS(paste0(in_objects, "121216_nci60_exp.rds"))
+# ccle_exp          <- readRDS(paste0(in_folder, "121116_ccle_exp.rds"))
+# nci_exp           <- readRDS(paste0(in_objects, "121216_nci60_exp.rds"))
 
 if (batch_norm=="cgp_nci60"){
   print("batch_norm nci60")
@@ -696,7 +758,7 @@ if (batch_norm=="cgp_nci60"){
 } else if (batch_norm=="geeleher_erlotinib") {
   print("geeleher_erlotinib")
   cgp_exp         <- readRDS(paste0(in_objects, "032717_cgp_gee_erlo_exp_norm.rds"))[["EXP.1"]]
-  
+
 } else{
   print("None")
   cgp_exp           <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
@@ -712,6 +774,14 @@ nci_new           <- c()#readRDS("/tigress/zamalloa/OBJECTS/120916_nci60_new.rds
 #################################################### EXECUTE ####################################################
 # Do we need to tailor the gene expression data
 cgp_exp           <- Function_gene_target(gene_target, cgp_exp)
+
+# Do we need to modify to rebalance for activity and count?
+# NOTE:Assuming this is for (1-AUC)*10, need to adapt better later
+if (grepl("all_rebalance_", samples)==T){
+  th_rebalance    <- as.numeric(gsub("all_rebalance_", "", samples))
+  print(paste0("all_rebalance th ", th_rebalance))
+  cgp_new         <- Function_rebalance(cgp_new, th_rebalance)
+}
 
 # Apply
 if (met_type=="drug_cor"){
@@ -750,7 +820,8 @@ if (met_type=="drug_cor"){
 
 # Split tables depending on all or drug samples
 #UPDATE: Take folding into account
-if (samples == "all"){
+if ( (samples == "all") | (grepl("all_rebalance_", samples)==T)){
+  #NOTE: If "all_rebalance_", this type of rebalance has been already applied prior to building feat_table and indexes
 
   temp_rows          <- 1:length(feat_table$target)
 

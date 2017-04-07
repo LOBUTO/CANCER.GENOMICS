@@ -316,9 +316,6 @@ class Multiplicative_fusion(object):
     def __init__(self, rng, drug_input, cell_input, drug_in, cell_in, neural_range,
                  cell_alpha=None, drug_alpha=None, cell_beta=None, drug_beta=None):
 
-        # neural_range is the neuron range from drug_out
-        # (ie. precalculated range of last drug hidden layer)
-
         self.drug_input = drug_input
         self.cell_input = cell_input
 
@@ -375,8 +372,8 @@ class Multiplicative_fusion(object):
         #                               [drug_output[:, [i]] * cell_output for i in neural_range],
         #                                axis = 1
         #                             )
-        output      = drug_output * cell_output # Keep in mind that both have to have the same number of neurons
-        #output       = T.concatenate([drug_output, cell_output], axis = 1)
+        # output      = drug_output * cell_output # Keep in mind that both have to have the same number of neurons
+        output       = T.concatenate([drug_output, cell_output], axis = 1) #NOTE: Modified to "true concatenation"
         # Output
         self.output = output
 
@@ -539,7 +536,7 @@ class Multi_MLP_Regression(object):
             cell_input = getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
             drug_in  = drug_n_hidden[drug_layer_number-1],
             cell_in  = cell_n_hidden[cell_layer_number-1],
-            neural_range = neural_range,
+            neural_range = neural_range, #NOTE: Integer representing total number of summed features between drug and cell previous layer
             rng =  rng
         )
         self.params = self.params + self.multiplicative_input.params
@@ -548,12 +545,12 @@ class Multi_MLP_Regression(object):
         self.fusion_layer_0 = HiddenLayer(
             rng=rng,
             input=self.multiplicative_input.output,
-            n_in=neural_range, #drug_n_hidden[drug_layer_number-1],
+            n_in=neural_range, #NOTE: Integer representing total number of summed features between drug and cell previous layer
             n_out=fusion_n_hidden[0],
             activation=relu,
             is_train=is_train,
-            p=cell_p, #MAY CHANGE TO OWN VARIABLE
-            dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
+            p=cell_p,
+            dropout=cell_dropout
         )
 
         self.params = self.params + self.fusion_layer_0.params # Plus previous separate layer params (drug + cell + mf)
@@ -1036,22 +1033,23 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
     n_test_batches  = test_samples / test_batch_size
 
     # compute fusion neural range
-    #neural_range = range(drug_n_hidden[-1])
-    if mf_manual=="None":
+    # if mf_manual=="None":
+    #
+    #     if cell_n_hidden[-1] != drug_n_hidden[-1]:
+    #
+    #         neural_range  = min([cell_n_hidden[-1], drug_n_hidden[-1]])
+    #         if neural_range == cell_n_hidden[-1]:
+    #             drug_n_hidden = drug_n_hidden + [neural_range] # In place modification!!!
+    #         else :
+    #             cell_n_hidden = cell_n_hidden + [neural_range] # In place modification!!!
+    #     else:
+    #         neural_range = cell_n_hidden[-1]
+    # else:
+    #     neural_range  = mf_manual
+    #     drug_n_hidden = drug_n_hidden + [mf_manual]
+    #     cell_n_hidden = cell_n_hidden + [mf_manual]
+    neural_range = cell_n_hidden[-1] + drug_n_hidden[-1] #NOTE: Addition of last two layers
 
-        if cell_n_hidden[-1] != drug_n_hidden[-1]:
-
-            neural_range  = min([cell_n_hidden[-1], drug_n_hidden[-1]])
-            if neural_range == cell_n_hidden[-1]:
-                drug_n_hidden = drug_n_hidden + [neural_range] # In place modification!!!
-            else :
-                cell_n_hidden = cell_n_hidden + [neural_range] # In place modification!!!
-        else:
-            neural_range = cell_n_hidden[-1]
-    else:
-        neural_range  = mf_manual
-        drug_n_hidden = drug_n_hidden + [mf_manual]
-        cell_n_hidden = cell_n_hidden + [mf_manual]
     ######################
     # BUILD ACTUAL MODEL #
     ######################
@@ -1111,17 +1109,18 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
         on_unused_input='warn',
     )
 
-    test_cor = theano.function(
-        inputs=[index],
-        outputs=classifier.pear_check(y),
-        givens={
-            x_c: test_cell_x[test_cell_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
-            x_d: test_drug_x[test_drug_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
-            y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
-            is_train: np.cast['int32'](0)
-        },
-        on_unused_input='warn',
-    )
+    #NOTE: Temporarily modified
+    # test_cor = theano.function(
+    #     inputs=[index],
+    #     outputs=classifier.pear_check(y),
+    #     givens={
+    #         x_c: test_cell_x[test_cell_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
+    #         x_d: test_drug_x[test_drug_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
+    #         y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
+    #         is_train: np.cast['int32'](0)
+    #     },
+    #     on_unused_input='warn',
+    # )
 
     test_nrmse = theano.function(
         inputs=[index],
@@ -1135,17 +1134,18 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
         on_unused_input='warn',
     )
 
-    test_pred = theano.function(
-        inputs=[index],
-        outputs=classifier.pred(y),
-        givens={
-            x_c: test_cell_x[test_cell_index_x,],
-            x_d: test_drug_x[test_drug_index_x,],
-            y: test_set_y,
-            is_train: np.cast['int32'](0)
-        },
-        on_unused_input='warn',
-    )
+    #NOTE: Temporarily modified
+    # test_pred = theano.function(
+    #     inputs=[index],
+    #     outputs=classifier.pred(y),
+    #     givens={
+    #         x_c: test_cell_x[test_cell_index_x,],
+    #         x_d: test_drug_x[test_drug_index_x,],
+    #         y: test_set_y,
+    #         is_train: np.cast['int32'](0)
+    #     },
+    #     on_unused_input='warn',
+    # )
 
     ###################################
 
@@ -1187,7 +1187,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
 
     train_error = theano.function(
         inputs=[index],
-        outputs=classifier.pear_check(y),
+        outputs=classifier.NRMSE(y),
         givens={
             x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
             x_d: train_drug_x[train_drug_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
@@ -1220,7 +1220,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
     LR_COUNT = 1
 
     FILE_OUT =  open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "w")
-    FILE_OUT.write("EPOCH" + "\t" + "TRAIN"+ "\t"+"VALID.ERROR" + "\t" + "TEST.COR" + "\t" + "TEST.NRMSE")
+    FILE_OUT.write("EPOCH" + "\t" + "TRAIN"+ "\t"+"VALID.ERROR" + "\t" + "TEST.NRMSE")# + "\t" + "TEST.COR")#NOTE:Temporarily modified
     FILE_OUT.close()
 
     FILE_OUT_val = open(OUT_FOLDER + "/combined_D_values." + drug_name + ".txt", "w")
@@ -1277,7 +1277,7 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
 
                 with open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "a") as FILE_OUT:
                     FILE_OUT.write("\n"+ str(epoch) + "\t" + str(this_train_error) + "\t"+ str(this_validation_loss) \
-                                   +"\t" +str(test_pear) + "\t" + str(test_loss))
+                                   +"\t" +str(test_loss))# + "\t" + str(test_pear)) #NOTE:Temporarily modified
 
                 # if we got the best validation score until now
                 if this_validation_loss < best_validation_loss: #MODIFIED
@@ -1297,17 +1297,18 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
                     test_losses = [test_nrmse(i) for i in xrange(n_test_batches)]
                     test_loss = np.mean(test_losses)
 
-                    test_pears = [test_cor(i) for i in xrange(n_test_batches)]
-                    test_pear = np.mean(test_pears)
+                    #NOTE: Temporarily modified
+                    # test_pears = [test_cor(i) for i in xrange(n_test_batches)]
+                    # test_pear = np.mean(test_pears)
 
                     log = ((' epoch %i, minibatch %i/%i, test error of '
-                        'best nrmse and pear %f,%f %%') %
-                        (epoch, minibatch_index + 1, EPOCH_SIZE, test_loss, test_pear))
+                        'best nrmse and pear %f %%') %
+                        (epoch, minibatch_index + 1, EPOCH_SIZE, test_loss))#, test_pear))#NOTE: Temporarily modified
                     # print(log)
                     with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
                         logfile.write(log + "\n")
 
-                    #ONLY SAVE MODEL if validation improves
+                    #NOTE:ONLY SAVE MODEL if validation improves
                     # MODEL = {}
                     # MODEL["cell_n_hidden"]   = [getattr(classifier, "cell_layer_" + str(e)) for e in xrange(len(cell_n_hidden))]
                     # MODEL["drug_n_hidden"]   = [getattr(classifier, "drug_layer_" + str(e)) for e in xrange(len(drug_n_hidden))]
@@ -1318,13 +1319,13 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
                     # with open(OUT_FOLDER + "/" + drug_name + "_" + str(epoch) + ".pkl", "wb") as f:
                     #     cPickle.dump(MODEL, f)
 
-                    #Only write if validation improvement
-                    ACTUAL = test_set_y.get_value()
-                    PREDICTED = [test_pred(i) for i in xrange(n_test_batches)][0]
-
-                    with open(OUT_FOLDER + "/combined_D_values." + drug_name + ".txt", "a") as FILE_OUT_val:
-                        for l in xrange(len(ACTUAL)):
-                            FILE_OUT_val.write("\n" + str(epoch) + "\t" + str(ACTUAL[l]) + "\t" + str(PREDICTED[l]))
+                    #NOTE:ONLY write if validation improvement
+                    # ACTUAL = test_set_y.get_value()
+                    # PREDICTED = [test_pred(i) for i in xrange(n_test_batches)][0]
+                    #
+                    # with open(OUT_FOLDER + "/combined_D_values." + drug_name + ".txt", "a") as FILE_OUT_val:
+                    #     for l in xrange(len(ACTUAL)):
+                    #         FILE_OUT_val.write("\n" + str(epoch) + "\t" + str(ACTUAL[l]) + "\t" + str(PREDICTED[l]))
                 else:
                     LR_COUNT = LR_COUNT+1
 
@@ -2545,21 +2546,22 @@ def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_ep
 
     # compute fusion neural range
     #neural_range = range(drug_n_hidden[-1])
-    if mf_manual=="None":
-
-        if cell_n_hidden[-1] != drug_n_hidden[-1]:
-
-            neural_range  = min([cell_n_hidden[-1], drug_n_hidden[-1]])
-            if neural_range == cell_n_hidden[-1]:
-                drug_n_hidden = drug_n_hidden + [neural_range] # In place modification!!!
-            else :
-                cell_n_hidden = cell_n_hidden + [neural_range] # In place modification!!!
-        else:
-            neural_range = cell_n_hidden[-1]
-    else:
-        neural_range  = mf_manual
-        drug_n_hidden = drug_n_hidden + [mf_manual]
-        cell_n_hidden = cell_n_hidden + [mf_manual]
+    # if mf_manual=="None":
+    #
+    #     if cell_n_hidden[-1] != drug_n_hidden[-1]:
+    #
+    #         neural_range  = min([cell_n_hidden[-1], drug_n_hidden[-1]])
+    #         if neural_range == cell_n_hidden[-1]:
+    #             drug_n_hidden = drug_n_hidden + [neural_range] # In place modification!!!
+    #         else :
+    #             cell_n_hidden = cell_n_hidden + [neural_range] # In place modification!!!
+    #     else:
+    #         neural_range = cell_n_hidden[-1]
+    # else:
+    #     neural_range  = mf_manual
+    #     drug_n_hidden = drug_n_hidden + [mf_manual]
+    #     cell_n_hidden = cell_n_hidden + [mf_manual]
+    neural_range = cell_n_hidden[-1] + drug_n_hidden[-1] #NOTE: Addition of last two layers
     ######################
     # BUILD ACTUAL MODEL #
     ######################
@@ -2641,17 +2643,17 @@ def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_ep
         on_unused_input='warn',
     )
 
-    train_error = theano.function(
-        inputs=[index],
-        outputs=classifier.pear_check(y),
-        givens={
-            x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
-            x_d: train_drug_x[train_drug_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
-            y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
-            is_train: np.cast['int32'](0)
-        },
-        on_unused_input='warn',
-    )
+    # train_error = theano.function(
+    #     inputs=[index],
+    #     outputs=classifier.pear_check(y),
+    #     givens={
+    #         x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
+    #         x_d: train_drug_x[train_drug_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
+    #         y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
+    #         is_train: np.cast['int32'](0)
+    #     },
+    #     on_unused_input='warn',
+    # )
 
     ###############
     # TRAIN MODEL #
@@ -2703,26 +2705,25 @@ def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_ep
 
             if (minibatch_index + 1) % EPOCH_SIZE == 0:
 
-                this_train_error = [train_error(i) for i in xrange(n_train_batches)]
-                this_train_error = np.mean(this_train_error)
-
+                # this_train_error = [train_error(i) for i in xrange(n_train_batches)]
+                # this_train_error = np.mean(this_train_error)
 
                 log = ('epoch %i, minibatch %i/%i, train error %f %%' %
                     (
                         epoch,
                         minibatch_index + 1,
                         EPOCH_SIZE,
-                        this_train_error
+                        minibatch_avg_cost
                     ))
                 # print(log)
                 with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
                     logfile.write(log + "\n")
 
                 with open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "a") as FILE_OUT:
-                    FILE_OUT.write("\n"+ str(epoch) + "\t" + str(this_train_error))
+                    FILE_OUT.write("\n"+ str(epoch) + "\t" + str(minibatch_avg_cost))
 
 
-                if (epoch % 200)==0: #Write model every 200 epochs
+                if (epoch % 100)==0: #Write model every 200 epochs
                     LR_COUNT = 0
 
                     MODEL = {}
@@ -2807,7 +2808,7 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
 #     n_epochs = int(sys.argv[2])
 #     out_file = sys.argv[1] + "n_epoch_" + sys.argv[2]
 
-n_epochs = 5000
+n_epochs = 1000
 out_file = sys.argv[1]
 
 if sys.argv[6] != "0":
@@ -2868,7 +2869,7 @@ else :
 print "c_neurons " + str(c_neurons)
 
 
-FUSION_NEURONS = int(sys.argv[4])
+FUSION_NEURONS = [int(x) for x in sys.argv[4].split("_")[1:]] #NOTE: Assumes in the form "manual_x_x_..."
 print "FUSION_NEURONS " + str(FUSION_NEURONS)
 
 if sys.argv[5] == "T":
@@ -2887,12 +2888,12 @@ print "mf_manual " + str(mf_manual)
 #OBTAIN FILES
 file_name     = sys.argv[1]
 
-IN_FOLDER="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
-# IN_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
+# IN_FOLDER="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress NOTE:MODIFIED
+IN_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
 
 if class_mlp is True:
-    OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/" #For tigress
-#    OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/CLASS_RESULTS/"
+    # OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/" #For tigress NOTE:MODIFIED
+   OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/CLASS_RESULTS/"
 else:
     OUT_FOLDER="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/" #For tigress
 
@@ -2909,21 +2910,21 @@ if sys.argv[6] != "0":
 
     if fold=="fold_none":
         # That is, if we are training with all the data, no early dropout, so there only exists a train set, no valid or test sets
-        drug_val = [(train_drug, train_cell, train_drug_index, train_cell_index, train_set_y)]
+        drugval = [(train_drug, train_cell, train_drug_index, train_cell_index, train_set_y)]
 
         if class_mlp is True:
 
             class_mlp_train_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                          datasets=drugval, train_batch_size=50,
-                         cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*2,
+                         cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = FUSION_NEURONS,
                          p=0.7, dropout=True,
                          drug_name=out_file,
                          OUT_FOLDER = OUT_FOLDER)
         else:
 
-            regression_mlp_train_mf(learning_rate=1.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
+            regression_mlp_train_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                          datasets=drugval, train_batch_size=50,
-                         cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*1,
+                         cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = FUSION_NEURONS,
                          p=0.7, dropout=True,
                          drug_name=out_file,
                          OUT_FOLDER = OUT_FOLDER)
@@ -2949,19 +2950,20 @@ if sys.argv[6] != "0":
 
             class_mlp_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                          datasets=drugval, train_batch_size=50,
-                         cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*2,
+                         cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = FUSION_NEURONS,
                          p=0.7, dropout=True,
                          drug_name=out_file,
                          OUT_FOLDER = OUT_FOLDER)
         else:
 
-            regression_mlp_mf(learning_rate=1.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
+            regression_mlp_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                          datasets=drugval, train_batch_size=50,
-                         cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = [FUSION_NEURONS]*1,
+                         cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = FUSION_NEURONS,
                          p=0.7, dropout=True,
                          drug_name=out_file,
                          OUT_FOLDER = OUT_FOLDER)
 else:
+    #If no drug features
 
     print("zero drug neurons")
     train_cell  = pd.read_csv(IN_FOLDER + file_name + "_train_cell", sep="\t")
@@ -2982,7 +2984,7 @@ else:
                          OUT_FOLDER = OUT_FOLDER)
         else:
 
-            regression_mlp_train_mf_zero_drug(learning_rate=1.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
+            regression_mlp_train_mf_zero_drug(learning_rate=0.1, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                          datasets=drugval, train_batch_size=10,
                          cell_n_hidden=c_neurons, mf_manual=mf_manual,
                          p=0.7, dropout=True,
