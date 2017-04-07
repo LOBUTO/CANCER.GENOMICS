@@ -2895,8 +2895,8 @@ if class_mlp is True:
     # OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/" #For tigress NOTE:MODIFIED
    OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/CLASS_RESULTS/"
 else:
-    OUT_FOLDER="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/" #For tigress
-
+    # OUT_FOLDER="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/" #For tigress NOTE:MODIFIED
+    OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/REGRESSION_RESULTS/"
 
 # EXECUTE LEARNING - Do we have any drug features?
 if sys.argv[6] != "0":
