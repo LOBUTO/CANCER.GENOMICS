@@ -1,18 +1,18 @@
 #!/bin/bash
 # cgp_mixed_class.sh
 
-class_mlp=$1
+class_mlp=$1 #F/T
 met_type=$2
-multiplicative_fusion=$3
-drug_n=$4
-cell_n=$5
-fusion_n=$6 #How many fusion neurons in hidden layer
+multiplicative_fusion=$3 #T/F
+drug_n=$4 #manual_x_..
+cell_n=$5 #manual_x_..
+fusion_n=$6 #manual_x_..
 genes=$7 #F/T
 batch_norm=$8 #cgp_nci60, cgp_ccle, tcga_brca, tcga_coad, tcga_luad, tcga_stad or None
-pca=$9
+pca=$9 #T/F
 rebalance=${10} #F/T
 gene_target=${11} #Specific to target dataset: ccle, geeleher_cisplatin, geeleher_docetaxel or None
-fold=${12}
+fold=${12} #fold_all, fold_early, fold_none
 mf_manual=${13} #How many mf weights in mf input layer (needs to be used if last layer of drug_n and cell_n are not equal)
 
 # for samples in FK866 IPA-3 NSC-207895 UNC0638 CX-5461 Trametinib SNX-2112 OSI-027 \
@@ -46,23 +46,34 @@ fi
 # manual_200 manual_200_200 manual_200_200_200 manual_500 manual_500_500 manual_500_500_500 manual_750 manual_750_750_750
 # for cell_n in manual_500 manual_500_500 manual_50_50 manual_50_50_50 manual_50 manual_100 manual_100_100 manual_100_100_100 \
 # manual_200 manual_200_200 manual_200_200_200
-for samples in zero_Erlotinib
+for samples in all
 do
-  for c in 10 20 50 60 70 80 90 100 150 200 250 500 750 950 # Number of cell features (500 900)
+  for c in 300 600 950 # Number of cell features mb_early_none(300 600 950) folds(100 300 600 950)
   do
     cn=$c
-    for cell_n in "manual_${cn}" #"manual_${cn}_${cn}"
+    ch=$(($cn/2))
+    cnh=$(($cn+$ch))
+    for cell_n in "manual_${cnh}" # "manual_${cn}_${ch}"
     do
-    for d in 0 # Number of drug features (100 290)
+    for d in 50 100 290 # Number of drug features mb_early_none(50 100 290) folds(50 150 290)
     do
       dn=$d
-      for drug_n in "manual_${dn}" #"manual_${dn}_${dn}"
+      dh=$(($dn/2))
+      dnh=$(($dn+$dh))
+      for drug_n in "manual_${dnh}" # "manual_${dn}_${dh}"
       do
-      for r in 16 # Morgan radii settings
+        last_c=${cell_n##m*_}
+        last_d=${drug_n##m*_}
+        last_total=$(($last_d+$last_c))
+        last_half=$(($last_total/2))
+        last_total_half=$(($last_total+$last_half))
+      for fusion_n in "manual_${last_total}_${last_half}" # "manual_${last_total}_${last_half}_${last_half}" "manual_${last_total_half}_${last_total}" # "manual_${last_total}" "manual_${last_total}_${last_total}" "manual_${last_total}_${last_total}_${last_total}"
       do
-        for b in 2048 # Morgan bit settings (Not needed for morgan counts choice)
+      for r in 16 # Morgan radii settings - 16
+      do
+        for b in 2048 # Morgan bit settings (Not needed for morgan counts choice) - 2048
         do
-          echo $c $d $samples
+          echo $c $cell_n $d $drug_n $fusion_n $samples
 
           # Prep training sets
           if [ "$multiplicative_fusion" == "T" ]
@@ -75,7 +86,7 @@ do
 
               Rscript GIT/cgp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $pca $rebalance $r $b $gene_target $fold
 
-              script_name="GIT/cgp_multi_mlp.py"
+              script_name="GIT/cgp_multi_mlp_2.py"
 
               file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${fold} ${mf_manual}"
 
@@ -129,9 +140,10 @@ do
           fi
         done
       done
+      done
+      done
     done
     done
-  done
   done
 done
 echo "DONE"

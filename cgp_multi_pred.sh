@@ -31,22 +31,36 @@ fi
 # act_rebalance_1.5 act_rebalance_2.5 act_rebalance_3.5 act_rebalance_4.5
 # for samples in act_rebalancetop_10 act_rebalancetop_20 act_rebalancetop_40 act_rebalancetop_50 \
 # act_rebalancetop_60 act_rebalancetop_80 act_rebalancetop_100
-for samples in zero_Erlotinib
+for samples in act_rebalance_0.5_zero_Bortezomib act_rebalance_1_zero_Bortezomib act_rebalance_1.5_zero_Bortezomib \
+act_rebalance_2_zero_Bortezomib act_rebalance_3_zero_Bortezomib act_rebalance_4_zero_Bortezomib act_rebalance_5_zero_Bortezomib
 do
-  for c in 10 20 50 60 70 80 90 100 150 200 250 500 750 950 # Number of cell features
+  for c in 950 # Number of cell features
   do
     cn=$c
-    cell_n="manual_${cn}"
+    ch=$(($cn/2))
+    cnh=$(($cn+$ch))
+    for cell_n in "manual_${cnh}" # "manual_${cn}_${ch}"
+    do
     for d in 0 # Number of drug features
     do
       dn=$d
-      drug_n="manual_${dn}"
+      dh=$(($dn/2))
+      dnh=$(($dn+$dh))
+      for drug_n in "manual_${dnh}" # "manual_${dn}_${dh}"
+      do
+        last_c=${cell_n##m*_}
+        last_d=${drug_n##m*_}
+        last_total=$(($last_d+$last_c))
+        last_half=$(($last_total/2))
+        last_total_half=$(($last_total+$last_half))
+      for fusion_n in "manual_${last_total}_${last_half}" # "manual_${last_total}_${last_half}_${last_half}" "manual_${last_total_half}_${last_total}" # "manual_${last_total}" "manual_${last_total}_${last_total}" "manual_${last_total}_${last_total}_${last_total}"
+      do
       for r in 16 # Morgan radii settings
       do
         for b in 2048 # Morgan bit settings (Not needed for morgan counts choice)
         do
 
-          echo $c $d  $r $b $samples
+          echo $c $cell_n $d $drug_n $fusion_n $samples
 
           file_tag_1="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_fold_${fold}_radii_${r}_bit_${b}"
 
@@ -118,6 +132,9 @@ do
           fi
         done
       done
+      done
+      done
+    done
     done
   done
 done

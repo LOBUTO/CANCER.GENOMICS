@@ -873,6 +873,7 @@ if (met_type == "morgan_bits"){
     } else if (target=="geeleher_erlotinib"){
       erl <- readRDS(paste0(gee_folder, "030417_GEE_ERLOTINIB.rds"))
       target_table <- erl$feat_table
+      target_table$cell_name <- as.character(target_table$cell_name)
 
       if (batch_norm=="geeleher_erlotinib"){
         exp_table  <- readRDS(paste0(in_objects, "032717_cgp_gee_erlo_exp_norm.rds"))[["EXP.2"]]
@@ -983,13 +984,13 @@ index_table<- data.table(drug   = feat_table$drug_index - 1,
 
 ############################################################################################################
 # WRITE
-write.table(feat_table$drug_feat, paste0(out_file, "_", target, "_test_drug"),
+write.table(feat_table$drug_feat, paste0(out_file, "_", target, "_td"),
             quote=F, sep="\t", row.names=F, col.names=T)
-write.table(feat_table$cell_feat, paste0(out_file, "_", target, "_test_cell"),
+write.table(feat_table$cell_feat, paste0(out_file, "_", target, "_tc"),
             quote=F, sep="\t", row.names=F, col.names=T)
-write.table(index_table, paste0(out_file, "_", target, "_test_index"),
+write.table(index_table, paste0(out_file, "_", target, "_ti"),
             quote=F, sep="\t", row.names=F, col.names=T)
-write.table(feat_table$feat_table, paste0(out_file, "_", target, "_feat_table"),
+write.table(feat_table$feat_table, paste0(out_file, "_", target, "_ft"),
             quote=F, sep="\t", row.names=F, col.names=T)
 
 print("Done writing tables")

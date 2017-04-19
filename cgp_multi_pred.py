@@ -839,7 +839,7 @@ def model_prediction(model_dict, drug_data, cell_data, classification=True):
     mf_fusion  = model_dict["multiplicative"]
     drug_input = (drug_input * mf_fusion.drug_alpha) + mf_fusion.drug_beta
     cell_input = (cell_input * mf_fusion.cell_alpha) + mf_fusion.cell_beta
-    input      = drug_input * cell_input
+    input      = T.concatenate([drug_input, cell_input], axis=1) #NOTE: Modified to true concatenation
 
     # Apply multiplicative fussion model layers
     mf_model  = model_dict["fusion_n_hidden"]
@@ -925,8 +925,8 @@ else:
 bn_external = sys.argv[5]
 drug_feat   = sys.argv[6]
 
-IN_FOLDER   = "/tigress/zamalloa/PREDICTIONS/"
-OUT_FOLDER  = "/tigress/zamalloa/PREDICTIONS/"
+IN_FOLDER   = "PREDICTIONS/"
+OUT_FOLDER  = "PREDICTIONS/"
 
 in_file     = drug_file.split("/")[-1]
 in_file     = in_file.replace("_train_drug", "")
@@ -935,18 +935,19 @@ out_file    = model_file.split("/")[-1]
 print(out_file)
 out_file    = out_file.replace(".pkl", "")
 print(out_file)
-OUT_FILE    = OUT_FOLDER + out_file + "_bn_external_" + bn_external + "_" + target + "_PREDICTION"
+# OUT_FILE    = OUT_FOLDER + out_file + "_bn_external_" + bn_external + "_" + target + "_PREDICTION"
+OUT_FILE    = OUT_FOLDER + out_file +"_"+ target + "_PREDICTION"
 
 # Load model and process input
 model_dict  = cPickle.load(open(model_file, "rb"))
 
-test_cell     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_test_cell", sep="\t")
-test_index    = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_test_index", sep="\t")
-test_feat     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_feat_table", sep="\t", dtype={"Compound":str})
+test_cell     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_tc", sep="\t")
+test_index    = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_ti", sep="\t")
+test_feat     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_ft", sep="\t", dtype={"Compound":str})
 
 if drug_feat!= "0":
 
-    test_drug     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_test_drug", sep="\t")
+    test_drug     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_td", sep="\t")
 
     test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf(test_drug,  test_cell,  test_index, integers=class_mlp)
     prediction = model_prediction(model_dict, test_drug[test_drug_index,], test_cell[test_cell_index,], classification = class_mlp)

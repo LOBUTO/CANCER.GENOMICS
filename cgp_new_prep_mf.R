@@ -45,6 +45,8 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
       cgp_pca     <- prcomp(t(cgp_exp), center=T, scale. = T) #NOTE: Scaling previously shown to be essential for out of set accuracy
       cell_feat   <- cgp_pca$x[,1:max_cells]
       cell_feat   <- data.table(cell_feat, keep.rownames = T)
+      print("dim cell feat:")
+      print(dim(cell_feat))
     }
   }
 
@@ -556,7 +558,7 @@ Function_write_tables <- function(feat_table, train_rows, valid_rows, test_rows,
 
 }
 
-Function_write_train_tables <- function(feat_table, train_rows, max_drugs, pca, out_folder, file_name){
+Function_write_train_tables <- function(feat_table, train_rows, max_drugs, pca, out_folder, file_name, scale_tables=F){
 
   train_drug       <- unique(names(feat_table$drug_index[train_rows]))
   train_cell       <- unique(names(feat_table$cell_index[train_rows]))
@@ -585,7 +587,37 @@ Function_write_train_tables <- function(feat_table, train_rows, max_drugs, pca, 
                                  cell = train_cell_index - 1,
                                  NORM_pIC50 = train_target)
 
-  # Since we are only building the training table there are no tables to scale (valid or test)
+  # Do we need to scale them?
+  if (met_type=="drug_cor"){
+    not_scaling <- 1:3
+    scaling     <- (max(not_scaling) + 1):ncol(feat_table)
+
+  } else if (met_type=="morgan_bits"){
+    not_scaling <- 1
+    scaling     <- 2:ncol(train_cell_table)
+
+  } else if (met_type=="morgan_counts"){
+    not_scaling <- 1
+    scaling     <- 2:ncol(train_cell_table)
+  }
+
+  if (scale_tables==T){
+    print("scaling training cell tables")
+    scale_train      <- scale(train_cell_table[, scaling, with=F])
+    train_cell_table <- cbind(train_cell_table[, not_scaling, with=F], scale_train)
+
+
+    if (pca==T & max_drugs>0){
+      print("scaling training drug tables")
+      drug_not_scaling <- 1
+      drug_scaling     <- 2:ncol(train_drug_table)
+
+      scale_train      <- scale(train_drug_table[,drug_scaling,with=F])
+      train_drug_table <- cbind(train_drug_table[,drug_not_scaling,with=F], scale_train)
+    }
+  }
+
+
   # WRITE TABLES
   write.table(train_index, paste0(out_folder, file_name, "_train_index"),
               quote=F, sep="\t", row.names=F, col.names=T)
@@ -701,17 +733,17 @@ fold        <- args[14]
 nci_spiked  <- F#as.logical(args[8])
 
 
-in_folder    <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/" #For lab
-in_morgan    <- "/home/zamalloa/Documents/FOLDER/MORGAN_FILES/"
-in_objects   <- "/home/zamalloa/Documents/FOLDER/OBJECTS/"
-tcga_objects <- "/home/zamalloa/Documents/FOLDER/TCGA_FILE/"
-out_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
+# in_folder    <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/" #For lab
+# in_morgan    <- "/home/zamalloa/Documents/FOLDER/MORGAN_FILES/"
+# in_objects   <- "/home/zamalloa/Documents/FOLDER/OBJECTS/"
+# tcga_objects <- "/home/zamalloa/Documents/FOLDER/TCGA_FILE/"
+# out_folder   <- "/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
 
-# in_folder    <- "/tigress/zamalloa/CGP_FILES/" #For tigress
-# in_morgan    <- "/tigress/zamalloa/MORGAN_FILES/"
-# in_objects   <- "/tigress/zamalloa/OBJECTS/"
-# tcga_objects <- "/tigress/zamalloa/TCGA_FILES/"
-# out_folder   <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/"
+in_folder    <- "/tigress/zamalloa/CGP_FILES/" #For tigress
+in_morgan    <- "/tigress/zamalloa/MORGAN_FILES/"
+in_objects   <- "/tigress/zamalloa/OBJECTS/"
+tcga_objects <- "/tigress/zamalloa/TCGA_FILES/"
+out_folder   <- "/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/"
 
 # LOAD DATA
 DRUGS.MET.PROFILE <- readRDS(paste0(in_folder, "082316.DRUG.MET.PROFILE.rds"))
@@ -758,6 +790,10 @@ if (batch_norm=="cgp_nci60"){
 } else if (batch_norm=="geeleher_erlotinib") {
   print("geeleher_erlotinib")
   cgp_exp         <- readRDS(paste0(in_objects, "032717_cgp_gee_erlo_exp_norm.rds"))[["EXP.1"]]
+
+} else if (batch_norm=="cgp_ctrp") {
+  print("cgp_ctrp")
+  cgp_exp         <- readRDS(paste0(in_objects, "041817_cgp_ctrp_exp_norm.rds"))[["EXP.1"]]
 
 } else{
   print("None")
@@ -833,14 +869,14 @@ if ( (samples == "all") | (grepl("all_rebalance_", samples)==T)){
     test_rows        <- valid_rows  #Same as valid
 
     Function_write_tables(feat_table, train_rows, valid_rows, test_rows, max_drugs, pca, out_folder,
-                          file_name, scale_tables=F)
+                          file_name, scale_tables=F) #NOTE:CHANGED SCALING TEMPORARILY!!!
 
   } else if(fold=="fold_none"){
     # NOTE:Train with all data, literally, no split done for early stopping
     train_rows       <- 1:length(feat_table$target)
 
     Function_write_train_tables(feat_table, train_rows, max_drugs, pca, out_folder,
-                                file_name)
+                                file_name, scale_tables=F) #NOTE:CHANGED SCALING TEMPORARILY!!!
 
   } else if (fold=="fold_all"){
     for (split_fold in 1:5){
@@ -861,26 +897,43 @@ if ( (samples == "all") | (grepl("all_rebalance_", samples)==T)){
     }
   }
 
-} else if (grepl("act_rebalance_", samples)==T){
+} else if ( (grepl("act_rebalance_", samples)==T) & (grepl("zero_", samples)==F) ){
 
   th_rebalance <- as.numeric(gsub("act_rebalance_", "", samples))
 
-  set.seed(1234)
-  test_rows    <- sample(1:length(feat_table$target), length(feat_table$target)*0.2)
+  if (fold=="fold_early"){
+    # NOTE:Train with all data (For the time being, use early stopping of 25%)
 
-  extra_rows   <- which(feat_table$target >= th_rebalance)
-  non_rows     <- which(feat_table$target < th_rebalance)
-  extra_rows   <- setdiff(extra_rows, test_rows)
-  non_rows     <- setdiff(non_rows, test_rows)
+    extra_rows   <- which(feat_table$target >= th_rebalance)
+    non_rows     <- which(feat_table$target < th_rebalance)
 
-  set.seed(1234)
-  extra_rows   <- sample(extra_rows, length(non_rows), replace=T)
+    set.seed(1234)
+    extra_rows   <- sample(extra_rows, length(non_rows), replace=T)
 
-  all_rows     <- c(non_rows, extra_rows)
+    all_rows     <- c(non_rows, extra_rows)
 
-  set.seed(1234)
-  train_rows   <- sample(all_rows, length(all_rows)*0.75)
-  valid_rows   <- setdiff(all_rows, train_rows)
+    set.seed(1234)
+    train_rows   <- sample(all_rows, length(all_rows)*0.75)
+    valid_rows   <- setdiff(all_rows, train_rows)
+    test_rows    <- valid_rows  #Same as valid
+
+    Function_write_tables(feat_table, train_rows, valid_rows, test_rows, max_drugs, pca, out_folder,
+                          file_name, scale_tables=F) #NOTE:CHANGED SCALING TEMPORARILY!!!
+
+  } else if(fold=="fold_none"){
+    # NOTE:Train with all data, literally, no split done for early stopping
+    extra_rows   <- which(feat_table$target >= th_rebalance)
+    non_rows     <- which(feat_table$target < th_rebalance)
+
+    set.seed(1234)
+    extra_rows   <- sample(extra_rows, length(non_rows), replace=T)
+
+    train_rows       <- c(non_rows, extra_rows)
+
+    Function_write_train_tables(feat_table, train_rows, max_drugs, pca, out_folder,
+                                file_name, scale_tables=F) #NOTE:CHANGED SCALING TEMPORARILY!!!
+
+  }
 
 } else if (grepl("act_rebalancetop_", samples)==T){
 
@@ -1007,18 +1060,38 @@ if ( (samples == "all") | (grepl("all_rebalance_", samples)==T)){
 
   if (grepl("^", samples)==T){
     drug_name <- gsub("^", " ", samples, fixed=T)
-    drug_name <- gsub("zero_", "", drug_name)
+    drug_name <- strsplit(drug_name, "zero_")[[1]][2]
 
   } else{
-    drug_name <- gsub("zero_", "", samples)
+    drug_name <- strsplit(samples, "zero_")[[1]][2]
   }
 
   # Uses zero morgan features and splits dataset for specific compound
   temp_rows        <- which(feat_table$feat_table$Compound == drug_name)
 
+  # Check if we need to rebalance that
+  if (grepl("act_rebalance_", samples)==T){
+
+    th_rebalance <- strsplit(samples, "_zero")[[1]][1]
+    th_rebalance <- as.numeric(gsub("act_rebalance_", "", th_rebalance))
+
+    extra_rows   <- which(feat_table$feat_table$Compound==drug_name &  (feat_table$target >= th_rebalance))
+    non_rows     <- which(feat_table$feat_table$Compound==drug_name &  (feat_table$target < th_rebalance))
+
+    if (length(non_rows) > length(extra_rows)){
+      set.seed(1234)
+      extra_rows   <- sample(extra_rows, length(non_rows), replace=T)
+    } else{
+      non_rows     <- sample(non_rows, length(extra_rows), replace=T)
+    }
+
+    temp_rows    <- c(non_rows, extra_rows) #NOTE: Effectively replacing "temp_rows" indexes obtained above
+  }
+
   if (fold=="fold_early"){
     # NOTE:Train with all data using early stopping
 
+    set.seed(1234)
     train_rows       <- sample(temp_rows, length(temp_rows)*0.75)
     valid_rows       <- setdiff(temp_rows, train_rows)
     test_rows        <- valid_rows # Sample as valid rows for comparisson
@@ -1031,7 +1104,7 @@ if ( (samples == "all") | (grepl("all_rebalance_", samples)==T)){
     train_rows       <- temp_rows
 
     Function_write_train_tables(feat_table, train_rows, max_drugs, pca, out_folder,
-                                file_name)
+                                file_name, scale_tables=F)
 
   } else if (fold=="fold_all"){
     for (split_fold in 1:10){

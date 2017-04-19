@@ -2888,15 +2888,15 @@ print "mf_manual " + str(mf_manual)
 #OBTAIN FILES
 file_name     = sys.argv[1]
 
-# IN_FOLDER="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress NOTE:MODIFIED
-IN_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
+IN_FOLDER="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
+# IN_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
 
 if class_mlp is True:
-    # OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/" #For tigress NOTE:MODIFIED
-   OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/CLASS_RESULTS/"
+    OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/" #For tigress
+    # OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/CLASS_RESULTS/"
 else:
-    # OUT_FOLDER="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/" #For tigress NOTE:MODIFIED
-    OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/REGRESSION_RESULTS/"
+    OUT_FOLDER="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/" #For tigress
+    # OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/REGRESSION_RESULTS/"
 
 # EXECUTE LEARNING - Do we have any drug features?
 if sys.argv[6] != "0":
