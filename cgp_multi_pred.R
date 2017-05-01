@@ -314,12 +314,13 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
   ########## MORGAN FEATURES ###########
   if (length(target_bits) > 0){
     if (pca == F){
+      print("Full Morgan bits")
       drug_feat     <- morgan_table[bit_pos %in% target_bits,]
       drug_feat     <- acast(drug_feat, Compound~bit_pos, value.var="value")
       drug_feat     <- data.table(drug_feat[, target_bits], keep.rownames = T)
 
     } else {
-      print("Cor morgan PCA")
+      print("Morgan PCA")
 
       # Get original PCA rotation (since it is binary, there is no pre-scaling)
       original_bits <- acast(original_bits, Compound~bit_pos, value.var="value")
@@ -661,6 +662,11 @@ if (batch_norm=="cgp_nci60"){
   print("geeleher_erlotinib")
   cgp_exp         <- readRDS(paste0(in_objects, "032717_cgp_gee_erlo_exp_norm.rds"))[["EXP.1"]]
 
+} else if (batch_norm=="cgp_ctrp"){
+  print("bn cgp_ctrp")
+  cgp_exp         <- readRDS(paste0(in_objects, "041817_cgp_ctrp_exp_norm.rds"))[["EXP.1"]]
+  ctrp_exp        <- readRDS(paste0(in_objects, "041817_cgp_ctrp_exp_norm.rds"))[["EXP.2"]]
+
 } else{
  print("None")
  cgp_exp         <- readRDS(paste0(in_folder, "083016_cgp_exp.rds"))
@@ -731,6 +737,27 @@ if (met_type == "morgan_bits"){
                                                                            cgp_exp, genes=genes, scaling=F,
                                                                            pca = pca,
                                                                            original_exp = cgp_exp, original_bits = morgan_bits)
+  } else if (target=="cgp_ctrp"){
+    if (as.logical(bn_external)==T){
+      print("bn_external")
+      cgp_exp         <- readRDS(paste0(in_objects, "041817_cgp_ctrp_exp_norm.rds"))[["EXP.1"]]
+      ctrp_exp        <- readRDS(paste0(in_objects, "041817_cgp_ctrp_exp_norm.rds"))[["EXP.2"]]
+    }
+    ctrp_new        <- readRDS(paste0(in_objects, "ctrp_tables.rds"))[["ctrp_2.1"]][,c("cpd_name","ccl_name","area_under_curve"),with=F]
+    setnames(ctrp_new, c("Compound", "cell_name", "target"))
+    ctrp_new$target <- (1-ctrp_new$target)*10
+    ctrp_bits       <- fread(paste0(in_morgan, "CTRP_MORGAN_BITS_r_",radii_set,"_b_",bit_set,".txt"))
+    setnames(ctrp_bits, c("radius", "bits", "Compound", "bit_pos", "value"))
+    ctrp_bits$bit_pos <- paste0("mcf_", ctrp_bits$bit_pos)
+
+    feat_table <- Function_target_morgan_bits_features_extracted_mf(ctrp_new,
+                                                                           ctrp_exp,
+                                                                           ctrp_bits,
+                                                                           target_cells = cell_features, target_bits = drug_features,
+                                                                           cgp_exp, genes=genes, scaling=F,
+                                                                           pca = pca,
+                                                                           original_exp = cgp_exp, original_bits = morgan_bits)
+
   } else if (target=="tcga_brca"){
     if (as.logical(bn_external)==T){
       print("bn_external")
@@ -855,6 +882,7 @@ if (met_type == "morgan_bits"){
       target_table <- bor$feat_table_a
 
       if(batch_norm=="geeleher_bortezomib_a"){
+        print("bor_a bn used")
         exp_table  <- readRDS(paste0(in_objects, "030917_cgp_gee_bor_a_exp_norm.rds"))[["EXP.2"]]
       } else{
         exp_table  <- bor$exp_table_a
@@ -865,6 +893,7 @@ if (met_type == "morgan_bits"){
       target_table <- bor$feat_table_b
 
       if(batch_norm=="geeleher_bortezomib_b"){
+        print("bor_b bn used")
         exp_table  <- readRDS(paste0(in_objects, "030917_cgp_gee_bor_b_exp_norm.rds"))[["EXP.2"]]
       } else{
         exp_table  <- bor$exp_table_b

@@ -31,17 +31,17 @@ fi
 # act_rebalance_1.5 act_rebalance_2.5 act_rebalance_3.5 act_rebalance_4.5
 # for samples in act_rebalancetop_10 act_rebalancetop_20 act_rebalancetop_40 act_rebalancetop_50 \
 # act_rebalancetop_60 act_rebalancetop_80 act_rebalancetop_100
-for samples in act_rebalance_0.5_zero_Bortezomib act_rebalance_1_zero_Bortezomib act_rebalance_1.5_zero_Bortezomib \
-act_rebalance_2_zero_Bortezomib act_rebalance_3_zero_Bortezomib act_rebalance_4_zero_Bortezomib act_rebalance_5_zero_Bortezomib
+# for samples in act_rebalance_0.5 act_rebalance_1.5 act_rebalance_2 act_rebalance_3 act_rebalance_4
+for samples in all
 do
-  for c in 950 # Number of cell features
+  for c in 300 600 950 # Number of cell features
   do
     cn=$c
     ch=$(($cn/2))
     cnh=$(($cn+$ch))
     for cell_n in "manual_${cnh}" # "manual_${cn}_${ch}"
     do
-    for d in 0 # Number of drug features
+    for d in 50 100 290 # Number of drug features
     do
       dn=$d
       dh=$(($dn/2))
@@ -112,7 +112,8 @@ do
             do
 
               exists=${model/.pkl/}
-              exists="${exists}_bn_external_${bn_external}_${target}_PREDICTION"
+              # exists="${exists}_bn_external_${bn_external}_${target}_PREDICTION"
+              exists="${exists}_${target}_PREDICTION"
               exists="/tigress/zamalloa/PREDICTIONS/${exists}"
               echo $exists
 
