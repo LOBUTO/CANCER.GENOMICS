@@ -621,13 +621,11 @@ samples     <- args[6]
 genes       <- as.logical(args[7])
 batch_norm  <- args[8]
 pca         <- as.logical(args[9])
-rebalance   <- as.logical(args[10])
-radii_set   <- as.numeric(args[11])
-bit_set     <- as.numeric(args[12])
-gene_target <- args[13]
-fold        <- args[14]
-lower_th    <- as.numeric(args[15])
-higher_th   <- as.numeric(args[16])
+radii_set   <- as.numeric(args[10])
+bit_set     <- as.numeric(args[11])
+fold        <- args[12]
+lower_th    <- as.numeric(args[13]) # If class_mlp==F, then this argument has no effect
+higher_th   <- as.numeric(args[14]) # If class_mlp==F, then this argument has no effect
 
 in_folder    <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 in_morgan    <- "/tigress/zamalloa/MORGAN_FILES/"
@@ -833,18 +831,30 @@ if ( (samples == "all") | (grepl("all_rebalance_", samples)==T)){
 
 } else if (samples == "all_split"){
   print("all_split")
+  # That is, we are splitting into folds which contain no common compound information
+  # "fold_none" is not applicable since we actually have to split the data (fold_none uses all the data)
 
   all_drugs        <- unique(feat_table$feat_table$Compound)
-  set.seed(1234)
-  train_drug       <- sample(all_drugs, length(all_drugs)*0.7)
-  testing_drugs    <- setdiff(all_drugs, train_drug) #all but training
-  set.seed(1234)
-  valid_drug       <- sample(testing_drugs, length(testing_drugs)*0.5)
-  test_drug        <- setdiff(testing_drugs, valid_drug)
 
-  train_rows       <- which(feat_table$feat_table$Compound %in% train_drug)
-  valid_rows       <- which(feat_table$feat_table$Compound %in% valid_drug)
-  test_rows        <- which(feat_table$feat_table$Compound %in% test_drug)
+  if (fold=="fold_all"){
+    # This will be done without early stopping, so there is no need to have a validation set
+    print(fold)
+    splits           <- split(all_drugs, 1:5)
+
+    for (split_fold in 1:5){
+      print(split_fold)
+      test_drugs       <- splits[[split_fold]]
+      test_rows        <- which(feat_table$feat_table$Compound %in% test_drug)
+
+      train_rows       <- setdiff(1:length(feat_table$target), test_rows)
+      valid_rows       <- test_rows #NOTE: Will be written but will not be used during training
+
+      print(file_name)
+      print(gsub("fold_all", split_fold, file_name))
+      Function_write_tables(feat_table, train_rows, valid_rows, test_rows, max_drugs, pca, out_folder,
+                            gsub("fold_all", split_fold, file_name), scale_tables=F)
+    }
+  }
 
 } else if (samples == "semi_split"){
   print ("semi_split")
