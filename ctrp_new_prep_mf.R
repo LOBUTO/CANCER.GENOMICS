@@ -4,16 +4,17 @@ library(data.table)
 library(reshape2)
 
 # FUNCTIONS
-Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table, morgan_table, max_cells=10, max_bits=10, pic50_scaled=T,
-                                                                pic50_class=F, genes=F, rebalance=F, pca=F,
-                                                                nci_spiked, nci_morgan, nci_exp, nci_new){
+Function_top_cell_morgan_bits_features_extracted_mf <- function(feat_table, exp_table, morgan_table, max_cells=10, max_bits=10, scaled=T,
+                                                                class=F, genes=F, pca=F, lower_th=0.4, higher_th=0.4){
 
   # Extract most variable cell features
   if (pca==F){
     print("pca==F")
+
     if (genes==F){
       print("genes==F")
-      cell_feat <- cor(cgp_exp, method = "spearman")
+
+      cell_feat <- cor(exp_table, method = "spearman")
       cell_var  <- data.table(cells = colnames(cell_feat),
                               VAR   = apply(cell_feat, 2, var))
       top_cells <- cell_var[order(-VAR),]$cells[1:max_cells]
@@ -22,28 +23,31 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
 
     } else {
       print("genes==T")
-      # cgp_exp   <- t(log(cgp_exp))  #MODIFIED
-      cgp_exp   <- t(cgp_exp)
-      gene_var  <- data.table(genes = colnames(cgp_exp),
-                              VAR   = apply(cgp_exp, 2, var))
+
+      exp_table <- t(exp_table)
+      gene_var  <- data.table(genes = colnames(exp_table),
+                              VAR   = apply(exp_table, 2, var))
       top_genes <- gene_var[order(-VAR),]$genes[1:max_cells]
 
-      cell_feat <- data.table(cgp_exp[,top_genes], keep.rownames = T)
+      cell_feat <- data.table(exp_table[,top_genes], keep.rownames = T)
     }
 
   } else{
     print("pca==T")
+
     if (genes==F){
       print("genes==F")
-      cell_feat   <- cor(cgp_exp, method = "spearman")
+
+      cell_feat   <- cor(exp_table, method = "spearman")
       cell_feat   <- prcomp(cell_feat, center = T, scale. = T)
       cell_feat   <- cell_feat$x[,1:max_cells]
       cell_feat   <- data.table(cell_feat, keep.rownames = T)
 
     } else {
       print("genes==T")
-      cgp_pca     <- prcomp(t(cgp_exp), center=T, scale. = T) #NOTE: Scaling previously shown to be essential for out of set accuracy
-      cell_feat   <- cgp_pca$x[,1:max_cells]
+
+      ctrp_pca    <- prcomp(t(exp_table), center=T, scale. = T) #NOTE: Scaling previously shown to be essential for out of set accuracy
+      cell_feat   <- ctrp_pca$x[,1:max_cells]
       cell_feat   <- data.table(cell_feat, keep.rownames = T)
       print("dim cell feat:")
       print(dim(cell_feat))
@@ -55,6 +59,7 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
   # Extract most variable drug features
   if (max_bits > 0){
     if (pca == F){
+
       top_bits  <- morgan_table[,list(VAR = var(value)), by="bit_pos"][order(-VAR)]$bit_pos[1:max_bits]
       drug_feat <- morgan_table[bit_pos %in% top_bits, ]
       drug_feat <- acast(drug_feat, Compound~bit_pos, value.var="value")
@@ -72,79 +77,30 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
   }
 
   # Construct feature table based on classification/regression
-  if(pic50_class==F){
+  if(class==F){
 
-    if(pic50_scaled==T){
-      # feats$NORM.pIC50 <- scale(feats$pIC50) # WHOLE RE-SCALED - MODIFIED!!
-      feat_table <- feats[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
+    if(scaled==T){
+      feat_table <- feat_table[,list(cell_name=cell_name, target=scale(target)), by="Compound"]
+
     } else {
-      # feat_table <- feats[, c("Compound", "cell_name", "pIC50"), with=F] MODIFIED
-      feat_table <- feats[, c("Compound", "cell_name", "AUC"), with=F]
-      feat_table$AUC <- (1 - feat_table$AUC)*10
+      feat_table <- feat_table
     }
 
   } else{
-    feat_table <- feats[, c("Compound", "cell_name", "pic50_class"),with=F]
-    feat_table <- feat_table[pic50_class!=2,]
+    feat_table <- feat_table[,list(cell_name=cell_name, target=scale(target)), by="Compound"] # Need to scale for binary classification
+    feat_table[,med:=median(target), by="Compound"]
+    feat_table[,sd:= sd(target), by="Compound"]
+
+    feat_table$target <- ifelse(feat_table$target < (feat_table$med - lower_th*abs(feat_table$sd)), 1,
+                                ifelse(feat_table$target >  (feat_table$med + higher_th*abs(feat_table$sd)), 0, 2)
+                                )
+    feat_table <- feat_table[target!=2,]
+    feat_table <- feat[,-c("med", "sd"),with=F]
+    print("Class average - 1:Sensitive, 0:Resistant")
+    print(mean(feat_table$target))
   }
 
   setnames(feat_table, c("Compound", "cell_name", "NORM_pIC50"))
-
-  ############################## DO WE NEED TO NCI60 SPIKE IT??########################################
-  if (nci_spiked==T){
-
-    # Spike cell features first
-    top_cell_feat <- colnames(cell_feat)[2:ncol(cell_feat)]
-    common_genes  <- intersect(rownames(cgp_exp), rownames(nci_exp))
-    nci_cells     <- colnames(nci_exp)
-    cell_spiked   <- cbind(cgp_exp[common_genes, top_cell_feat], nci_exp[common_genes, nci_cells])
-    cell_spiked   <- cor(cell_spiked, method="pearson")
-    cell_spiked   <- data.table(cell_spiked[,top_cell_feat], keep.rownames=T)
-
-    setnames(cell_spiked, c("cell_name", colnames(cell_spiked)[2:ncol(cell_spiked)]))
-
-    # Spike drug features next
-    if (max_bits > 0){
-      top_drug_feat <- colnames(drug_feat)[2:ncol(drug_feat)]
-      spiked_bits   <- nci_morgan[position %in% top_bits,]
-      spiked_bits   <- acast(spiked_bits, Compound~position, value.var="value")
-      spiked_bits   <- data.table(spiked_bits[,top_drug_feat], keep.rownames = T)
-
-      setnames(spiked_bits, c("Compound", colnames(spiked_bits)[2:ncol(spiked_bits)]))
-
-    } else {
-      spiked_bits <- data.table()
-    }
-
-    # Lastly spike target features
-    if(pic50_class==F){
-
-      # NOTE: KEEP IN MIND these activity measures may not be analogous to IC50 and may need to be adjusted to be comparable
-      if(pic50_scaled==T){
-        nci_feat_table <- nci_new[, c("NSC", "CELL", "SCALE.ACT"), with=F]
-      } else{
-        nci_feat_table <- nci_new[, c("NSC", "CELL", "ACT"), with=F]
-      }
-
-    } else{
-      nci_feat_table <- nci_new[, c("NSC", "CELL", "act_class"), with=F]
-      nci_feat_table <- nci_feat_table[act_class!=2,]
-    }
-    setnames(nci_feat_table, c("Compound", "cell_name", "NORM_pIC50"))
-
-    # Spiking
-    cell_feat  <- rbind(cell_feat, cell_spiked)
-    drug_feat  <- rbind(drug_feat, spiked_bits)
-    feat_table <- rbind(feat_table, nci_feat_table)
-
-    setkey(cell_feat)
-    setkey(drug_feat)
-    setkey(feat_table)
-    cell_feat  <- unique(cell_feat)
-    drug_feat  <- unique(drug_feat)
-    feat_table <- unique(feat_table)
-  }
-  #####################################################################################################
 
   # Merge to obtain total number of possible combinations
   if (max_bits > 0){
@@ -155,27 +111,6 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
   setkey(feat_table) #NOTE, may need to remove when "all_rebalance"
   feat_table <- unique(feat_table) #NOTE, may need to remove when "all_rebalance"
   print(paste0("actual total number of samples ", nrow(feat_table)))
-
-  # Do we need to rebalance based on compound counts
-  if (rebalance == T){
-    feat_table[ , N:=length(cell_name), by="Compound"]
-    max_count <- max(feat_table$N)
-
-    feat_extra <- lapply(unique(feat_table[N < max_count, ]$Compound), function(d) {
-
-      temp_table  <- feat_table[Compound == d,]
-      n_needed    <- max_count - unique(temp_table$N)
-      sample_rows <- sample(1:nrow(temp_table), n_needed, replace = T)
-      temp_table  <- temp_table[sample_rows,]
-
-      return(temp_table)
-      })
-    feat_extra <- do.call(rbind, feat_extra)
-
-    feat_table <- rbind(feat_table, feat_extra)
-    feat_table <- feat_table[,-c("N"),with=F]
-
-  }
 
   # Extract indices for combinations
   if (max_bits > 0){
@@ -197,18 +132,17 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feats, exp_table
               feat_table = feat_table))
 }
 
-Function_top_cell_morgan_counts_features_extracted_mf <- function(feats, exp_table, morgan_table, max_cells=10, max_counts=10, met_scaled=F, pic50_scaled=T,
-                                                      pic50_class=F, genes=F, rebalance=F, pca=F,
-                                                      nci_spiked, nci_morgan, nci_exp, nci_new){
-  # Constructs feature table using morgan bits and cell correlations as features, but limiting to most variable features
-  # Both max_cells and max_counts are based in terms of decreasing variance
-  # NOTE: Function can now be used for classification or regression
-  #       If classification is chosen, pic50-based classes are chosen (1/0), while 2 is discarded
+Function_top_cell_morgan_counts_features_extracted_mf <- function(feat_table, exp_table, morgan_table, max_cells=10, max_counts=10, scaled=T,
+                                                                  class=F, genes=F, pca=F, lower_th=0.4, higher_th=0.4){
 
   # Extract most variable cell features
   if (pca==F){
+    print("pca==F")
+
     if (genes==F){
-      cell_feat <- cor(cgp_exp, method = "spearman")
+      print("genes==F")
+
+      cell_feat <- cor(exp_table, method = "spearman")
       cell_var  <- data.table(cells = colnames(cell_feat),
                               VAR   = apply(cell_feat, 2, var))
       top_cells <- cell_var[order(-VAR),]$cells[1:max_cells]
@@ -216,18 +150,36 @@ Function_top_cell_morgan_counts_features_extracted_mf <- function(feats, exp_tab
       cell_feat <- data.table(cell_feat[, top_cells], keep.rownames = T)
 
     } else {
-      cgp_exp   <- t(log(cgp_exp))
+      print("genes==T")
+
+      exp_table <- t(cgp_exp)
       gene_var  <- data.table(genes = colnames(cgp_exp),
                               VAR   = apply(cgp_exp, 2, var))
       top_genes <- gene_var[order(-VAR),]$genes[1:max_cells]
 
-      cell_feat <- data.table(cgp_exp[,top_genes], keep.rownames = T)
+      cell_feat <- data.table(exp_table[,top_genes], keep.rownames = T)
     }
 
-  } else{
-    cgp_pca     <- prcomp(t(cgp_exp), center=T, scale. = T) # Scaling previously shown to be essential for out of set accuracy
-    cell_feat   <- cgp_pca$x[,1:max_cells]
-    cell_feat   <- data.table(cell_feat, keep.rownames = T)
+  } else {
+    print("pca==T")
+
+    if (genes==F){
+      print("genes==F")
+
+      cell_feat   <- cor(exp_table, method = "spearman")
+      cell_feat   <- prcomp(cell_feat, center = T, scale. = T)
+      cell_feat   <- cell_feat$x[,1:max_cells]
+      cell_feat   <- data.table(cell_feat, keep.rownames = T)
+
+    } else {
+      print("genes==T")
+
+      ctrp_pca    <- prcomp(t(exp_table), center=T, scale. = T) #NOTE: Scaling previously shown to be essential for out of set accuracy
+      cell_feat   <- ctrp_pca$x[,1:max_cells]
+      cell_feat   <- data.table(cell_feat, keep.rownames = T)
+      print("dim cell feat:")
+      print(dim(cell_feat))
+    }
   }
 
   setnames(cell_feat, c("cell_name", colnames(cell_feat)[2:ncol(cell_feat)]))
@@ -235,6 +187,7 @@ Function_top_cell_morgan_counts_features_extracted_mf <- function(feats, exp_tab
   # Extract most variable drug features (if needed)
   if (max_counts > 0 ){
     if (pca==F) {
+
       top_counts <- apply(acast(morgan_table, Compound~Substructure, value.var="Counts", fill=0), 2, var)
       top_counts <- names(sort(top_counts, decreasing = T))[1:max_counts]
 
@@ -243,8 +196,9 @@ Function_top_cell_morgan_counts_features_extracted_mf <- function(feats, exp_tab
       drug_feat  <- data.table(drug_feat, keep.rownames = T)
 
     } else {
+
       drug_feat  <- acast(morgan_table, Compound~Substructure, value.var="Counts", fill=0)
-      drug_pca   <- prcomp(drug_feat, center=F, scale. = F)
+      drug_pca   <- prcomp(drug_feat, center=F, scale. = F) #NOTE: Not scaling needed for discrete variables (Assumed)
       drug_feat  <- data.table(drug_pca$x[, 1:max_counts], keep.rownames = T)
     }
 
@@ -254,99 +208,41 @@ Function_top_cell_morgan_counts_features_extracted_mf <- function(feats, exp_tab
   }
 
   # Construct feature table based on classification/regression
-  if(pic50_class==F){
+  if(class==F){
 
-    if(pic50_scaled==T){
-      # feats$NORM.pIC50 <- scale(feats$pIC50) # WHOLE RE-SCALED - MODIFIED!!
-      feat_table <- feats[, c("Compound", "cell_name", "NORM.pIC50"), with=F]
+    if(scaled==T){
+      feat_table <- feat_table[,list(cell_name=cell_name, target=scale(target)), by="Compound"]
+
     } else {
-      feat_table <- feats[, c("Compound", "cell_name", "pIC50"), with=F]
+      feat_table <- feat_table
     }
 
   } else{
-    feat_table <- feats[, c("Compound", "cell_name", "pic50_class"),with=F]
-    feat_table <- feat_table[pic50_class!=2,]
+
+    feat_table <- feat_table[,list(cell_name=cell_name, target=scale(target)), by="Compound"] # Need to scale for binary classification
+    feat_table[,med:=median(target), by="Compound"]
+    feat_table[,sd:= sd(target), by="Compound"]
+
+    feat_table$target <- ifelse(feat_table$target < (feat_table$med - lower_th*abs(feat_table$sd)), 1,
+                                ifelse(feat_table$target >  (feat_table$med + higher_th*abs(feat_table$sd)), 0, 2)
+                                )
+    feat_table <- feat_table[target!=2,]
+    feat_table <- feat[,-c("med", "sd"),with=F]
+
+    print("Class average - 1:Sensitive, 0:Resistant")
+    print(mean(feat_table$target))
   }
 
   setnames(feat_table, c("Compound", "cell_name", "NORM_pIC50"))
-
-  ############################## DO WE NEED TO NCI60 SPIKE IT??########################################
-  if (nci_spiked==T){
-
-    # Spike cell features first
-    top_cell_feat <- colnames(cell_feat)[2:ncol(cell_feat)]
-    common_genes  <- intersect(rownames(cgp_exp), rownames(nci_exp))
-    nci_cells     <- colnames(nci_exp)
-    cell_spiked   <- cbind(cgp_exp[common_genes, top_cell_feat], nci_exp[common_genes, nci_cells])
-    cell_spiked   <- cor(cell_spiked, method="pearson")
-    cell_spiked   <- data.table(cell_spiked[,top_cell_feat], keep.rownames=T)
-
-    setnames(cell_spiked, c("cell_name", colnames(cell_spiked)[2:ncol(cell_spiked)]))
-
-    # Spike drug features next
-    if (max_bits > 0){
-      top_drug_feat <- colnames(drug_feat)[2:ncol(drug_feat)]
-      spiked_counts   <- nci_morgan[substructure %in% top_counts,]
-      spiked_counts   <- acast(spiked_counts, Compound~substructure, value.var="value", fill=0)
-      spiked_counts   <- data.table(spiked_bits[,top_drug_feat], keep.rownames = T)
-
-      setnames(spiked_counts, c("Compound", colnames(spiked_counts)[2:ncol(spiked_counts)]))
-
-    } else {
-      spiked_counts <- data.table()
-    }
-
-    # Lastly spike target features
-    if(pic50_class==F){
-
-      # NOTE: KEEP IN MIND these activity measures may not be analogous to IC50 and may need to be adjusted to be comparable
-      if(pic50_scaled==T){
-        nci_feat_table <- nci_new[, c("NSC", "CELL", "SCALE.ACT"), with=F]
-      } else{
-        nci_feat_table <- nci_new[, c("NSC", "CELL", "ACT"), with=F]
-      }
-
-    } else{
-      nci_feat_table <- nci_feat_table[, c("NSC", "CELL", "act_class"), with=F]
-      nci_feat_table <- nci_feat_table[act_class!=2,]
-    }
-    setnames(nci_feat_table, c("Compound", "cell_name", "NORM_pIC50"))
-
-    # Spiking
-    cell_feat  <- rbind(cell_feat, cell_spiked)
-    drug_feat  <- rbind(drug_feat, spiked_bits)
-    feat_table <- rbind(feat_table, nci_feat_table)
-  }
-  #####################################################################################################
 
   # Merge to obtain total number of possible combinations
   if (max_counts > 0){
     feat_table <- merge(feat_table, drug_feat[, 1:2, with=F], by="Compound")
   }
   feat_table <- merge(feat_table, cell_feat[, 1:2, with=F], by="cell_name")
-  setkey(feat_table)
-  feat_table <- unique(feat_table)
 
-  # Do we need to rebalance based on compound counts
-  if (rebalance == T){
-    feat_table[ , N:=length(cell_name), by="Compound"]
-    max_count <- max(feat_table$N)
-
-    feat_extra <- lapply(unique(feat_table[N < max_count, ]$Compound), function(d) {
-
-      temp_table  <- feat_table[Compound == d,]
-      n_needed    <- max_count - unique(temp_table$N)
-      sample_rows <- sample(1:nrow(temp_table), n_needed, replace = T)
-      temp_table  <- temp_table[sample_rows,]
-
-      return(temp_table)
-      })
-    feat_extra <- do.call(rbind, feat_extra)
-
-    feat_table <- rbind(feat_table, feat_extra)
-    feat_table$N <- NULL
-
-  }
+  setkey(feat_table) #NOTE: May need to remove when doing rebalancing
+  feat_table <- unique(feat_table) #NOTE: May need to remove when doing rebalancing
 
   # Extract indices for combinations
   if (max_counts > 0){
@@ -730,6 +626,8 @@ radii_set   <- as.numeric(args[11])
 bit_set     <- as.numeric(args[12])
 gene_target <- args[13]
 fold        <- args[14]
+lower_th    <- as.numeric(args[15])
+higher_th   <- as.numeric(args[16])
 
 in_folder    <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 in_morgan    <- "/tigress/zamalloa/MORGAN_FILES/"
@@ -761,9 +659,9 @@ ctrp_bits$bit_pos <- paste0("mcf_", ctrp_bits$bit_pos)
 #################################################### EXECUTE ####################################################
 # Apply
 if (met_type=="drug_cor"){
-  feat_table <- Function_top_cell_drug_features_extracted_mf(cgp_new, cgp_exp, DRUGS.MET.PROFILE,
+  feat_table <- Function_top_cell_drug_features_extracted_mf(ctrp_new, ctrp_exp, DRUGS.MET.PROFILE,
                                                           max_cells = max_cells, max_drugs = max_drugs,
-                                                          pic50_class = class_mlp, pic50_scaled = T)
+                                                          class = class_mlp, scaled = T)
 
   drug_sim   <- data.table(melt(cor(acast(DRUGS.MET.PROFILE, METABOLITE~DRUG, value.var = "TC"))))
   drug_sim   <- drug_sim[Var1!=Var2,]
@@ -771,8 +669,8 @@ if (met_type=="drug_cor"){
 } else if (met_type=="morgan_bits"){
   feat_table <- Function_top_cell_morgan_bits_features_extracted_mf(ctrp_new, ctrp_exp, morgan_bits,
                                                           max_cells = max_cells, max_bits = max_drugs,
-                                                          class = class_mlp, pic50_scaled = F, #MODIFIED
-                                                          genes = genes, pca = pca)
+                                                          class = class_mlp, scaled = F, #MODIFIED
+                                                          genes = genes, pca = pca, lower_th, higher_th)
 
   drug_sim   <- data.table(melt(cor(acast(morgan_bits, bit_pos~Compound, value.var = "value"))))
   drug_sim   <- drug_sim[Var1!=Var2,]
@@ -781,7 +679,7 @@ if (met_type=="drug_cor"){
   feat_table <- Function_top_cell_morgan_counts_features_extracted_mf(ctrp_new, ctrp_exp, morgan_counts,
                                                           max_cells = max_cells, max_counts = max_drugs,
                                                           class = class_mlp, scaled = F, #MODIFIED
-                                                          genes = genes, pca = pca)
+                                                          genes = genes, pca = pca, lower_th, higher_th)
 
   drug_sim   <- data.table(melt(cor(acast(morgan_counts, Substructure~Compound, value.var = "Counts", fill = 0))))
   drug_sim   <- drug_sim[Var1!=Var2,]
