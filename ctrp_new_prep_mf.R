@@ -624,8 +624,9 @@ pca         <- as.logical(args[9])
 radii_set   <- as.numeric(args[10])
 bit_set     <- as.numeric(args[11])
 fold        <- args[12]
-lower_th    <- as.numeric(args[13]) # If class_mlp==F, then this argument has no effect
-higher_th   <- as.numeric(args[14]) # If class_mlp==F, then this argument has no effect
+th_split    <- strsplit(gsub("th_","", args[13])) #"th_x_x"
+lower_th    <- as.numeric(th_split[1]) # If class_mlp==F, then this argument has no effect
+higher_th   <- as.numeric(th_split[2]) # If class_mlp==F, then this argument has no effect
 
 in_folder    <- "/tigress/zamalloa/CGP_FILES/" #For tigress
 in_morgan    <- "/tigress/zamalloa/MORGAN_FILES/"
@@ -668,7 +669,7 @@ if (met_type=="drug_cor"){
   feat_table <- Function_top_cell_morgan_bits_features_extracted_mf(ctrp_new, ctrp_exp, ctrp_bits,
                                                           max_cells = max_cells, max_bits = max_drugs,
                                                           class = class_mlp, scaled = T, #MODIFIED
-                                                          genes = genes, pca = pca, lower_th, higher_th)
+                                                          genes = genes, pca = pca, lower_th=lower_th, higher_th=higher_th)
 
   drug_sim   <- data.table(melt(cor(acast(morgan_bits, bit_pos~Compound, value.var = "value"))))
   drug_sim   <- drug_sim[Var1!=Var2,]
@@ -677,7 +678,7 @@ if (met_type=="drug_cor"){
   feat_table <- Function_top_cell_morgan_counts_features_extracted_mf(ctrp_new, ctrp_exp, ctrp_counts,
                                                           max_cells = max_cells, max_counts = max_drugs,
                                                           class = class_mlp, scaled = T, #MODIFIED
-                                                          genes = genes, pca = pca, lower_th, higher_th)
+                                                          genes = genes, pca = pca, lower_th=lower_th, higher_th=higher_th)
 
   drug_sim   <- data.table(melt(cor(acast(morgan_counts, Substructure~Compound, value.var = "Counts", fill = 0))))
   drug_sim   <- drug_sim[Var1!=Var2,]
@@ -837,7 +838,7 @@ if ( (samples == "all") | (grepl("all_rebalance_", samples)==T)){
   all_drugs        <- unique(feat_table$feat_table$Compound)
 
   if (fold=="fold_all"){
-    # This will be done without early stopping, so there is no need to have a validation set
+    # This will be done without early stopping, so there is no need to have a validation set (but will be written anyways)
     print(fold)
     splits           <- split(all_drugs, 1:5)
 
