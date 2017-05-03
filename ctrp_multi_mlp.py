@@ -807,7 +807,7 @@ class Multi_MLP_Class(object):
         self.fusion_layer_0 = HiddenLayer(
             rng=rng,
             input=self.multiplicative_input.output,
-            n_in=neural_range,#drug_n_hidden[drug_layer_number-1] * cell_n_hidden[cell_layer_number-1],
+            n_in=neural_range,
             n_out=fusion_n_hidden[0],
             activation=relu,
             is_train=is_train,
@@ -844,11 +844,11 @@ class Multi_MLP_Class(object):
 
 
         # APPLY LOGISTIC REGRESSION
-        # The logistic regression layer gets as input the fused multiplicate_input
         self.logRegressionLayer = LogisticRegression(
             input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
             n_in=fusion_n_hidden[fusion_layer_number-1],
-            n_out=n_out
+            n_out=n_out,
+            rng = rng
         )
 
         self.params = self.params + self.logRegressionLayer.params
@@ -1083,8 +1083,8 @@ def regression_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1
         cell_p=p,
         cell_dropout=dropout,
         cell_input_p=input_p,
-        drug_p=0.7,
-        drug_dropout=True,
+        drug_p=p,
+        drug_dropout=dropout,
         drug_input_p=0.2
     )
 
@@ -1886,7 +1886,6 @@ def regression_mlp_train_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.
                                 os.path.split("__file__")[1] +
                                 ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
-
 def class_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
              datasets="datasets", train_batch_size=20,
              cell_n_hidden=[500,200,100], fusion_n_hidden = [500,200,100],
@@ -2191,21 +2190,21 @@ def class_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epo
                                 os.path.split("__file__")[1] +
                                 ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
-def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
+def class_mlp_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5, input_p=0.2,
              datasets="datasets", train_batch_size=20,
              cell_n_hidden=[500,200,100], drug_n_hidden=[500,200,100], mf_manual="None", fusion_n_hidden = [500,200,100],
              p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"
              ):
 
-    #Demonstrate stochastic gradient descent optimization for a multilayer
-    #perceptron for parallel drug and cell layers to Multiplicative fusion layer
     train_drug_x, train_cell_x, train_drug_index_x, train_cell_index_x, train_set_y = datasets[0]
     valid_drug_x, valid_cell_x, valid_drug_index_x, valid_cell_index_x, valid_set_y = datasets[1]
     test_drug_x,  test_cell_x,  test_drug_index_x,  test_cell_index_x,  test_set_y = datasets[2]
 
-    valid_batch_size = valid_drug_index_x.eval().shape[0] # Could have been valid_cell_index_x since they are of equal length
-    test_batch_size  = test_drug_index_x.eval().shape[0]
+    valid_batch_size = train_batch_size
+    test_batch_size  = train_batch_size
     train_samples    = train_drug_index_x.eval().shape[0] # Could have been train_cell_index_x since they are of equal length
+    valid_samples    = valid_drug_index_x.eval().shape[0] #MODIFIED
+    test_samples     = test_drug_index_x.eval().shape[0] #MODIFIED
 
     # Compute input layer for both drug and cell networks
     CELL_N_IN = train_cell_x.get_value(borrow=True).shape[1]
@@ -2213,26 +2212,12 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
 
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_samples / train_batch_size
-    n_valid_batches = valid_batch_size / valid_batch_size #1
-    n_test_batches  = test_batch_size / test_batch_size #1
+    n_valid_batches = valid_samples / valid_batch_size
+    n_test_batches  = test_samples / test_batch_size
 
     # compute fusion neural range
-    #neural_range = range(drug_n_hidden[-1])
-    if mf_manual=="None":
+    neural_range = cell_n_hidden[-1] + drug_n_hidden[-1] #NOTE: Addition of last two layers
 
-        if cell_n_hidden[-1] != drug_n_hidden[-1]:
-
-            neural_range  = min([cell_n_hidden[-1], drug_n_hidden[-1]])
-            if neural_range == cell_n_hidden[-1]:
-                drug_n_hidden = drug_n_hidden + [neural_range] # In place modification!!!
-            else :
-                cell_n_hidden = cell_n_hidden + [neural_range] # In place modification!!!
-        else:
-            neural_range = cell_n_hidden[-1]
-    else:
-        neural_range  = mf_manual
-        drug_n_hidden = drug_n_hidden + [mf_manual]
-        cell_n_hidden = cell_n_hidden + [mf_manual]
     ######################
     # BUILD ACTUAL MODEL #
     ######################
@@ -2266,8 +2251,8 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
         cell_p=p,
         cell_dropout=dropout,
         cell_input_p=input_p,
-        drug_p=0.7,
-        drug_dropout=True,
+        drug_p=p,
+        drug_dropout=dropout,
         drug_input_p=0.2
     )
 
@@ -2281,9 +2266,9 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
         inputs=[index],
         outputs=classifier.negative_log_likelihood(y),
         givens={
-            x_c: valid_cell_x[valid_cell_index_x,],
-            x_d: valid_drug_x[valid_drug_index_x,],
-            y: valid_set_y,
+            x_c: valid_cell_x[valid_cell_index_x[index * valid_batch_size:(index + 1) * valid_batch_size],],
+            x_d: valid_drug_x[valid_drug_index_x[index * valid_batch_size:(index + 1) * valid_batch_size],],
+            y: valid_set_y[index * valid_batch_size:(index + 1) * valid_batch_size],
             is_train: np.cast['int32'](0)
         },
         on_unused_input='warn',
@@ -2293,9 +2278,9 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
         inputs=[index],
         outputs=classifier.errors(y),
         givens={
-            x_c: test_cell_x[test_cell_index_x,],
-            x_d: test_drug_x[test_drug_index_x,],
-            y: test_set_y,
+            x_c: test_cell_x[test_cell_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
+            x_d: test_drug_x[test_drug_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
+            y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
             is_train: np.cast['int32'](0)
         },
         on_unused_input='warn',
@@ -2305,14 +2290,13 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
         inputs=[index],
         outputs=classifier.pred(y),
         givens={
-            x_c: test_cell_x[test_cell_index_x,],
-            x_d: test_drug_x[test_drug_index_x,],
-            y: test_set_y,
+            x_c: test_cell_x[test_cell_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
+            x_d: test_drug_x[test_drug_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
+            y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
             is_train: np.cast['int32'](0)
         },
         on_unused_input='warn',
     )
-
     ###################################
 
     #learning rate to shared
@@ -2401,11 +2385,6 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
         with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
             logfile.write(log + "\n")
 
-        # if LR_COUNT==1000:
-        #     new_learning_rate = learning_rate.get_value() * 0.2
-        #     print new_learning_rate
-        #     learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
-
         #for minibatch_index in xrange(n_train_batches):
         for minibatch_index in xrange(EPOCH_SIZE):
 
@@ -2414,10 +2393,6 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
 
             rescale_weights(classifier.param_to_scale, 15.)
 
-            # iteration number
-            #iter = (epoch - 1) * n_train_batches + minibatch_index
-
-            #if (iter + 1) % validation_frequency == 0:
             if (minibatch_index + 1) % EPOCH_SIZE == 0:
                 # compute zero-one loss on validation set
 
@@ -2477,15 +2452,6 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
                     MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
                     MODEL["logistic"]        = classifier.logRegressionLayer
 
-                    # MODEL = []
-                    # for e in xrange(len(cell_n_hidden)):
-                    #     MODEL = MODEL + [getattr(classifier, "cell_layer_" + str(e))]
-                    # for e in xrange(len(drug_n_hidden)):
-                    #     MODEL = MODEL + [getattr(classifier, "drug_layer_" + str(e))]
-                    # for e in xrange(len(fusion_n_hidden)):
-                    #     MODEL = MODEL + [getattr(classifier, "fusion_layer_" + str(e))]
-                    #
-                    # MODEL = MODEL + [classifier.logRegressionLayer]
                     with open(OUT_FOLDER + "/" + str(epoch) + "_" + drug_name + ".pkl", "wb") as f:
                         cPickle.dump(MODEL, f)
 
@@ -2522,6 +2488,471 @@ def class_mlp_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
     print(('Optimization complete. Best validation score of %f %% '
             'obtained at iteration %i, with test performance %f %%') %
             (best_validation_loss, best_iter + 1, test_loss ))
+
+    print >> sys.stderr, ('The code for file ' +
+                                os.path.split("__file__")[1] +
+                                ' ran for %.2fm' % ((end_time - start_time) / 60.))
+
+def class_mlp_train_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5, input_p=0.2,
+             datasets="datasets", train_batch_size=20,
+             cell_n_hidden=[500,200,100], drug_n_hidden=[500,200,100], mf_manual="None", fusion_n_hidden = [500,200,100],
+             p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"
+             ):
+
+    #NOTE: TRAIN SET ONLY TRAINING
+
+    train_drug_x, train_cell_x, train_drug_index_x, train_cell_index_x, train_set_y = datasets[0]
+    train_samples    = train_drug_index_x.eval().shape[0]
+
+    # Compute input layer for both drug and cell networks
+    CELL_N_IN = train_cell_x.get_value(borrow=True).shape[1]
+    DRUG_N_IN = train_drug_x.get_value(borrow=True).shape[1]
+
+    # compute number of minibatches for training, validation and testing
+    n_train_batches = train_samples / train_batch_size
+
+    # compute fusion neural range
+    neural_range = cell_n_hidden[-1] + drug_n_hidden[-1] #NOTE: Addition of last two layers
+
+    ######################
+    # BUILD ACTUAL MODEL #
+    ######################
+    print '... building the model'
+
+    # allocate symbolic variables for the data
+    index = T.lscalar("i") # index to a [mini]batch
+    vector = T.vector("v", dtype='int32')
+    x_c = T.matrix('x_c')
+    x_d = T.matrix('x_d')
+
+    y = T.ivector('y')
+
+    is_train = T.iscalar('is_train') # pseudo boolean for switching between training and prediction
+
+    rng = np.random.RandomState(1234)
+
+    # construct the MLP class
+    classifier = Multi_MLP_Class(
+        rng=rng,
+        is_train = is_train, #needed
+        cell_input = x_c, #needed
+        drug_input = x_d, #needed
+        cell_n_in = CELL_N_IN, #calculated
+        drug_n_in = DRUG_N_IN, #calculated
+        cell_n_hidden = cell_n_hidden, #calculated
+        drug_n_hidden = drug_n_hidden, #calculated
+        fusion_n_hidden = fusion_n_hidden,
+        neural_range = neural_range, #calculated
+        n_out=2,
+        cell_p=p,
+        cell_dropout=dropout,
+        cell_input_p=input_p,
+        drug_p=p,
+        drug_dropout=dropout,
+        drug_input_p=0.2
+    )
+
+    cost = (
+        classifier.negative_log_likelihood(y)
+        + L1_reg * classifier.L1
+        + L2_reg * classifier.L2_sqr
+    )
+    ###################################
+
+    #learning rate to shared
+    learning_rate = theano.shared(np.cast[theano.config.floatX](learning_rate) )
+
+    # momentum implementation stolen from
+    # http://nbviewer.ipython.org/github/craffel/theano-tutorial/blob/master/Theano%20Tutorial.ipynb
+    assert initial_momentum >= 0. and initial_momentum < 1.
+    momentum =theano.shared(np.cast[theano.config.floatX](initial_momentum), name='momentum', borrow=True)
+
+    # List of update steps for each parameter
+    updates = []
+    #Just gradient descent on cost
+    for param in classifier.params:
+        # For each parameter, we'll create a param_update shared variable.
+        # This variable will keep track of the parameter's update step across iterations.
+        # We initialize it to 0
+        param_update = theano.shared(param.get_value()*0., broadcastable=param.broadcastable, borrow=True)
+        # Each parameter is updated by taking a step in the direction of the gradient.
+        # However, we also "mix in" the previous step according to the given momentum value.
+        # Note that when updating param_update, we are using its old value and also the new gradient step.
+        updates.append((param, param - learning_rate*param_update))
+        # Note that we don't need to derive backpropagation to compute updates - just use T.grad!
+        updates.append((param_update, momentum*param_update + (1. - momentum)*T.grad(cost, param)/(2*train_batch_size) ))
+
+    train_model = theano.function(
+        inputs=[vector],
+        outputs=cost,
+        updates=updates,
+        givens={
+            x_c: train_cell_x[train_cell_index_x[vector],],
+            x_d: train_drug_x[train_drug_index_x[vector],],
+            y: train_set_y[vector,],
+            is_train: np.cast['int32'](1)
+        },
+        on_unused_input='warn',
+    )
+
+    train_error = theano.function(
+        inputs=[index],
+        outputs=classifier.errors(y),
+        givens={
+            x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
+            x_d: train_drug_x[train_drug_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
+            y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
+            is_train: np.cast['int32'](0)
+        },
+        on_unused_input='warn',
+    )
+
+    ###############
+    # TRAIN MODEL #
+    ###############
+    print '... training'
+
+    # early-stopping parameters
+    patience = 18000000 # look as this many examples regardless
+
+    patience_increase = 2 # wait this much longer when a new best is found
+    improvement_threshold = 0.995 # a relative improvement of this much is considered significant (default = 0.995)
+    validation_frequency = min(n_train_batches, patience / 2)
+
+    best_validation_loss = np.inf
+    best_iter = 0
+    start_time = timeit.default_timer()
+
+    epoch = 0
+    done_looping = False
+    test_loss = 1
+    LR_COUNT = 1
+
+    FILE_OUT =  open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "w")
+    FILE_OUT.write("EPOCH" + "\t" + "TRAIN")
+    FILE_OUT.close()
+
+    EPOCH_SIZE = n_train_batches
+    while (epoch < n_epochs) and (not done_looping):
+        epoch = epoch + 1
+        # print "momentum: ", momentum.get_value()
+        # print "learning rate: ", learning_rate.get_value()
+        log = "momentum: " + str(momentum.get_value()) + "; learning_rate: " + str(learning_rate.get_value())
+        with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
+            logfile.write(log + "\n")
+
+        #for minibatch_index in xrange(n_train_batches):
+        for minibatch_index in xrange(EPOCH_SIZE):
+
+            ran_index = list(np.random.randint(low=0, high=train_samples-1, size=train_batch_size))
+            minibatch_avg_cost = train_model(ran_index)
+
+            rescale_weights(classifier.param_to_scale, 15.)
+
+            if (minibatch_index + 1) % EPOCH_SIZE == 0:
+                # compute zero-one loss on validation set
+
+                this_train_error = [train_error(i) for i in xrange(n_train_batches)]
+                this_train_error = np.mean(this_train_error)
+
+                log = ('epoch %i, minibatch %i/%i, train error %f %%' %
+                    (
+                        epoch,
+                        minibatch_index + 1,
+                        EPOCH_SIZE,
+                        this_train_error
+                    ))
+
+                with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
+                    logfile.write(log + "\n")
+
+                with open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "a") as FILE_OUT:
+                    FILE_OUT.write("\n"+ str(epoch) + "\t" + str(this_train_error))
+
+                if (epoch % 100)==0: #Write model every 100 epochs
+                    LR_COUNT = 0
+
+                    MODEL = {}
+                    MODEL["cell_n_hidden"]   = [getattr(classifier, "cell_layer_" + str(e)) for e in xrange(len(cell_n_hidden))]
+                    MODEL["drug_n_hidden"]   = [getattr(classifier, "drug_layer_" + str(e)) for e in xrange(len(drug_n_hidden))]
+                    MODEL["multiplicative"]  = classifier.multiplicative_input
+                    MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
+                    MODEL["logistic"]        = classifier.logRegressionLayer
+
+                    with open(OUT_FOLDER + "/" + str(epoch) + "_" + drug_name + ".pkl", "wb") as f:
+                        cPickle.dump(MODEL, f)
+
+                else:
+                    LR_COUNT = LR_COUNT+1
+
+            # if patience <= iter:
+            #     done_looping = True
+            #     break
+            # if LR_COUNT==100:
+            #     done_looping = True
+            #     break
+
+        # adaption of momentum
+        if momentum.get_value() < 0.99:
+            new_momentum = 1. - (1. - momentum.get_value()) * 0.999
+            momentum.set_value(np.cast[theano.config.floatX](new_momentum))
+        # adaption of learning rate
+        new_learning_rate = learning_rate.get_value() * 0.998
+        learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
+        # if epoch%500 == 0:
+        #     new_learning_rate = learning_rate.get_value() * 0.1
+        #     learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
+
+    end_time = timeit.default_timer()
+
+    print >> sys.stderr, ('The code for file ' +
+                                os.path.split("__file__")[1] +
+                                ' ran for %.2fm' % ((end_time - start_time) / 60.))
+
+def class_mlp_train_noearly_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5, input_p=0.2,
+             datasets="datasets", train_batch_size=20,
+             cell_n_hidden=[500,200,100], drug_n_hidden=[500,200,100], mf_manual="None", fusion_n_hidden = [500,200,100],
+             p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"
+             ):
+
+    #NOTE: TRAIN SET ONLY TRAINING and TESTING ON TEST (2 SETS NEEDED)
+
+    train_drug_x, train_cell_x, train_drug_index_x, train_cell_index_x, train_set_y = datasets[0]
+    test_drug_x,  test_cell_x,  test_drug_index_x,  test_cell_index_x,  test_set_y = datasets[1]
+    train_samples    = train_drug_index_x.eval().shape[0]
+    test_samples     = test_drug_index_x.eval().shape[0] #MODIFIED
+
+    test_batch_size  = train_batch_size
+
+    # Compute input layer for both drug and cell networks
+    CELL_N_IN = train_cell_x.get_value(borrow=True).shape[1]
+    DRUG_N_IN = train_drug_x.get_value(borrow=True).shape[1]
+
+    # compute number of minibatches for training, validation and testing
+    n_train_batches = train_samples / train_batch_size
+    n_test_batches  = test_samples / test_batch_size
+
+    # compute fusion neural range
+    neural_range = cell_n_hidden[-1] + drug_n_hidden[-1] #NOTE: Addition of last two layers
+
+    ######################
+    # BUILD ACTUAL MODEL #
+    ######################
+    print '... building the model'
+
+    # allocate symbolic variables for the data
+    index = T.lscalar("i") # index to a [mini]batch
+    vector = T.vector("v", dtype='int32')
+    x_c = T.matrix('x_c')
+    x_d = T.matrix('x_d')
+
+    y = T.ivector('y')
+
+    is_train = T.iscalar('is_train') # pseudo boolean for switching between training and prediction
+
+    rng = np.random.RandomState(1234)
+
+    # construct the MLP class
+    classifier = Multi_MLP_Class(
+        rng=rng,
+        is_train = is_train, #needed
+        cell_input = x_c, #needed
+        drug_input = x_d, #needed
+        cell_n_in = CELL_N_IN, #calculated
+        drug_n_in = DRUG_N_IN, #calculated
+        cell_n_hidden = cell_n_hidden, #calculated
+        drug_n_hidden = drug_n_hidden, #calculated
+        fusion_n_hidden = fusion_n_hidden,
+        neural_range = neural_range, #calculated
+        n_out=2,
+        cell_p=p,
+        cell_dropout=dropout,
+        cell_input_p=input_p,
+        drug_p=p,
+        drug_dropout=dropout,
+        drug_input_p=0.2
+    )
+
+    cost = (
+        classifier.negative_log_likelihood(y)
+        + L1_reg * classifier.L1
+        + L2_reg * classifier.L2_sqr
+    )
+
+    test_model = theano.function(
+        inputs=[index],
+        outputs=classifier.errors(y),
+        givens={
+            x_c: test_cell_x[test_cell_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
+            x_d: test_drug_x[test_drug_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
+            y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
+            is_train: np.cast['int32'](0)
+        },
+        on_unused_input='warn',
+    )
+
+    test_pred = theano.function(
+        inputs=[index],
+        outputs=classifier.pred(y),
+        givens={
+            x_c: test_cell_x[test_cell_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
+            x_d: test_drug_x[test_drug_index_x[index * test_batch_size:(index + 1) * test_batch_size],],
+            y: test_set_y[index * test_batch_size:(index + 1) * test_batch_size],
+            is_train: np.cast['int32'](0)
+        },
+        on_unused_input='warn',
+    )
+    ###################################
+
+    #learning rate to shared
+    learning_rate = theano.shared(np.cast[theano.config.floatX](learning_rate) )
+
+    # momentum implementation stolen from
+    # http://nbviewer.ipython.org/github/craffel/theano-tutorial/blob/master/Theano%20Tutorial.ipynb
+    assert initial_momentum >= 0. and initial_momentum < 1.
+    momentum =theano.shared(np.cast[theano.config.floatX](initial_momentum), name='momentum', borrow=True)
+
+    # List of update steps for each parameter
+    updates = []
+    #Just gradient descent on cost
+    for param in classifier.params:
+        # For each parameter, we'll create a param_update shared variable.
+        # This variable will keep track of the parameter's update step across iterations.
+        # We initialize it to 0
+        param_update = theano.shared(param.get_value()*0., broadcastable=param.broadcastable, borrow=True)
+        # Each parameter is updated by taking a step in the direction of the gradient.
+        # However, we also "mix in" the previous step according to the given momentum value.
+        # Note that when updating param_update, we are using its old value and also the new gradient step.
+        updates.append((param, param - learning_rate*param_update))
+        # Note that we don't need to derive backpropagation to compute updates - just use T.grad!
+        updates.append((param_update, momentum*param_update + (1. - momentum)*T.grad(cost, param)/(2*train_batch_size) ))
+
+    train_model = theano.function(
+        inputs=[vector],
+        outputs=cost,
+        updates=updates,
+        givens={
+            x_c: train_cell_x[train_cell_index_x[vector],],
+            x_d: train_drug_x[train_drug_index_x[vector],],
+            y: train_set_y[vector,],
+            is_train: np.cast['int32'](1)
+        },
+        on_unused_input='warn',
+    )
+
+    train_error = theano.function(
+        inputs=[index],
+        outputs=classifier.errors(y),
+        givens={
+            x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
+            x_d: train_drug_x[train_drug_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
+            y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
+            is_train: np.cast['int32'](0)
+        },
+        on_unused_input='warn',
+    )
+
+    ###############
+    # TRAIN MODEL #
+    ###############
+    print '... training'
+
+    # early-stopping parameters
+    patience = 18000000 # look as this many examples regardless
+
+    patience_increase = 2 # wait this much longer when a new best is found
+    improvement_threshold = 0.995 # a relative improvement of this much is considered significant (default = 0.995)
+    validation_frequency = min(n_train_batches, patience / 2)
+
+    best_validation_loss = np.inf
+    best_iter = 0
+    start_time = timeit.default_timer()
+
+    epoch = 0
+    done_looping = False
+    test_loss = 1
+    LR_COUNT = 1
+
+    FILE_OUT =  open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "w")
+    FILE_OUT.write("EPOCH" + "\t" + "TRAIN"+ "\t" + "TEST.ERROR")
+    FILE_OUT.close()
+
+    EPOCH_SIZE = n_train_batches
+    while (epoch < n_epochs) and (not done_looping):
+        epoch = epoch + 1
+        # print "momentum: ", momentum.get_value()
+        # print "learning rate: ", learning_rate.get_value()
+        log = "momentum: " + str(momentum.get_value()) + "; learning_rate: " + str(learning_rate.get_value())
+        with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
+            logfile.write(log + "\n")
+
+        #for minibatch_index in xrange(n_train_batches):
+        for minibatch_index in xrange(EPOCH_SIZE):
+
+            ran_index = list(np.random.randint(low=0, high=train_samples-1, size=train_batch_size))
+            minibatch_avg_cost = train_model(ran_index)
+
+            rescale_weights(classifier.param_to_scale, 15.)
+
+            if (minibatch_index + 1) % EPOCH_SIZE == 0:
+                # compute zero-one loss on validation set
+
+                this_train_error = [train_error(i) for i in xrange(n_train_batches)]
+                this_train_error = np.mean(this_train_error)
+
+                test_losses = [test_model(i) for i in xrange(n_test_batches)]
+                test_loss = np.mean(test_losses)
+
+                log = ('epoch %i, minibatch %i/%i, train error %f ,test error %f %%' %
+                    (
+                        epoch,
+                        minibatch_index + 1,
+                        EPOCH_SIZE,
+                        this_train_error,
+                        test_loss
+                    ))
+
+                with open(OUT_FOLDER + "/log." + drug_name + ".txt", "a") as logfile:
+                    logfile.write(log + "\n")
+
+                with open(OUT_FOLDER + "/combined_D." + drug_name + ".txt", "a") as FILE_OUT:
+                    FILE_OUT.write("\n"+ str(epoch) + "\t" + str(this_train_error) + "\t" + str(test_loss))
+
+                if (epoch % 100)==0: #Write model every 100 epochs
+                    LR_COUNT = 0
+
+                    MODEL = {}
+                    MODEL["cell_n_hidden"]   = [getattr(classifier, "cell_layer_" + str(e)) for e in xrange(len(cell_n_hidden))]
+                    MODEL["drug_n_hidden"]   = [getattr(classifier, "drug_layer_" + str(e)) for e in xrange(len(drug_n_hidden))]
+                    MODEL["multiplicative"]  = classifier.multiplicative_input
+                    MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
+                    MODEL["logistic"]        = classifier.logRegressionLayer
+
+                    with open(OUT_FOLDER + "/" + str(epoch) + "_" + drug_name + ".pkl", "wb") as f:
+                        cPickle.dump(MODEL, f)
+
+                else:
+                    LR_COUNT = LR_COUNT+1
+
+            # if patience <= iter:
+            #     done_looping = True
+            #     break
+            # if LR_COUNT==100:
+            #     done_looping = True
+            #     break
+
+        # adaption of momentum
+        if momentum.get_value() < 0.99:
+            new_momentum = 1. - (1. - momentum.get_value()) * 0.999
+            momentum.set_value(np.cast[theano.config.floatX](new_momentum))
+        # adaption of learning rate
+        new_learning_rate = learning_rate.get_value() * 0.998
+        learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
+        # if epoch%500 == 0:
+        #     new_learning_rate = learning_rate.get_value() * 0.1
+        #     learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
+
+    end_time = timeit.default_timer()
 
     print >> sys.stderr, ('The code for file ' +
                                 os.path.split("__file__")[1] +
@@ -2759,10 +3190,6 @@ def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_ep
 
     end_time = timeit.default_timer()
 
-    print(('Optimization complete. Best validation score of %f %% '
-            'obtained at iteration %i, with test performance %f %%') %
-            (best_validation_loss, best_iter + 1, test_loss ))
-
     print >> sys.stderr, ('The code for file ' +
                                 os.path.split("__file__")[1] +
                                 ' ran for %.2fm' % ((end_time - start_time) / 60.))
@@ -2806,60 +3233,13 @@ out_file = sys.argv[1]
 if sys.argv[6] != "0":
 
     DRUG_ALL     = int(sys.argv[6])
-    DRUG_STD     = int(sys.argv[6]) * 2/3
-    DRUG_THIRD   = int(sys.argv[6]) * 1/3
-    DRUG_SQRT    = int(round(np.sqrt(int(sys.argv[6]))))
-    DRUG_50      = int(sys.argv[6]) * 3/2
-
-    if sys.argv[2][:6] == "manual":
-        d_neurons    = [int(x) for x in sys.argv[2].split("_")[1:]]
-    elif sys.argv[2]   == "sqrt":
-        d_neurons    = [DRUG_SQRT]*2
-    elif sys.argv[2] == "std_sqrt":
-        d_neurons    = [DRUG_STD, DRUG_SQRT]
-    elif sys.argv[2] == "std_std":
-        d_neurons    = [DRUG_STD, DRUG_STD]
-    elif sys.argv[2] == "std_third_sqrt":
-        d_neurons    = [DRUG_STD, DRUG_THIRD, DRUG_SQRT]
-    elif sys.argv[2] == "std_third":
-        d_neurons    = [DRUG_STD, DRUG_THIRD]
-    elif sys.argv[2] == "all":
-        d_neurons    = [DRUG_ALL, DRUG_ALL]
-    elif sys.argv[2] == "1_50":
-        d_neurons    = [DRUG_50, DRUG_50]
-    else :
-        DRUG_NEURONS = int(sys.argv[2])
-        d_neurons    = [DRUG_NEURONS]*1
+    d_neurons    = [int(x) for x in sys.argv[2].split("_")[1:]]
 
     print "d_neurons " + str(d_neurons)
 
 CELL_ALL     = int(sys.argv[7])
-CELL_STD     = int(sys.argv[7]) * 2/3
-CELL_THIRD   = int(sys.argv[7]) * 1/3
-CELL_SQRT    = int(round(np.sqrt(int(sys.argv[7]))))
-CELL_50      = int(sys.argv[7]) * 3/2
-
-if sys.argv[3][:6] == "manual":
-    c_neurons    = [int(x) for x in sys.argv[3].split("_")[1:]]
-elif sys.argv[3] == "sqrt":
-    c_neurons    = [CELL_SQRT]*2
-elif sys.argv[3] == "std_sqrt":
-    c_neurons    = [CELL_STD, CELL_SQRT]
-elif sys.argv[3] == "std_std":
-    c_neurons    = [CELL_STD, CELL_STD]
-elif sys.argv[3] == "std_third_sqrt":
-    c_neurons    = [CELL_STD, CELL_THIRD, CELL_SQRT]
-elif sys.argv[3] == "std_third":
-    c_neurons    = [CELL_STD, CELL_THIRD]
-elif sys.argv[3] == "all":
-    c_neurons    = [CELL_ALL, CELL_ALL]
-elif sys.argv[3] == "1_50":
-    c_neurons    = [CELL_50, CELL_50]
-else :
-    CELL_NEURONS = int(sys.argv[3])
-    c_neurons    = [CELL_NEURONS]*1
+c_neurons    = [int(x) for x in sys.argv[3].split("_")[1:]]
 print "c_neurons " + str(c_neurons)
-
 
 FUSION_NEURONS = [int(x) for x in sys.argv[4].split("_")[1:]] #NOTE: Assumes in the form "manual_x_x_..."
 print "FUSION_NEURONS " + str(FUSION_NEURONS)
@@ -2880,15 +3260,12 @@ print "mf_manual " + str(mf_manual)
 #OBTAIN FILES
 file_name     = sys.argv[1]
 
-IN_FOLDER="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress
-# IN_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/TRAIN_TABLES/"
+IN_FOLDER="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/" #For tigress, may change to CTRP_FILES
 
 if class_mlp is True:
-    OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/" #For tigress
-    # OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/CLASS_RESULTS/"
+    OUT_FOLDER="/tigress/zamalloa/CGP_FILES/CLASS_RESULTS/" #For tigress, may change to CTRP_FILES
 else:
-    OUT_FOLDER="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/" #For tigress
-    # OUT_FOLDER="/home/zamalloa/Documents/FOLDER/CGP_FILES/REGRESSION_RESULTS/"
+    OUT_FOLDER="/tigress/zamalloa/CGP_FILES/REGRESSION_RESULTS/" #For tigress, may change to CTRP_FILES
 
 # EXECUTE LEARNING - Do we have any drug features?
 if sys.argv[6] != "0":
@@ -2907,7 +3284,7 @@ if sys.argv[6] != "0":
         if class_mlp is True:
 
             class_mlp_train_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
-                         datasets=drugval, train_batch_size=50,
+                         datasets=drugval, train_batch_size=100,
                          cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = FUSION_NEURONS,
                          p=0.7, dropout=True,
                          drug_name=out_file,

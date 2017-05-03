@@ -651,8 +651,8 @@ ctrp_bits         <- fread(paste0(in_morgan, "CTRP_MORGAN_BITS_r_",radii_set,"_b
 setnames(ctrp_bits, c("radius", "bits", "Compound", "bit_pos", "value"))
 ctrp_bits$bit_pos <- paste0("mcf_", ctrp_bits$bit_pos)
 
-# morgan_counts     <- fread(paste0(in_morgan, "CGP_MORGAN_COUNTS.txt"),
-#                        colClasses = c("numeric", "character", "numeric", "numeric"))[radius==radii_set,] #12 normal setting
+ctrp_counts       <- fread(paste0(in_morgan, "CTRP_MORGAN_COUNTS.txt"),
+                       colClasses = c("numeric", "character", "numeric", "numeric"))[radius==radii_set,] #12 normal setting
 
 #################################################### EXECUTE ####################################################
 # Apply
@@ -665,18 +665,18 @@ if (met_type=="drug_cor"){
   drug_sim   <- drug_sim[Var1!=Var2,]
 
 } else if (met_type=="morgan_bits"){
-  feat_table <- Function_top_cell_morgan_bits_features_extracted_mf(ctrp_new, ctrp_exp, morgan_bits,
+  feat_table <- Function_top_cell_morgan_bits_features_extracted_mf(ctrp_new, ctrp_exp, ctrp_bits,
                                                           max_cells = max_cells, max_bits = max_drugs,
-                                                          class = class_mlp, scaled = F, #MODIFIED
+                                                          class = class_mlp, scaled = T, #MODIFIED
                                                           genes = genes, pca = pca, lower_th, higher_th)
 
   drug_sim   <- data.table(melt(cor(acast(morgan_bits, bit_pos~Compound, value.var = "value"))))
   drug_sim   <- drug_sim[Var1!=Var2,]
 
 } else if (met_type=="morgan_counts"){
-  feat_table <- Function_top_cell_morgan_counts_features_extracted_mf(ctrp_new, ctrp_exp, morgan_counts,
+  feat_table <- Function_top_cell_morgan_counts_features_extracted_mf(ctrp_new, ctrp_exp, ctrp_counts,
                                                           max_cells = max_cells, max_counts = max_drugs,
-                                                          class = class_mlp, scaled = F, #MODIFIED
+                                                          class = class_mlp, scaled = T, #MODIFIED
                                                           genes = genes, pca = pca, lower_th, higher_th)
 
   drug_sim   <- data.table(melt(cor(acast(morgan_counts, Substructure~Compound, value.var = "Counts", fill = 0))))

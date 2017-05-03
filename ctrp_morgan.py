@@ -6,8 +6,8 @@ from rdkit.Chem import AllChem
 from rdkit import Chem
 
 # Load files
-file_in = open("/Users/jzamalloa/Documents/Rotation/DATABASES/CTRP/CTRPv2.2_2015_pub_CancerDisc_5_1210/v22.meta.per_compound.txt")
-drugs   = dict((x.split("\t")[1], x.split("\t")[8]) for x in file_in.read().splitlines()[1:])
+file_in = open("/Users/jzamalloa/Documents/Rotation/DATABASES/CTRP/CTRPv2.0_2015_ctd2_ExpandedDataset/v20.meta.per_compound.txt")
+drugs   = dict((x.split("\t")[1], x.split("\t")[10]) for x in file_in.read().splitlines()[1:])
 file_in.close()
 
 ############################################################################################################################################
