@@ -2452,7 +2452,7 @@ def class_mlp_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
                     MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
                     MODEL["logistic"]        = classifier.logRegressionLayer
 
-                    with open(OUT_FOLDER + "/" + str(epoch) + "_" + drug_name + ".pkl", "wb") as f:
+                    with open(OUT_FOLDER + "/" + drug_name + "_" + str(epoch) + ".pkl", "wb") as f:
                         cPickle.dump(MODEL, f)
 
                     #Only write if validation improvement
@@ -2679,7 +2679,7 @@ def class_mlp_train_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=
                     MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
                     MODEL["logistic"]        = classifier.logRegressionLayer
 
-                    with open(OUT_FOLDER + "/" + str(epoch) + "_" + drug_name + ".pkl", "wb") as f:
+                    with open(OUT_FOLDER + "/" + drug_name + "_" + str(epoch) + ".pkl", "wb") as f:
                         cPickle.dump(MODEL, f)
 
                 else:
@@ -2929,8 +2929,8 @@ def class_mlp_noearly_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epoch
                 #     MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
                 #     MODEL["logistic"]        = classifier.logRegressionLayer
                 #
-                #     with open(OUT_FOLDER + "/" + str(epoch) + "_" + drug_name + ".pkl", "wb") as f:
-                #         cPickle.dump(MODEL, f)
+                    # with open(OUT_FOLDER + "/" + drug_name + "_" + str(epoch) + ".pkl", "wb") as f:
+                    #     cPickle.dump(MODEL, f)
                 #
                 # else:
                 #     LR_COUNT = LR_COUNT+1
@@ -3466,7 +3466,7 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
 ####################################################################################################################################################################################################
 ####################################################################################################################################################################################################
 
-n_epochs = 2000
+n_epochs = 3000
 out_file = sys.argv[1]
 
 if sys.argv[6] != "0":

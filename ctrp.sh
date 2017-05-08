@@ -21,16 +21,16 @@ else
   mm="MC"
 fi
 
-for samples in all_split
+for samples in all
 do
-  for c in 40 # 600Number of cell features mb_early_none(300 600 950) folds(100 300 600 950)
+  for c in 400 800
   do
     cn=$c
     ch=$(($cn/2))
     cnh=$(($cn+$ch))
     for cell_n in "manual_${cnh}" # "manual_${cn}_${ch}"
     do
-    for d in 480 # Number of drug features mb_early_none(50 100 290) folds(50 150 290)
+    for d in 480
     do
       dn=$d
       dh=$(($dn/2))
@@ -49,11 +49,7 @@ do
         for b in 2048 # Morgan bit settings (Not needed for morgan counts choice) - 2048
         do
 
-          # for th_split in th_0.5_0.4 th_0.6_0.4 th_0.7_0.4 th_0.8_0.4 th_0.9_0.4 th_1.0_0.4 th_1.1_0.4 \
-          # th_0.6_0.5 th_0.7_0.5 th_0.8_0.5 th_0.9_0.5 th_1.0_0.5 th_1.1_0.5 \
-          # th_0.8_0.6 th_0.9_0.6 th_1.0_0.6 th_1.1_0.6 \
-          # th_0.9_0.7 th_1.0_0.7 th_1.1_0.7
-          for th_split in th_1.0_0.8 th_1.1_0.8
+          for th_split in th_1.1_0.4 th_0.9_0.5 th_0.5_0.4 th_1.1_0.3 th_1.1_0.2 th_1.1_0.1
           do
           echo $c $cell_n $d $drug_n $fusion_n $samples
 

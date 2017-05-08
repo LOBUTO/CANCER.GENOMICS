@@ -5,7 +5,7 @@ library(reshape2)
 
 # FUNCTIONS
 Function_top_cell_morgan_bits_features_extracted_mf <- function(feat_table, exp_table, morgan_table, max_cells=10, max_bits=10, scaled=T,
-                                                                class=F, genes=F, genespca=F, drugspca=F lower_th=0.4, higher_th=0.4){
+                                                                class=F, genes=F, genespca=F, drugspca=F, lower_th=0.4, higher_th=0.4){
 
   ###### Extract most variable cell features ######
   if (genespca==F){
@@ -708,14 +708,14 @@ if ( (samples == "all") | (grepl("all_rebalance_", samples)==T)){
     test_rows        <- valid_rows  #Same as valid
 
     Function_write_tables(feat_table, train_rows, valid_rows, test_rows, max_drugs, out_folder,
-                          file_name, scale_cell_tables=F, scale_drug_tables=F) #NOTE:CHANGED SCALING TEMPORARILY!!!
+                          file_name, scale_cell_tables=F, scale_drug_tables=F)
 
   } else if(fold=="fold_none"){
     # NOTE:Train with all data, literally, no split done for early stopping
     train_rows       <- 1:length(feat_table$target)
 
     Function_write_train_tables(feat_table, train_rows, max_drugs, out_folder,
-                                file_name, scale_cell_tables=F, scale_drug_tables=F) #NOTE:CHANGED SCALING TEMPORARILY!!!
+                                file_name, scale_cell_tables=T, scale_drug_tables=F)
 
   } else if (fold=="fold_all"){
     for (split_fold in 1:5){
