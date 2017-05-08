@@ -9,9 +9,10 @@ cell_n=$5 #manual_x_..
 fusion_n=$6 #manual_x_..
 genes=$7 #F/T
 batch_norm=$8 #cgp_nci60, cgp_ccle, tcga_brca, tcga_coad, tcga_luad, tcga_stad or None
-pca=$9 #T/F
-fold=${10} #fold_all, fold_early, fold_none
-mf_manual=${11} #How many mf weights in mf input layer (needs to be used if last layer of drug_n and cell_n are not equal)
+genespca=$9 #T/F
+drugspca=${10} #T/F
+fold=${11} #fold_all, fold_early, fold_none
+mf_manual=${12} #How many mf weights in mf input layer (needs to be used if last layer of drug_n and cell_n are not equal)
 
 if [ "$met_type" == "morgan_bits" ]
 then
@@ -22,7 +23,7 @@ fi
 
 for samples in all_split
 do
-  for c in 600 # Number of cell features mb_early_none(300 600 950) folds(100 300 600 950)
+  for c in 40 # 600Number of cell features mb_early_none(300 600 950) folds(100 300 600 950)
   do
     cn=$c
     ch=$(($cn/2))
@@ -48,7 +49,11 @@ do
         for b in 2048 # Morgan bit settings (Not needed for morgan counts choice) - 2048
         do
 
-          for th_split in th_0.5_0.4 th_0.6_0.4 th_0.7_0.4 th_0.8_0.4 th_0.9_0.4 th_1.0_0.4 th_1.1_0.4
+          # for th_split in th_0.5_0.4 th_0.6_0.4 th_0.7_0.4 th_0.8_0.4 th_0.9_0.4 th_1.0_0.4 th_1.1_0.4 \
+          # th_0.6_0.5 th_0.7_0.5 th_0.8_0.5 th_0.9_0.5 th_1.0_0.5 th_1.1_0.5 \
+          # th_0.8_0.6 th_0.9_0.6 th_1.0_0.6 th_1.1_0.6 \
+          # th_0.9_0.7 th_1.0_0.7 th_1.1_0.7
+          for th_split in th_1.0_0.8 th_1.1_0.8
           do
           echo $c $cell_n $d $drug_n $fusion_n $samples
 
@@ -59,9 +64,9 @@ do
             if [ "$fold" == "fold_early" ] || [ "$fold" == "fold_none" ]
             then
               echo "$fold"
-              file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
+              file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
 
-              Rscript GIT/ctrp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $pca $r $b $fold $th_split
+              Rscript GIT/ctrp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $genespca $drugspca $r $b $fold $th_split
 
               script_name="GIT/ctrp_multi_mlp.py"
 
@@ -72,9 +77,9 @@ do
               echo "Done sending multiplicative_fusion mlp job"
             else
               echo "$fold"
-              file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
+              file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
 
-              Rscript GIT/ctrp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $pca $r $b $fold $th_split
+              Rscript GIT/ctrp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $genespca $drugspca $r $b $fold $th_split
 
               for split_fold in 1 2 3 4 5
               do
@@ -83,7 +88,7 @@ do
                 script_name="GIT/ctrp_multi_mlp.py"
                 echo "$cell_n"
 
-                file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_fold_${split_fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
+                file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${split_fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
                 file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${fold} ${mf_manual}"
 
                 export script_name file_name

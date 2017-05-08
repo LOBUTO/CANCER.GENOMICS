@@ -175,7 +175,7 @@ class LinearRegression(object):
 
 class LogisticRegression(object):
 
-    def __init__(self, input, n_in, n_out):
+    def __init__(self, input, n_in, n_out, rng):
 
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
         self.W = theano.shared(
@@ -2190,7 +2190,7 @@ def class_mlp_mf_zero_drug(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epo
                                 os.path.split("__file__")[1] +
                                 ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
-def class_mlp_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5, input_p=0.2,
+def class_mlp_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
              datasets="datasets", train_batch_size=20,
              cell_n_hidden=[500,200,100], drug_n_hidden=[500,200,100], mf_manual="None", fusion_n_hidden = [500,200,100],
              p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"
@@ -2493,7 +2493,7 @@ def class_mlp_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, 
                                 os.path.split("__file__")[1] +
                                 ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
-def class_mlp_train_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5, input_p=0.2,
+def class_mlp_train_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
              datasets="datasets", train_batch_size=20,
              cell_n_hidden=[500,200,100], drug_n_hidden=[500,200,100], mf_manual="None", fusion_n_hidden = [500,200,100],
              p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"
@@ -2709,7 +2709,7 @@ def class_mlp_train_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=
                                 os.path.split("__file__")[1] +
                                 ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
-def class_mlp_train_noearly_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5, input_p=0.2,
+def class_mlp_noearly_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
              datasets="datasets", train_batch_size=20,
              cell_n_hidden=[500,200,100], drug_n_hidden=[500,200,100], mf_manual="None", fusion_n_hidden = [500,200,100],
              p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"
@@ -2770,7 +2770,7 @@ def class_mlp_train_noearly_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n
         cell_input_p=input_p,
         drug_p=p,
         drug_dropout=dropout,
-        drug_input_p=0.2
+        drug_input_p=input_p
     )
 
     cost = (
@@ -3195,7 +3195,7 @@ def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_ep
                                 os.path.split("__file__")[1] +
                                 ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
-def regression_mlp_train_noearly_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
+def regression_mlp_noearly_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
              datasets="datasets", train_batch_size=20,
              cell_n_hidden=[500,200,100], drug_n_hidden=[500,200,100], mf_manual = "None", fusion_n_hidden = [500,200,100],
              p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"
@@ -3508,6 +3508,7 @@ else:
 
 # EXECUTE LEARNING - Do we have any drug features?
 if sys.argv[6] != "0":
+    # If we have drug features
 
     train_drug  = pd.read_csv(IN_FOLDER + file_name + "_train_drug", sep="\t")
     train_cell  = pd.read_csv(IN_FOLDER + file_name + "_train_cell", sep="\t")
@@ -3538,6 +3539,7 @@ if sys.argv[6] != "0":
                          OUT_FOLDER = OUT_FOLDER)
 
     else:
+        #fold_all (x-fold) or fold_early
 
         valid_drug  = pd.read_csv(IN_FOLDER + file_name + "_valid_drug", sep="\t")
         valid_cell  = pd.read_csv(IN_FOLDER + file_name + "_valid_cell", sep="\t")
@@ -3550,14 +3552,17 @@ if sys.argv[6] != "0":
         valid_drug, valid_cell, valid_drug_index, valid_cell_index, valid_set_y = shared_drug_dataset_IC50_mf(valid_drug, valid_cell, valid_index, integers=class_mlp)
         test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf(test_drug,  test_cell,  test_index, integers=class_mlp)
 
+        #NOTE: Modified, excluded validation set, not needed when not using early stopping
+        # drugval = [(train_drug, train_cell, train_drug_index, train_cell_index, train_set_y),
+        #            (valid_drug, valid_cell, valid_drug_index, valid_cell_index, valid_set_y),
+        #            (test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y)]
         drugval = [(train_drug, train_cell, train_drug_index, train_cell_index, train_set_y),
-                   (valid_drug, valid_cell, valid_drug_index, valid_cell_index, valid_set_y),
                    (test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y)]
 
         if class_mlp is True:
 
-            class_mlp_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
-                         datasets=drugval, train_batch_size=50,
+            class_mlp_noearly_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
+                         datasets=drugval, train_batch_size=100,
                          cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = FUSION_NEURONS,
                          p=0.7, dropout=True,
                          drug_name=out_file,
