@@ -23,7 +23,7 @@ fi
 
 for samples in all
 do
-  for c in 400 800
+  for c in 800
   do
     cn=$c
     ch=$(($cn/2))
@@ -42,14 +42,16 @@ do
         last_total=$(($last_d+$last_c))
         last_half=$(($last_total/2))
         last_total_half=$(($last_total+$last_half))
-      for fusion_n in "manual_${last_total}_${last_half}" # "manual_${last_total}_${last_half}_${last_half}" "manual_${last_total_half}_${last_total}" # "manual_${last_total}" "manual_${last_total}_${last_total}" "manual_${last_total}_${last_total}_${last_total}"
+      for fusion_n in "manual_${last_total}_${last_half}" "manual_${last_total}_${last_half}_${last_half}" "manual_${last_total_half}_${last_total}" "manual_${last_total}" "manual_${last_total}_${last_total}" "manual_${last_total}_${last_total}_${last_total}"
       do
       for r in 16 # Morgan radii settings - 16
       do
         for b in 2048 # Morgan bit settings (Not needed for morgan counts choice) - 2048
         do
 
-          for th_split in th_1.1_0.4 th_0.9_0.5 th_0.5_0.4 th_1.1_0.3 th_1.1_0.2 th_1.1_0.1
+          # for th_split in th_1.1_0.4 th_1.1_0.3 th_1.1_0.2 th_1.1_0.1 th_1.0_0.3 th_1.0_0.2 th_1.0_0.1 th_0.8_0.4 th_0.8_0.5 \
+          # th_0.8_0.6 th_1.2_0.6 th_1.2_0.7 th_1.2_0.8
+          for th_split in th_0_0
           do
           echo $c $cell_n $d $drug_n $fusion_n $samples
 

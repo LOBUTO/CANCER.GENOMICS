@@ -694,11 +694,24 @@ if (met_type=="drug_cor"){
 }
 
 # Split tables depending on all or drug samples
-#UPDATE: Take folding into account
-if ( (samples == "all") | (grepl("all_rebalance_", samples)==T)){
+if ( (samples == "all") | (grepl("all_rebalance", samples)==T)){
   #NOTE: If "all_rebalance_", this type of rebalance has been already applied prior to building feat_table and indexes
 
-  temp_rows          <- 1:length(feat_table$target)
+  if (samples=="all"){
+    temp_rows          <- 1:length(feat_table$target)
+  } else {
+    pos <- which(feat_table$target == 1)
+    neg <- which(feat_table$target == 0)
+
+    if (length(pos) > length(neg)){
+      #Sampe from neg
+      needed_rows <- sample(neg, length(pos), replace=T)
+      temp_rows   <- c(pos, needed_rows)
+    } else {
+      needed_rows <- sample(pos, length(neg), replace=T)
+      temp_rows   <- c(neg, needed_rows)
+    }
+  }
 
   if (fold=="fold_early"){
     # NOTE:Train with all data (For the time being, use early stopping of 25%)
@@ -712,10 +725,10 @@ if ( (samples == "all") | (grepl("all_rebalance_", samples)==T)){
 
   } else if(fold=="fold_none"){
     # NOTE:Train with all data, literally, no split done for early stopping
-    train_rows       <- 1:length(feat_table$target)
+    train_rows       <- temp_rows
 
     Function_write_train_tables(feat_table, train_rows, max_drugs, out_folder,
-                                file_name, scale_cell_tables=T, scale_drug_tables=F)
+                                file_name, scale_cell_tables=T, scale_drug_tables=F) #NOTE: scaling choice NOTE NOTE NOTE NOTE NOTE (T for non-pca)
 
   } else if (fold=="fold_all"){
     for (split_fold in 1:5){

@@ -2697,7 +2697,7 @@ def class_mlp_train_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epochs=
             new_momentum = 1. - (1. - momentum.get_value()) * 0.999
             momentum.set_value(np.cast[theano.config.floatX](new_momentum))
         # adaption of learning rate
-        new_learning_rate = learning_rate.get_value() * 0.998
+        new_learning_rate = learning_rate.get_value() * 0.999
         learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
         # if epoch%500 == 0:
         #     new_learning_rate = learning_rate.get_value() * 0.1
@@ -3063,12 +3063,12 @@ def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_ep
         updates.append((param_update, momentum*param_update + (1. - momentum)*T.grad(cost, param)/(2*train_batch_size) ))
 
     train_model = theano.function(
-        inputs=[vector],
+        inputs=[index],
         outputs=cost,
         updates=updates,
         givens={
-            x_c: train_cell_x[train_cell_index_x[vector],],
-            x_d: train_drug_x[train_drug_index_x[vector],],
+            x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
+            x_d: train_drug_x[train_drug_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
             y: train_set_y[vector,],
             is_train: np.cast['int32'](1)
         },
@@ -3127,11 +3127,12 @@ def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_ep
         #     print new_learning_rate
         #     learning_rate.set_value(np.cast[theano.config.floatX](new_learning_rate))
 
-        #for minibatch_index in xrange(n_train_batches):
-        for minibatch_index in xrange(EPOCH_SIZE):
-
-            ran_index = list(np.random.randint(low=0, high=train_samples-1, size=train_batch_size))
-            minibatch_avg_cost = train_model(ran_index)
+        for minibatch_index in xrange(n_train_batches):
+        # for minibatch_index in xrange(EPOCH_SIZE):
+        #
+        #     ran_index = list(np.random.randint(low=0, high=train_samples-1, size=train_batch_size))
+        #     minibatch_avg_cost = train_model(ran_index)
+            minibatch_avg_cost = train_model(minibatch_index)
 
             rescale_weights(classifier.param_to_scale, 15.)
 
@@ -3532,7 +3533,7 @@ if sys.argv[6] != "0":
         else:
 
             regression_mlp_train_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
-                         datasets=drugval, train_batch_size=20,
+                         datasets=drugval, train_batch_size=200,
                          cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = FUSION_NEURONS,
                          p=0.7, dropout=True,
                          drug_name=out_file,
