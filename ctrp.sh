@@ -30,7 +30,7 @@ do
     cnh=$(($cn+$ch))
     for cell_n in "manual_${cnh}" # "manual_${cn}_${ch}"
     do
-    for d in 480
+    for d in 540
     do
       dn=$d
       dh=$(($dn/2))
