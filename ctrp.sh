@@ -28,25 +28,28 @@ do
     cn=$c
     ch=$(($cn/2))
     cnh=$(($cn+$ch))
-    for cell_n in "manual_${cnh}" # "manual_${cn}_${ch}"
+    for cell_n in manual_800_400_40 manual_800_400_20 manual_800_200_40 manual_800_200_20
     do
-    for d in 540
+    for d in 512
     do
       dn=$d
       dh=$(($dn/2))
       dnh=$(($dn+$dh))
-      for drug_n in "manual_${dnh}" # "manual_${dn}_${dh}"
+      for drug_n in manual_512_200_40 manual_512_200_20 
       do
         last_c=${cell_n##m*_}
         last_d=${drug_n##m*_}
         last_total=$(($last_d+$last_c))
         last_half=$(($last_total/2))
         last_total_half=$(($last_total+$last_half))
-      for fusion_n in "manual_${last_total}_${last_half}" "manual_${last_total}_${last_half}_${last_half}" "manual_${last_total_half}_${last_total}" "manual_${last_total}" "manual_${last_total}_${last_total}" "manual_${last_total}_${last_total}_${last_total}"
+        last_multi=$(($last_d*$last_c))
+        last_multi_half=$(($last_multi/2))
+
+      for fusion_n in "manual_${last_multi}" "manual_${last_multi}_${last_multi_half}" "manual_${last_multi_half}_${last_multi_half}" #"manual_${last_total}_${last_half}" "manual_${last_total}_${last_half}_${last_half}" "manual_${last_total_half}_${last_total}" "manual_${last_total}" "manual_${last_total}_${last_total}" "manual_${last_total}_${last_total}_${last_total}"
       do
-      for r in 16 # Morgan radii settings - 16
+      for r in 2 # Morgan radii settings - 16
       do
-        for b in 2048 # Morgan bit settings (Not needed for morgan counts choice) - 2048
+        for b in 512 # Morgan bit settings (Not needed for morgan counts choice) - 2048
         do
 
           # for th_split in th_1.1_0.4 th_1.1_0.3 th_1.1_0.2 th_1.1_0.1 th_1.0_0.3 th_1.0_0.2 th_1.0_0.1 th_0.8_0.4 th_0.8_0.5 \

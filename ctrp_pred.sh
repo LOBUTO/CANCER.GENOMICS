@@ -28,25 +28,28 @@ do
     cn=$c
     ch=$(($cn/2))
     cnh=$(($cn+$ch))
-    for cell_n in "manual_${cnh}" # "manual_${cn}_${ch}"
+    for cell_n in manual_800_400_40 manual_800_400_20 manual_800_200_40 manual_800_200_20 #"manual_${cnh}" # "manual_${cn}_${ch}"
     do
-    for d in 480 # Number of drug features
+    for d in 512 # Number of drug features
     do
       dn=$d
       dh=$(($dn/2))
       dnh=$(($dn+$dh))
-      for drug_n in "manual_${dnh}" # "manual_${dn}_${dh}"
+      for drug_n in manual_512_200_40 manual_512_200_20  #"manual_${dnh}" # "manual_${dn}_${dh}"
       do
         last_c=${cell_n##m*_}
         last_d=${drug_n##m*_}
         last_total=$(($last_d+$last_c))
         last_half=$(($last_total/2))
         last_total_half=$(($last_total+$last_half))
-      for fusion_n in "manual_${last_total}_${last_half}"  "manual_${last_total}_${last_half}_${last_half}" "manual_${last_total_half}_${last_total}" "manual_${last_total}" "manual_${last_total}_${last_total}" "manual_${last_total}_${last_total}_${last_total}"
+        last_multi=$(($last_d*$last_c))
+        last_multi_half=$(($last_multi/2))
+
+      for fusion_n in "manual_${last_multi}" "manual_${last_multi}_${last_multi_half}" "manual_${last_multi_half}_${last_multi_half}" #"manual_${last_total}_${last_half}" "manual_${last_total}_${last_half}_${last_half}" "manual_${last_total_half}_${last_total}" "manual_${last_total}" "manual_${last_total}_${last_total}" "manual_${last_total}_${last_total}_${last_total}"
       do
-      for r in 16 # Morgan radii settings
+      for r in 2 # Morgan radii settings
       do
-        for b in 2048 # Morgan bit settings (Not needed for morgan counts choice)
+        for b in 512 # Morgan bit settings (Not needed for morgan counts choice)
         do
 
           # for th_split in th_1.1_0.4 th_0.9_0.5 th_0.5_0.4 th_1.1_0.3 th_1.1_0.2 th_1.1_0.1
@@ -78,7 +81,7 @@ do
                 Rscript GIT/ctrp_pred.R $cancer $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $genespca $drugspca $r $b $genes
 
                 model_files="${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
-                model_files=$( ls CGP_FILES/${results_folder}/ | grep $model_files | grep -v combined | grep -v log | grep -v 2048.pkl)
+                model_files=$( ls CGP_FILES/${results_folder}/ | grep $model_files | grep -v combined | grep -v log | grep -v 512.pkl)
 
                 for model in $model_files
                 do
@@ -108,7 +111,7 @@ do
               Rscript GIT/ctrp_pred.R $target $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $genespca $drugspca $r $b $genes
 
               model_files="${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
-              model_files=$( ls CGP_FILES/${results_folder}/ | grep $model_files | grep -v combined | grep -v log | grep -v 2048.pkl)
+              model_files=$( ls CGP_FILES/${results_folder}/ | grep $model_files | grep -v combined | grep -v log | grep -v 512.pkl)
 
               for model in $model_files
               do

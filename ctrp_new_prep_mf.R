@@ -114,6 +114,9 @@ Function_top_cell_morgan_bits_features_extracted_mf <- function(feat_table, exp_
   feat_table <- unique(feat_table) #NOTE, may need to remove when "all_rebalance"
   print(paste0("actual total number of samples ", nrow(feat_table)))
 
+  #Pseudo-randomize order
+  feat_table <- feat_table[sample(nrow(feat_table))]
+
   # Extract indices for combinations
   if (max_bits > 0){
     drug_index <- sapply(feat_table$Compound,  function(x)  which(x==drug_feat$Compound))

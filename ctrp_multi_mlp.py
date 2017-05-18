@@ -367,13 +367,13 @@ class Multiplicative_fusion(object):
         drug_output = (drug_input * self.drug_alpha) + self.drug_beta
         cell_output = (cell_input * self.cell_alpha) + self.cell_beta
 
-        # Apply pairwise neuron multiplication
-        # output      = T.concatenate(
-        #                               [drug_output[:, [i]] * cell_output for i in neural_range],
-        #                                axis = 1
-        #                             )
-        # output      = drug_output * cell_output # Keep in mind that both have to have the same number of neurons
-        output       = T.concatenate([drug_output, cell_output], axis = 1) #NOTE: Modified to "true concatenation"
+        # Apply pairwise neuron multiplication - NOTE: FULL INFLUENCE
+        output      = T.concatenate(
+                                      [drug_output[:, [i]] * cell_output for i in xrange(neural_range)],
+                                       axis = 1
+                                    )
+        # # output      = drug_output * cell_output # Keep in mind that both have to have the same number of neurons
+        # output       = T.concatenate([drug_output, cell_output], axis = 1) #NOTE: Modified to "true concatenation"
         # Output
         self.output = output
 
@@ -536,7 +536,7 @@ class Multi_MLP_Regression(object):
             cell_input = getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
             drug_in  = drug_n_hidden[drug_layer_number-1],
             cell_in  = cell_n_hidden[cell_layer_number-1],
-            neural_range = neural_range, #NOTE: Integer representing total number of summed features between drug and cell previous layer
+            neural_range = neural_range, #NOTE: MODIFIED FOR FULL INFLUENCE (PAIRWISE MULTIPLICATION)
             rng =  rng
         )
         self.params = self.params + self.multiplicative_input.params
@@ -545,7 +545,7 @@ class Multi_MLP_Regression(object):
         self.fusion_layer_0 = HiddenLayer(
             rng=rng,
             input=self.multiplicative_input.output,
-            n_in=neural_range, #NOTE: Integer representing total number of summed features between drug and cell previous layer
+            n_in=drug_n_hidden[drug_layer_number-1]*cell_n_hidden[cell_layer_number-1], #NOTE: MODIFIED FOR FULL INFLUENCE (PAIRWISE MULTIPLICATION)
             n_out=fusion_n_hidden[0],
             activation=relu,
             is_train=is_train,
@@ -2976,24 +2976,8 @@ def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_ep
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_samples / train_batch_size
 
-    # compute fusion neural range
-    #neural_range = range(drug_n_hidden[-1])
-    # if mf_manual=="None":
-    #
-    #     if cell_n_hidden[-1] != drug_n_hidden[-1]:
-    #
-    #         neural_range  = min([cell_n_hidden[-1], drug_n_hidden[-1]])
-    #         if neural_range == cell_n_hidden[-1]:
-    #             drug_n_hidden = drug_n_hidden + [neural_range] # In place modification!!!
-    #         else :
-    #             cell_n_hidden = cell_n_hidden + [neural_range] # In place modification!!!
-    #     else:
-    #         neural_range = cell_n_hidden[-1]
-    # else:
-    #     neural_range  = mf_manual
-    #     drug_n_hidden = drug_n_hidden + [mf_manual]
-    #     cell_n_hidden = cell_n_hidden + [mf_manual]
-    neural_range = cell_n_hidden[-1] + drug_n_hidden[-1] #NOTE: Addition of last two layers
+    # neural_range = cell_n_hidden[-1] + drug_n_hidden[-1] #NOTE: Addition of last two layers
+    neural_range = drug_n_hidden[-1] #MODIFY FOR FULL INFLUENCE
     ######################
     # BUILD ACTUAL MODEL #
     ######################
@@ -3069,7 +3053,7 @@ def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_ep
         givens={
             x_c: train_cell_x[train_cell_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
             x_d: train_drug_x[train_drug_index_x[index * train_batch_size:(index + 1) * train_batch_size],],
-            y: train_set_y[vector,],
+            y: train_set_y[index * train_batch_size:(index + 1) * train_batch_size],
             is_train: np.cast['int32'](1)
         },
         on_unused_input='warn',
@@ -3759,7 +3743,7 @@ if sys.argv[6] != "0":
                          OUT_FOLDER = OUT_FOLDER)
         else:
 
-            regression_mlp_train_drug_batch_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
+            regression_mlp_train_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                          datasets=drugval, train_batch_size=1000,
                          cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = FUSION_NEURONS,
                          p=0.7, dropout=True,
