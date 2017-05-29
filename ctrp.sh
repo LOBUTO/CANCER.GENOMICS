@@ -23,19 +23,19 @@ fi
 
 for samples in all
 do
-  for c in 800
+  for c in 20 40 50
   do
     cn=$c
     ch=$(($cn/2))
     cnh=$(($cn+$ch))
-    for cell_n in manual_800_400_60 manual_800_400_80 manual_800_400_100 #manual_800_400_40 manual_800_400_20 manual_800_200_40 manual_800_200_20
+    for cell_n in manual_0 #manual_800_400_40 manual_800_400_20 manual_800_200_40 manual_800_200_20
     do
-    for d in 512
+    for d in 20 40 50
     do
       dn=$d
       dh=$(($dn/2))
       dnh=$(($dn+$dh))
-      for drug_n in manual_512_200_60 manual_512_200_80 manual_512_200_100 #manual_512_200_40 manual_512_200_20
+      for drug_n in manual_0 #manual_512_200_40 manual_512_200_20
       do
         last_c=${cell_n##m*_}
         last_d=${drug_n##m*_}
@@ -48,10 +48,11 @@ do
         last_multi_fourth=$(($last_multi/4))
         last_multi_fifth=$(($last_multi/5))
         last_multi_tenth=$(($last_multi/10))
+        c_d=$(($cn*$dn))
+        c_d_half=$(($c_d/2))
 
-      for fusion_n in "manual_${last_multi_tenth}_${last_multi_tenth}" "manual_${last_multi_tenth}_${last_multi_tenth}_${last_multi_tenth}" \
-      "manual_${last_multi_fourth}_${last_multi_fourth}" "manual_${last_multi_fourth}_${last_multi_fourth}_${last_multi_fourth}" \
-      "manual_${last_multi_fifth}_${last_multi_fifth}" "manual_${last_multi_fifth}_${last_multi_fifth}_${last_multi_fifth}" #"manual_${last_multi}" "manual_${last_multi}_${last_multi_half}" "manual_${last_multi_half}_${last_multi_half}"
+      for fusion_n in "manual_${c_d}" "manual_${c_d}_${c_d}" "manual_${c_d}_${c_d}_${c_d}"\
+      "manual_${c_d_half}" "manual_${c_d_half}_${c_d_half}" "manual_${c_d_half}_${c_d_half}_${c_d_half}"
       do
       for r in 2 # Morgan radii settings - 16
       do
@@ -65,44 +66,40 @@ do
           echo $c $cell_n $d $drug_n $fusion_n $samples
 
           # Prep training sets
-          if [ "$multiplicative_fusion" == "T" ]
+          if [ "$fold" == "fold_early" ] || [ "$fold" == "fold_none" ]
           then
+            echo "$fold"
+            file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
 
-            if [ "$fold" == "fold_early" ] || [ "$fold" == "fold_none" ]
-            then
-              echo "$fold"
-              file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
+            Rscript GIT/ctrp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $genespca $drugspca $r $b $fold $th_split
 
-              Rscript GIT/ctrp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $genespca $drugspca $r $b $fold $th_split
+            script_name="GIT/ctrp_multi_mlp.py"
+
+            file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${fold} ${multiplicative_fusion} ${mf_manual}"
+
+            export script_name file_name
+            sbatch GIT/cgp_mixed_class.cmd
+            echo "Done sending multiplicative_fusion mlp job"
+          else
+            echo "$fold"
+            file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
+
+            Rscript GIT/ctrp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $genespca $drugspca $r $b $fold $th_split
+
+            for split_fold in 1 2 3 4 5
+            do
+              echo "$split_fold"
 
               script_name="GIT/ctrp_multi_mlp.py"
+              echo "$cell_n"
 
-              file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${fold} ${mf_manual}"
+              file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${split_fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
+              file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${fold} ${multiplicative_fusion} ${mf_manual}"
 
               export script_name file_name
               sbatch GIT/cgp_mixed_class.cmd
               echo "Done sending multiplicative_fusion mlp job"
-            else
-              echo "$fold"
-              file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
-
-              Rscript GIT/ctrp_new_prep_mf.R $c $d $file_name $met_type $class_mlp $samples $genes $batch_norm $genespca $drugspca $r $b $fold $th_split
-
-              for split_fold in 1 2 3 4 5
-              do
-                echo "$split_fold"
-
-                script_name="GIT/ctrp_multi_mlp.py"
-                echo "$cell_n"
-
-                file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${split_fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
-                file_name="${file_name} ${drug_n} ${cell_n} ${fusion_n} ${class_mlp} ${d} ${c} ${fold} ${mf_manual}"
-
-                export script_name file_name
-                sbatch GIT/cgp_mixed_class.cmd
-                echo "Done sending multiplicative_fusion mlp job"
-              done
-            fi
+            done
           fi
         done
         done

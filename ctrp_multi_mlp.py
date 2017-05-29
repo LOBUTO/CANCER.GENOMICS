@@ -610,6 +610,109 @@ class Multi_MLP_Regression(object):
 
         self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
 
+class Direct_Multi_MLP_Regression(object):
+    def __init__(self, rng, cell_input, drug_input, is_train,
+                 cell_n_in, drug_n_in, fusion_n_hidden,
+                 n_out, cell_dropout=False,
+                 cell_p=0.5, cell_input_p=0.1,
+                 drug_p=0.5, drug_input_p=0.1):
+
+        #FUSION IS DONE DIRECTLY ON INPUT FEATURES (After dropout)
+        if cell_input_p!=None:
+            self.cell_input_layer = drop(cell_input, rng=rng, p=cell_input_p)
+            self.cell_input_layer = T.switch(T.neq(is_train, 0), self.cell_input_layer, cell_input)
+        else:
+            self.cell_input_layer = cell_input
+
+        if drug_input_p!=None:
+            self.drug_input_layer = drop(drug_input, rng=rng, p=drug_input_p)
+            self.drug_input_layer = T.switch(T.neq(is_train, 0), self.drug_input_layer, drug_input)
+        else:
+            self.drug_input_layer = drug_input
+
+        param_to_scale = [] #To scale weights to square length of 15
+
+        # APPLY FUSION
+        # Combine both outputs to obtain Multiplicative fusion layer
+        self.multiplicative_input = Multiplicative_fusion(
+            drug_input = self.drug_input_layer,
+            cell_input = self.cell_input_layer,
+            drug_in  = drug_n_in, #Unlike before, single number
+            cell_in  = cell_n_in, #Unlike before, single number
+            neural_range = drug_n_in, #Same as drug_n_in
+            rng =  rng
+        )
+        self.params = self.multiplicative_input.params
+
+        # PROCESS FUSION LAYERS
+        self.fusion_layer_0 = HiddenLayer(
+            rng=rng,
+            input=self.multiplicative_input.output,
+            n_in=drug_n_in*cell_n_in, #NOTE: MODIFIED FOR FULL INFLUENCE (PAIRWISE MULTIPLICATION)
+            n_out=fusion_n_hidden[0],
+            activation=relu,
+            is_train=is_train,
+            p=cell_p,
+            dropout=cell_dropout
+        )
+
+        self.params = self.params + self.fusion_layer_0.params # Plus previous separate layer params (drug + cell + mf)
+        param_to_scale = param_to_scale + [self.fusion_layer_0.params[0]]
+
+        fusion_layer_number = 1
+        if len(fusion_n_hidden)>1:
+
+            for layer in fusion_n_hidden[1:]:
+
+                current_hidden_layer = HiddenLayer(
+                                                    rng=rng,
+                                                    input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
+                                                    n_in=fusion_n_hidden[fusion_layer_number-1],
+                                                    n_out=fusion_n_hidden[fusion_layer_number],
+                                                    activation=relu,
+                                                    is_train=is_train,
+                                                    p=cell_p, #MAY CHANGE TO OWN VARIABLE
+                                                    dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
+                                                )
+
+                setattr(self, "fusion_layer_" + str(fusion_layer_number), current_hidden_layer)
+
+                self.params = self.params + getattr(self, "fusion_layer_" + str(fusion_layer_number)).params
+
+                param_to_scale = param_to_scale + [getattr(self, "fusion_layer_" + str(fusion_layer_number)).params[0]]
+
+                fusion_layer_number = fusion_layer_number + 1
+
+
+        # APPLY LINEAR REGRESSION
+        self.linearRegressionLayer = LinearRegression(
+            input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
+            n_in=fusion_n_hidden[fusion_layer_number-1],
+            n_out=n_out,
+            rng = rng
+        )
+
+        self.params = self.params + self.linearRegressionLayer.params
+
+        #L1 and L2 regularization
+        # self.L1 = (
+        #     abs(self.drug_layer_0.W).sum() + abs(self.linearRegressionLayer.W).sum()
+        # )
+        #
+        # self.L2_sqr = (
+        #     (self.drug_layer_0.W ** 2).sum() + (self.linearRegressionLayer.W ** 2).sum()
+        # )
+
+        self.errors = self.linearRegressionLayer.errors
+        self.pear_loss = self.linearRegressionLayer.pear_loss
+        self.pear_check = self.linearRegressionLayer.pear_check
+        self.NRMSE = self.linearRegressionLayer.NRMSE
+        self.pred = self.linearRegressionLayer.pred
+
+        self.param_to_scale = param_to_scale
+
+        self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
+
 class Multi_MLP_Regression_Zero_Drug(object):
     def __init__(self, rng, cell_input, is_train,
                  cell_n_in, cell_n_hidden,
@@ -2962,7 +3065,7 @@ def class_mlp_noearly_mf(learning_rate=10.0, L1_reg=0.00, L2_reg=0.0001, n_epoch
 def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000, initial_momentum = 0.5,
              datasets="datasets", train_batch_size=20,
              cell_n_hidden=[500,200,100], drug_n_hidden=[500,200,100], mf_manual = "None", fusion_n_hidden = [500,200,100],
-             p=0.5, dropout=False, input_p=None, drug_name=None, OUT_FOLDER="OUT_FOLDER"
+             p=0.5, dropout=False, input_p=None, mf=True, drug_name=None, OUT_FOLDER="OUT_FOLDER"
              ):
     #NOTE: TRAIN SET ONLY TRAINING
 
@@ -2996,30 +3099,44 @@ def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_ep
     rng = np.random.RandomState(1234)
 
     # construct the MLP class
-    classifier = Multi_MLP_Regression(
-        rng=rng,
-        is_train = is_train, #needed
-        cell_input = x_c, #needed
-        drug_input = x_d, #needed
-        cell_n_in = CELL_N_IN, #calculated
-        drug_n_in = DRUG_N_IN, #calculated
-        cell_n_hidden = cell_n_hidden, #calculated
-        drug_n_hidden = drug_n_hidden, #calculated
-        fusion_n_hidden = fusion_n_hidden,
-        neural_range = neural_range, #calculated
-        n_out=1,
-        cell_p=p,
-        cell_dropout=dropout,
-        cell_input_p=input_p,
-        drug_p=0.7,
-        drug_dropout=True,
-        drug_input_p=0.2
-    )
+    if mf == True:
+        classifier = Multi_MLP_Regression(
+            rng=rng,
+            is_train = is_train, #needed
+            cell_input = x_c, #needed
+            drug_input = x_d, #needed
+            cell_n_in = CELL_N_IN, #calculated
+            drug_n_in = DRUG_N_IN, #calculated
+            cell_n_hidden = cell_n_hidden, #calculated
+            drug_n_hidden = drug_n_hidden, #calculated
+            fusion_n_hidden = fusion_n_hidden,
+            neural_range = neural_range, #calculated
+            n_out=1,
+            cell_p=p,
+            cell_dropout=dropout,
+            cell_input_p=input_p,
+            drug_p=0.7,
+            drug_dropout=True,
+            drug_input_p=0.2
+        )
+    else:
+        classifier = Direct_Multi_MLP_Regression(
+            rng=rng,
+            is_train = is_train, #needed
+            cell_input = x_c, #needed
+            drug_input = x_d, #needed
+            cell_n_in = CELL_N_IN, #calculated
+            drug_n_in = DRUG_N_IN, #calculated
+            fusion_n_hidden = fusion_n_hidden,
+            cell_dropout=dropout,
+            n_out=1,
+            cell_p=p
+        )
 
     cost = (
         classifier.NRMSE(y) #pear_loss, NRMSE is more accurate if we are randomly sampling every mini-batch
-        + L1_reg * classifier.L1
-        + L2_reg * classifier.L2_sqr
+        # + L1_reg * classifier.L1
+        # + L2_reg * classifier.L2_sqr
     )
     ###################################
 
@@ -3144,8 +3261,11 @@ def regression_mlp_train_mf(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_ep
                     LR_COUNT = 0
 
                     MODEL = {}
-                    MODEL["cell_n_hidden"]   = [getattr(classifier, "cell_layer_" + str(e)) for e in xrange(len(cell_n_hidden))]
-                    MODEL["drug_n_hidden"]   = [getattr(classifier, "drug_layer_" + str(e)) for e in xrange(len(drug_n_hidden))]
+                    if mf==True:
+
+                        MODEL["cell_n_hidden"]   = [getattr(classifier, "cell_layer_" + str(e)) for e in xrange(len(cell_n_hidden))]
+                        MODEL["drug_n_hidden"]   = [getattr(classifier, "drug_layer_" + str(e)) for e in xrange(len(drug_n_hidden))]
+
                     MODEL["multiplicative"]  = classifier.multiplicative_input
                     MODEL["fusion_n_hidden"] = [getattr(classifier, "fusion_layer_" + str(e)) for e in xrange(len(fusion_n_hidden))]
                     MODEL["linear"]          = classifier.linearRegressionLayer
@@ -3702,8 +3822,13 @@ else:
 
 fold = sys.argv[8] #NOTE: Adding fold dependent feature. Determines how we train
 
-if len(sys.argv)==10:
-    mf_manual = int(sys.argv[9])
+if sys.argv[9] == "T":
+    multiplicative_fusion = True
+else:
+    multiplicative_fusion = False
+
+if len(sys.argv)==11:
+    mf_manual = int(sys.argv[10])
 else:
     mf_manual = "None"
 print "mf_manual " + str(mf_manual)
@@ -3746,7 +3871,7 @@ if sys.argv[6] != "0":
             regression_mlp_train_mf(learning_rate=10.0, L1_reg=0, L2_reg=0.0000000, n_epochs=n_epochs, initial_momentum=0.5, input_p=0.2,
                          datasets=drugval, train_batch_size=1000,
                          cell_n_hidden=c_neurons, drug_n_hidden= d_neurons, mf_manual=mf_manual, fusion_n_hidden = FUSION_NEURONS,
-                         p=0.7, dropout=True,
+                         p=0.7, dropout=True, mf = multiplicative_fusion,
                          drug_name=out_file,
                          OUT_FOLDER = OUT_FOLDER)
 

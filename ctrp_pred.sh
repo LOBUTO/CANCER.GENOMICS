@@ -12,7 +12,8 @@ batch_norm=$8 #cgp_nci60, cgp_ccle, tcga_brca, or None
 genespca=$9 #T/F
 drugspca=${10}
 fold=${11}
-mf_manual=${12}
+mf=${12}
+mf_manual=${13}
 
 if [ "$met_type" == "morgan_bits" ]
 then
@@ -23,19 +24,19 @@ fi
 
 for samples in all
 do
-  for c in 800 # Number of cell features
+  for c in 20 40 50 # Number of cell features
   do
     cn=$c
     ch=$(($cn/2))
     cnh=$(($cn+$ch))
-    for cell_n in manual_800_400_60 #manual_800_400_40 manual_800_400_20 manual_800_200_40 manual_800_200_20 #"manual_${cnh}" # "manual_${cn}_${ch}"
+    for cell_n in manual_0 #manual_800_400_40 manual_800_400_20 manual_800_200_40 manual_800_200_20 #"manual_${cnh}" # "manual_${cn}_${ch}"
     do
-    for d in 512 # Number of drug features
+    for d in 20 40 50 # Number of drug features
     do
       dn=$d
       dh=$(($dn/2))
       dnh=$(($dn+$dh))
-      for drug_n in manual_512_200_60 #manual_512_200_40 manual_512_200_20  #"manual_${dnh}" # "manual_${dn}_${dh}"
+      for drug_n in manual_0 #manual_512_200_40 manual_512_200_20  #"manual_${dnh}" # "manual_${dn}_${dh}"
       do
         last_c=${cell_n##m*_}
         last_d=${drug_n##m*_}
@@ -47,10 +48,11 @@ do
         last_multi_fourth=$(($last_multi/4))
         last_multi_fifth=$(($last_multi/5))
         last_multi_tenth=$(($last_multi/10))
+        c_d=$(($cn*$dn))
+        c_d_half=$(($c_d/2))
 
-      for fusion_n in "manual_${last_multi_tenth}_${last_multi_tenth}" "manual_${last_multi_tenth}_${last_multi_tenth}_${last_multi_tenth}" \
-      "manual_${last_multi_fourth}_${last_multi_fourth}" "manual_${last_multi_fourth}_${last_multi_fourth}_${last_multi_fourth}" \
-      "manual_${last_multi_fifth}_${last_multi_fifth}" "manual_${last_multi_fifth}_${last_multi_fifth}_${last_multi_fifth}"
+      for fusion_n in "manual_${c_d}" "manual_${c_d}_${c_d}" "manual_${c_d}_${c_d}_${c_d}"\
+      "manual_${c_d_half}" "manual_${c_d_half}_${c_d_half}" "manual_${c_d_half}_${c_d_half}_${c_d_half}"
       do
       for r in 2 # Morgan radii settings
       do
@@ -64,7 +66,7 @@ do
           do
             echo $c $cell_n $d $drug_n $fusion_n $samples $th_split
 
-            file_tag_1="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
+            file_tag_1="/tigress/zamalloa/CGP_FILES/TRAIN_TABLES/${samples}_scaled_C_${c}_${mm}_${d}_mf_${mf}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
 
             if [ "$class_mlp" == "T" ]
             then
@@ -72,7 +74,7 @@ do
             else
               results_folder="REGRESSION_RESULTS"
             fi
-            file_tag_2="/tigress/zamalloa/CGP_FILES/${results_folder}/${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
+            file_tag_2="/tigress/zamalloa/CGP_FILES/${results_folder}/${samples}_scaled_C_${c}_${mm}_${d}_mf_${mf}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
 
             cgp_drug="${file_tag_1}_train_drug"
             cgp_cell="${file_tag_1}_train_cell"
@@ -85,7 +87,7 @@ do
                 # Prep data to be predicted on
                 Rscript GIT/ctrp_pred.R $cancer $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $genespca $drugspca $r $b $genes
 
-                model_files="${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
+                model_files="${samples}_scaled_C_${c}_${mm}_${d}_mf_${mf}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
                 model_files=$( ls CGP_FILES/${results_folder}/ | grep $model_files | grep -v combined | grep -v log | grep -v 512.pkl)
 
                 for model in $model_files
@@ -102,7 +104,7 @@ do
                     echo $model_file
 
                     script_name="GIT/cgp_multi_pred.py"
-                    file_name="$cancer $cgp_drug $model_file $class_mlp $d"
+                    file_name="$cancer $cgp_drug $model_file $class_mlp $d $mf"
 
                     export script_name file_name
                     sbatch GIT/cgp_mixed_class.cmd
@@ -113,9 +115,9 @@ do
 
             else
               # Prep data to be predicted on
-              Rscript GIT/ctrp_pred.R $target $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $genespca $drugspca $r $b $genes
+              # Rscript GIT/ctrp_pred.R $target $met_type $cgp_drug $cgp_cell $class_mlp $batch_norm $genespca $drugspca $r $b $genes
 
-              model_files="${samples}_scaled_C_${c}_${mm}_${d}_mf_T_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
+              model_files="${samples}_scaled_C_${c}_${mm}_${d}_mf_${mf}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_genespca_${genespca}_drugspca_${drugspca}_fold_${fold}_thsplit_${th_split}_radii_${r}_bit_${b}"
               model_files=$( ls CGP_FILES/${results_folder}/ | grep $model_files | grep -v combined | grep -v log | grep -v 512.pkl)
 
               for model in $model_files
@@ -132,7 +134,7 @@ do
                   echo $model_file
 
                   script_name="GIT/cgp_multi_pred.py"
-                  file_name="$target $cgp_drug $model_file $class_mlp $d"
+                  file_name="$target $cgp_drug $model_file $class_mlp $d $mf"
 
                   export script_name file_name
                   sbatch GIT/cgp_mixed_class.cmd

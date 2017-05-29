@@ -269,9 +269,9 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
       target_samples <- colnames(exp_table)
       exp_table      <- exp_table[common_genes,]
 
-      cell_feat      <- cbind(exp_table, original_exp[common_genes, target_cells])
+      cell_feat      <- cbind(exp_table, original_exp[common_genes, feat_cells])
       cell_feat      <- cor(cell_feat, method = "spearman")
-      cell_feat      <- cell_feat[target_samples, target_cells] #Complete feature matrix that needs to be scaled
+      cell_feat      <- cell_feat[target_samples, feat_cells] #Complete feature matrix that needs to be scaled
 
       # Apply scaling to cell_feat prior to rotation by PCA
       ctrp_cell_cor_scale <- scale(ctrp_cell_cor) # To obtain original pre-PCA scaling attributes
@@ -349,23 +349,23 @@ Function_target_morgan_bits_features_extracted_mf <- function(target_new, exp_ta
         ctrp_cell_feat  <- t(original_exp)
         ctrp_cell_feat  <- data.table(ctrp_cell_feat[, target_cells], keep.rownames =T) # target_cells==target_genes
       }
+      setnames(ctrp_cell_feat, c("cell_name", colnames(ctrp_cell_feat)[2:ncol(ctrp_cell_feat)]))
+
+      not_scaling <- 1
+      scaling     <- 2:ncol(ctrp_cell_feat)
+
+      scale_train_cell  <- scale(ctrp_cell_feat[, scaling, with=F])
+
+      train_cell_mean   <- attributes(scale_train_cell)$`scaled:center`
+      train_cell_sd     <- attributes(scale_train_cell)$`scaled:scale`
+
+      cell_feat_scaled  <- sweep(cell_feat[, scaling, with=F], 2, train_cell_mean, "-")
+      cell_feat_scaled  <- sweep(cell_feat_scaled, 2, train_cell_sd, "/")
+      cell_feat         <- cbind(cell_feat[, not_scaling, with=F],
+                           cell_feat_scaled)
+
+      print("cell scaled")
     }
-    setnames(ctrp_cell_feat, c("cell_name", colnames(ctrp_cell_feat)[2:ncol(ctrp_cell_feat)]))
-
-    not_scaling <- 1
-    scaling     <- 2:ncol(ctrp_cell_feat)
-
-    scale_train_cell  <- scale(ctrp_cell_feat[, scaling, with=F])
-
-    train_cell_mean   <- attributes(scale_train_cell)$`scaled:center`
-    train_cell_sd     <- attributes(scale_train_cell)$`scaled:scale`
-
-    cell_feat_scaled  <- sweep(cell_feat[, scaling, with=F], 2, train_cell_mean, "-")
-    cell_feat_scaled  <- sweep(cell_feat_scaled, 2, train_cell_sd, "/")
-    cell_feat         <- cbind(cell_feat[, not_scaling, with=F],
-                         cell_feat_scaled)
-
-    print("cell scaled")
   }
   ##################################################################################################
 
@@ -699,7 +699,7 @@ if (info_drug_file$size > 1){
 if (met_type == "morgan_bits"){
   feat_table <- Function_target_morgan_bits_features_extracted_mf(feat_table, exp_table, morgan_bits,
                                                                          target_cells = cell_features, target_bits = drug_features,
-                                                                         genes=genes, scaling=T,
+                                                                         genes=genes, scaling=F,
                                                                          genespca = genespca, drugspca = drugspca,
                                                                          original_exp = ctrp_exp, original_bits = ctrp_bits)
 

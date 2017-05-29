@@ -731,7 +731,7 @@ if ( (samples == "all") | (grepl("all_rebalance", samples)==T)){
     train_rows       <- temp_rows
 
     Function_write_train_tables(feat_table, train_rows, max_drugs, out_folder,
-                                file_name, scale_cell_tables=T, scale_drug_tables=F) #NOTE: scaling choice NOTE NOTE NOTE NOTE NOTE (T for non-pca)
+                                file_name, scale_cell_tables=F, scale_drug_tables=F) #NOTE: scaling choice NOTE NOTE NOTE NOTE NOTE (T for non-pca)
 
   } else if (fold=="fold_all"){
     for (split_fold in 1:5){
