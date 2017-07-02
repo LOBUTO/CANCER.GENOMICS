@@ -44,7 +44,7 @@ for (g in c("c2", "c3", "c4", "c5", "c6", "c7")){
 		p_vals <- parApply(cl, gene_sets, 1, function(x) {
 			first_genes  <- as.vector(cgp_exp[gsea[Gene_set==x[1]]$genes, i])
 			second_genes <- as.vector(cgp_exp[gsea[Gene_set==x[2]]$genes, i])
-			return (wilcox.test(first_genes, second_genes, alternative="greater")$p.value)
+			return (wilcox.test(first_genes, second_genes, alternative="greater")$p.value) #p-val of how first compares to second
 		})
 		p_vals <- p.adjust(p_vals, method="fdr")
 		count <<-count+1

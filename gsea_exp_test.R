@@ -30,6 +30,7 @@ Function_prep_for_pca <- function(internal_cast, external_cast){
 }
 
 Function_target_data <- function(drug){
+	# Loads external data for a particular drug (geeleher datasets) or ccle
 
 	if(drug=="Bortezomib"){
 		target_data  <- readRDS(paste0(in_folder, "OBJECTS/030417_GEE_BORTEZOMIB_DEXAMETHASONE.rds"))
@@ -47,6 +48,16 @@ Function_target_data <- function(drug){
 		target_exp   <- target_data[["exp_table"]]
 		target_data  <- target_data[["feat_table"]][Compound==target_drug]
 		target_exp   <- target_exp[,unique(target_data$cell_name)]
+	} else if (drug=="Erlotinib"){
+		target_data  <- readRDS(paste0(in_folder, "OBJECTS/030417_GEE_ERLOTINIB.rds"))
+		target_exp   <- target_data[["exp_table"]]
+		target_data  <- target_data[["feat_table"]][Compound==target_drug]
+		target_exp   <- target_exp[,unique(target_data$cell_name)]
+	} else if(drug=="ccle"){
+		target_exp   <- readRDS(paste0(in_folder,"OBJECTS/121116_ccle_exp.rds"))
+		target_data  <- readRDS(paste0(in_folder,"OBJECTS/121116_ccle.rds"))
+		target_data  <- target_data[,c("cell_name", "Compound", "ActArea"),with=F]
+		setnames(target_data, c("cell_name", "Compound", "target"))
 	}
 
 	return(list(target_data, target_exp))
@@ -54,17 +65,18 @@ Function_target_data <- function(drug){
 
 # Parameters
 args          <- commandArgs(trailingOnly = TRUE)
-fdrs          <- c(0.0001, 0.001, 0.01, 0.05, 0.1)
-# gsea_type     <- c("h", "c1", "c2.cp.biocarta", "c3", "cancer")
-gsea_type     <- c("c3")
-target_drug   <- "Cisplatin"# "Bortezomib"
-metric        <- "AUC"
+fdrs          <- c(0.01, 0.05, 0.1, 0.0001, 0.001)
+# gsea_type     <- c("h", "c1", "c2.cp.biocarta", "c3", "cancer") 
+gsea_type     <- c("cancer")
+target_drug   <- "ccle" #"Bortezomib"
+metric        <- "logIC50"
 metric        <- ifelse(metric=="logIC50", metric, "")
 multi_type    <- as.logical(args[1]) # Only call True when all prev fdrs have been calculated
 
 mac_folder    <- "/Users/jzamalloa/Documents/Rotation/PIPELINES/"
 lab_folder    <- "/home/zamalloa/Documents/Rotation/PIPELINES/"
-in_folder     <- mac_folder
+gpu_folder    <- "/tigress/zamalloa/"
+in_folder     <- gpu_folder
 
 # Load common files
 cgp_new      <- readRDS(paste0(in_folder, "CGP_FILES/082916_cgp_new.rds"))
@@ -72,7 +84,7 @@ target_data  <- Function_target_data(target_drug)
 target_exp   <- target_data[[2]]
 target_data  <- target_data[[1]]
 
-target_drug  <- ifelse(target_drug == "Bortezomib", "bortezo", target_drug )
+# target_drug  <- ifelse(target_drug == "Bortezomib", "bortezo", target_drug )
 
 # Process per fdr threshold
 for (fdr_th in fdrs){
@@ -169,45 +181,45 @@ for (fdr_th in fdrs){
 	}
 
 	# Build model
-	cgp_gsea     <- acast(cgp_gsea, sample~gs, value.var = "binary")
-	samples_gsea <- acast(samples_gsea, sample~gs, value.var = "binary")
+	# cgp_gsea     <- acast(cgp_gsea, sample~gs, value.var = "binary")
+	# samples_gsea <- acast(samples_gsea, sample~gs, value.var = "binary")
 
-	pca_applied  <- Function_prep_for_pca(cgp_gsea, samples_gsea)
+	# pca_applied  <- Function_prep_for_pca(cgp_gsea, samples_gsea)
 
-	feat_table   <- cgp_new[Compound==target_drug]
-	if (metric =="logIC50"){
-		print("Using IC50")
-		feat_table     <- feat_table[,c("cell_name", "IC50"),with=F]
-		feat_table$AUC <- log(feat_table$IC50)
-	}
+	# feat_table   <- cgp_new[Compound==target_drug]
+	# if (metric =="logIC50"){
+	# 	print("Using IC50")
+	# 	feat_table     <- feat_table[,c("cell_name", "IC50"),with=F]
+	# 	feat_table$AUC <- log(feat_table$IC50)
+	# }
 	
-	feat_table   <- feat_table[,c("cell_name", "AUC"),with=F]		
-	target_table <- target_data[Compound==target_drug][,c("cell_name", "target"),with=F]
+	# feat_table   <- feat_table[,c("cell_name", "AUC"),with=F]		
+	# target_table <- target_data[Compound==target_drug][,c("cell_name", "target"),with=F]
 
-	feat_table   <- merge(feat_table, data.table(pca_applied[["internal"]], keep.rownames = T), 
-						  by.x="cell_name", by.y="rn")[,-c("cell_name"),with=F]
-	target_table <- merge(target_table, data.table(pca_applied[["external"]], keep.rownames = T), 
-						  by.x="cell_name", by.y="rn")[,-c("cell_name"),with=F]
+	# feat_table   <- merge(feat_table, data.table(pca_applied[["internal"]], keep.rownames = T), 
+	# 					  by.x="cell_name", by.y="rn")[,-c("cell_name"),with=F]
+	# target_table <- merge(target_table, data.table(pca_applied[["external"]], keep.rownames = T), 
+	# 					  by.x="cell_name", by.y="rn")[,-c("cell_name"),with=F]
 
-	# Predict
-	model_output <- data.table()
-	n_feat       <- c(2:10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 150, 175, 200, 300, 400, 500, 600)
-	max_feat     <- ncol(feat_table) - 1
-	n_feat       <- n_feat[n_feat <= max_feat]
+	# # Predict
+	# model_output <- data.table()
+	# n_feat       <- c(2:10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 150, 175, 200, 300, 400, 500, 600)
+	# max_feat     <- ncol(feat_table) - 1
+	# n_feat       <- n_feat[n_feat <= max_feat]
 
-	for (f in n_feat){
-		print(f)
-		pca_model     <- lm(AUC~., data=feat_table[, 1:(f+1), with=F])
-		pred_features <- setdiff(colnames(feat_table[, 1:(f+1), with=F]), "AUC")
+	# for (f in n_feat){
+	# 	print(f)
+	# 	pca_model     <- lm(AUC~., data=feat_table[, 1:(f+1), with=F])
+	# 	pred_features <- setdiff(colnames(feat_table[, 1:(f+1), with=F]), "AUC")
 
-		predictions   <- predict.lm(object = pca_model, newdata = target_table[ ,pred_features, with=F])
+	# 	predictions   <- predict.lm(object = pca_model, newdata = target_table[ ,pred_features, with=F])
 
-		model_output  <- rbind(model_output, data.table(n_feat = f, ACTUAL=target_table$target, PREDICTION=predictions, target=target_drug))
-	}
+	# 	model_output  <- rbind(model_output, data.table(n_feat = f, ACTUAL=target_table$target, PREDICTION=predictions, target=target_drug))
+	# }
 
-	# Output
-	saveRDS(model_output, paste0(in_folder, "GSEA_FILES/cgp_", target_drug,"_",paste0(gsea_type, collapse = "_"), "_fdr_",fdr_th,"_pred",metric,".rds"))
-	print("Done writing predictions")
+	# # Output
+	# saveRDS(model_output, paste0(in_folder, "GSEA_FILES/cgp_", target_drug,"_",paste0(gsea_type, collapse = "_"), "_fdr_",fdr_th,"_pred",metric,".rds"))
+	# print("Done writing predictions")
 }
 
 print("Done writing files")
