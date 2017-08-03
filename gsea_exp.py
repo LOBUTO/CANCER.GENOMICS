@@ -1,9 +1,12 @@
 # gsea_exp.py
+# cgp_site_gmv.R was used to build cgp_site_gmv_exp
+
 import sys
 import pandas as pd
 import numpy as np
 import itertools
 from scipy.stats import mannwhitneyu
+from scipy.stats import ttest_ind
 from joblib import Parallel, delayed
 
 def mann_pval(gs):
@@ -23,34 +26,51 @@ def mann_pval(gs):
 
 		# Perform wilcoxon test
 		pvals = mannwhitneyu(genes_1_exp, genes_2_exp, alternative="greater")[1]
+		# pvals = ttest_ind(genes_1_exp, genes_2_exp, equal_var=False)[1]
 
 		gs_pvals = gs_pvals + [pvals]
 
-	# print(len(main_dict)/gene_set_length)
-	return({"gs":name, "pvals":gs_pvals, "samples":samples})
+	return({"sample":samples, "gs":name, "pvals":gs_pvals})
 
 # Load arguments
 exp_type   = sys.argv[1]
 base       = sys.argv[2] # Base can be None or cgp/ctrp
-gsea_type  = sys.argv[3] #c("h", "c1", "c2.cp.biocarta", "c3", "cancer") 
+gsea_type  = sys.argv[3] # ("h", "c1", "c2.cp.biocarta", "c3", "cancer") - OR - joined combination (i.e. h_c1)
 both       = sys.argv[4] # T/F Both tests, not 2 sided, but one sided on both sides
+ext_gmv    = sys.argv[5] # T/F apply gmv normalization in this script
+drug       = sys.argv[6] # Cisplatin, Bortezomib (unlike bortezomib_a in 'exp_type')
 
 # Load files
 in_mac     = "/Users/jzamalloa/Documents/Rotation/PIPELINES/"
 in_tiger   = "/tigress/zamalloa/"
 in_lab     = "/home/zamalloa/Documents/Rotation/PIPELINES/"
 in_folder  = in_tiger
-gsea       = pd.read_csv(in_folder + "GSEA_FILES/" + gsea_type + "_sets", sep="\t")
 
-if exp_type=="cgp":
-	in_exp    = pd.read_csv(in_folder + "CGP_FILES/cgp_exp", sep="\t")
-elif exp_type=="ctrp":
+gsea       = pd.DataFrame()
+for g in gsea_type.split("_"):
+	gsea       = pd.concat([gsea,
+							pd.read_csv(in_folder + "GSEA_FILES/" + g + "_sets", sep="\t")]) 
+
+if exp_type=="ctrp":
 	in_exp    = pd.read_csv(in_folder + "CTRP_FILES/ctrp_exp_2.1", sep="\t")
-elif exp_type=="ccle":
-	in_exp    = pd.read_csv(in_folder + "CGP_FILES/ccle_exp", sep="\t")
+else:
+	in_exp    = pd.read_csv(in_folder + "CGP_FILES/" + exp_type + "_exp", sep="\t")	
+
+	# Selecting relevant samples
+	if "cgp" not in exp_type:
+		target    = pd.read_csv(in_folder + "CGP_FILES/" + exp_type + "_target", sep="\t")
+		target    = target[target.Compound==drug]
+		in_exp    = in_exp.loc[:, ["rn"]+list(target["cell_name"])]
 
 # Pre-process
 exp_matrix = in_exp.iloc[:, 1:].as_matrix()
+exp_mean   = np.mean(exp_matrix, axis=1).reshape(exp_matrix.shape[0], 1)
+exp_var    = np.var(exp_matrix, axis=1, ddof=1).reshape(exp_matrix.shape[0], 1)
+
+if ext_gmv == "T":
+
+	print("Applying gmv normalization")
+	exp_matrix = (exp_matrix - exp_mean) / exp_var
 
 samples    = list(in_exp)[1:]
 genes      = list(in_exp["rn"])
@@ -63,8 +83,11 @@ print(gsea.shape)
 # Do we filter by a base?
 if base=="None":
 	gene_sets  = gsea.groupby(["Gene_set"]).size().reset_index(name="count")
-	gene_sets  = gene_sets[gene_sets["count"] > 50]
-	gene_sets  = gene_sets[gene_sets["count"] < 200]
+	print(gene_sets)
+	gene_sets  = gene_sets[gene_sets["count"] >= 100] #Changed back to 100!!!
+	print(gene_sets)
+	# gene_sets  = gene_sets[gene_sets["count"] <= 150]
+	# print(gene_sets)
 	gene_sets  = [i for i in itertools.combinations(list(gene_sets["Gene_set"]),2)]
 	
 	if both=="T":
@@ -79,21 +102,23 @@ else:
 print(gsea_type, len(gene_sets))
 
 # Process and write
-file_out = open(in_folder + "GSEA_FILES/" + gsea_type + "_gsea_"+ exp_type + "_both_" + both + "_pvals", "w")
-file_out.write("sample" + "\t" + "gs" + "\t" + "pvals")
-file_out.close()
-
-count = 0.0
-gene_set_length = float(len(gene_sets))
+# file_out = open(in_folder + "GSEA_FILES/" + gsea_type + "_gsea_"+ exp_type + "_both_" + both + "_pvals", "w")
+# file_out.write("sample" + "\t" + "gs" + "\t" + "pvals")
+# file_out.close()
 
 main_dict = Parallel(n_jobs=40)(delayed(mann_pval)(i) for i in gene_sets)
 
 print("Done calculating")
 # Write to file
-for gs in main_dict:
-	for i in xrange(len(gs["samples"])):
-		with open(in_folder + "GSEA_FILES/" + gsea_type + "_gsea_"+ exp_type + "_both_" + both + "_pvals", "a") as logfile:
-			logfile.write("\n" + gs["samples"][i] + "\t" + gs["gs"] + "\t" + str(gs["pvals"][i]))
+main_dict = pd.concat([pd.DataFrame(i) for i in main_dict])
+file_out  = in_folder + "GSEA_FILES/" + gsea_type + "_gsea_"+ exp_type + "_both_" + both + "_ext_gmv_" + ext_gmv + "_pvals"
+
+main_dict.to_csv(file_out, sep="\t", header=True, index=False)
+
+# for gs in main_dict:
+# 	for i in xrange(len(gs["samples"])):
+# 		with open(in_folder + "GSEA_FILES/" + gsea_type + "_gsea_"+ exp_type + "_both_" + both + "_pvals", "a") as logfile:
+# 			logfile.write("\n" + gs["samples"][i] + "\t" + gs["gs"] + "\t" + str(gs["pvals"][i]))
 
 
 print ("Done writing")
