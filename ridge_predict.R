@@ -35,7 +35,7 @@ Function_lasso_predict <- function(test_file, test_target, train_table, train_ta
   lambdas       <- 10^seq(3, -2, by = -.1)
   ridge_model   <- cv.glmnet(acast(train_table, sample~gs, value.var="binary", fill=0)[train_target$cell_name, common_gs],
   							 type.measure = "auc",
-                             as.factor(train_target$class), alpha=1, lambda = lambdas, family="binomial", nfolds=5)
+                             as.factor(train_target$class), alpha=1, lambda = lambdas, family="binomial", nfolds=5, standardize=F)
   
   # Predict
   ridge_predict <- predict(ridge_model$glmnet.fit, s = ridge_model$lambda.min, 
@@ -92,11 +92,11 @@ Function_ridge_predict <- function(target, test_target, train_table, train_targe
   require(car)
   
   # target[,p_vals:=p.adjust(pvals, method="fdr"), by="sample"]
-  target[,p_vals:=p.adjust(pvals), by="sample"]
+  target[,p_vals:=p.adjust(pvals, method="fdr"), by="sample"]
   target$binary <- ifelse(target$p_vals < pval_th, 1, 0)
   
   # train_table[,p_vals:=p.adjust(pvals, method = "fdr"), by="sample"]
-  train_table[,p_vals:=p.adjust(pvals), by="sample"]
+  train_table[,p_vals:=p.adjust(pvals, method="fdr"), by="sample"]
   train_table$binary   <- ifelse(train_table$p_vals < pval_th, 1, 0)
   
   common_gs      <- intersect(unique(target$gs), unique(train_table$gs))
@@ -122,7 +122,7 @@ Function_ridge_predict <- function(target, test_target, train_table, train_targe
   # Model
   lambdas       <- 10^seq(3, -2, by = -.1)
   ridge_model   <- cv.glmnet(acast(train_table, sample~gs, value.var="binary", fill=0)[train_target$cell_name, common_gs],
-                             train_target$IC50, alpha=0, lambda = lambdas)
+                             train_target$IC50, alpha=0, lambda = lambdas, standardize=F)
   
   # Predict
   ridge_predict <- predict(ridge_model$glmnet.fit, s = ridge_model$lambda.min, 
@@ -179,15 +179,18 @@ Function_cgp_name <- function(name){
 
 	if ((name=="bortezomib_a") | (name=="bortezomib_b")){
 		name <- "Bortezomib"
+	} else if (grepl("tcga", name)){
+		name <- gsub("tcga_", "", name)
+		name <- strsplit(name, "_")[[1]][1]
+
 	} else{
 		substr(name, 1, 1) <- toupper(substr(name, 1, 1))	
 	}
-	
 	return(name)
 }
 
 Function_target_table <- function(target){
-	if (target=="tcga_5-Fluorouracil"){
+	if (target %in% c("tcga_5-Fluorouracil", "tcga_5-Fluorouracil_gmv","tcga_5-Fluorouracil_site_gmv")){
 		target_table <- fread("CGP_FILES/tcga_5-Fluorouracil_target")		
 	} else if (target=="bortezomib_a"){
 		target_table <- readRDS("OBJECTS/030417_GEE_BORTEZOMIB_DEXAMETHASONE.rds")[["feat_table_a"]][Compound=="Bortezomib"]
@@ -203,6 +206,33 @@ Function_target_table <- function(target){
 	return(target_table)
 }
 
+Function_load_train <- function(exp_train, train_table){
+	# Loading multiple exp_train if present
+	exp_train <- strsplit(exp_train, "*", fixed = T)[[1]]
+
+	count     <- 1
+
+	main_pval  <- data.table()
+	main_table <- data.table()
+
+	for (e in exp_train){
+		print(paste0("Used ", count, " train dataset(s)"))
+
+		train_file   <- paste0("GSEA_FILES/", gsea_type,"_gsea_", e,"_both_T_ext_gmv_", gmv_train, "_pvals") # May need to modify this
+		train_pvals  <- fread(train_file)
+		
+		train_pvals$sample    <- paste0(train_pvals$sample, "_", letters[count])
+		train_table$cell_name <- paste0(train_table$cell_name, "_", letters[count])
+
+		main_pval    <- rbind(main_pval,  train_pvals)
+		main_table   <- rbind(main_table, train_table)
+
+		count <- count + 1
+	}
+
+	return(list(main_pval, main_table))
+}
+
 # Load arguments
 args         <- commandArgs(trailingOnly = TRUE)
 exp_train    <- args[1] #cgp/ cgp_site_gmv
@@ -211,7 +241,7 @@ gmv_test     <- args[3] #T/F gmv normalized test expression
 gsea_type    <- args[4] # cancer, c4..
 target       <- args[5] #Done bortezomib_a, docetaxel, cisplatin, tcga_Cisplatin, tcga_Gemcitabine_gmv, tcga_Temozolomide_gmv
 
-train_file   <- paste0("GSEA_FILES/", gsea_type,"_gsea_", exp_train,"_both_T_ext_gmv_", gmv_train, "_pvals")
+# train_file   <- paste0("GSEA_FILES/", gsea_type,"_gsea_", exp_train,"_both_T_ext_gmv_", gmv_train, "_pvals")
 train_table  <- readRDS("CGP_FILES/082916_cgp_new.rds")[Compound==Function_cgp_name(target),]
 
 target_file  <- paste0("GSEA_FILES/", gsea_type,"_gsea_", target ,"_both_T_ext_gmv_", gmv_test, "_pvals")
@@ -221,12 +251,15 @@ response     <- "IC50"
 # out_file     <- paste0("GSEA_FILES/RESULTS/",target,"_gmv_gee_lasso_pt_",response,"_3.rds")
 out_file     <- paste0("GSEA_FILES/RESULTS/", gsea_type, "_", exp_train ,"_",target,"_gee_ridge_pt_",response,
 						"_gmv_train_", gmv_train, "_gmv_test_", gmv_test , ".rds")
+print(exp_train)
+print(out_file)
 
 # Execute
+train        <- Function_load_train(exp_train, train_table) #exp_train separator -> "*"
 main_table   <- Function_ridge_predict_wrap(fread(target_file), 
 										    target_table, 
-											fread(train_file), 
-											train_table,
+											train[[1]], 
+											train[[2]],
 											powertrans = T,
 											response=response)
 
