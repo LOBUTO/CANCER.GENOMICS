@@ -1,5 +1,6 @@
 # gsea_exp.py
 # cgp_site_gmv.R was used to build cgp_site_gmv_exp
+# tcga expression sets (including tcga_site_gmv were constructed using tcga_exp.R)
 
 import sys
 import pandas as pd
@@ -44,7 +45,7 @@ drug       = sys.argv[6] # Cisplatin, Bortezomib (unlike bortezomib_a in 'exp_ty
 in_mac     = "/Users/jzamalloa/Documents/Rotation/PIPELINES/"
 in_tiger   = "/tigress/zamalloa/"
 in_lab     = "/home/zamalloa/Documents/Rotation/PIPELINES/"
-in_folder  = in_tiger
+in_folder  = in_lab
 
 gsea       = pd.DataFrame()
 for g in gsea_type.split("_"):
@@ -101,11 +102,6 @@ else:
 
 print(gsea_type, len(gene_sets))
 
-# Process and write
-# file_out = open(in_folder + "GSEA_FILES/" + gsea_type + "_gsea_"+ exp_type + "_both_" + both + "_pvals", "w")
-# file_out.write("sample" + "\t" + "gs" + "\t" + "pvals")
-# file_out.close()
-
 main_dict = Parallel(n_jobs=40)(delayed(mann_pval)(i) for i in gene_sets)
 
 print("Done calculating")
@@ -114,11 +110,5 @@ main_dict = pd.concat([pd.DataFrame(i) for i in main_dict])
 file_out  = in_folder + "GSEA_FILES/" + gsea_type + "_gsea_"+ exp_type + "_both_" + both + "_ext_gmv_" + ext_gmv + "_pvals"
 
 main_dict.to_csv(file_out, sep="\t", header=True, index=False)
-
-# for gs in main_dict:
-# 	for i in xrange(len(gs["samples"])):
-# 		with open(in_folder + "GSEA_FILES/" + gsea_type + "_gsea_"+ exp_type + "_both_" + both + "_pvals", "a") as logfile:
-# 			logfile.write("\n" + gs["samples"][i] + "\t" + gs["gs"] + "\t" + str(gs["pvals"][i]))
-
 
 print ("Done writing")
