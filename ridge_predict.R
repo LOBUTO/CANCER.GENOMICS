@@ -99,6 +99,11 @@ Function_ridge_predict <- function(target, test_target, train_table, train_targe
   train_table[,p_vals:=p.adjust(pvals, method="fdr"), by="sample"]
   train_table$binary   <- ifelse(train_table$p_vals < pval_th, 1, 0)
   
+  # Remove features with zero variance
+  train_table   <- train_table[,var=var(binary), by="gs"]
+  train_table   <- train_table[var!=0,]
+  train_table$var <- NULL
+
   common_gs      <- intersect(unique(target$gs), unique(train_table$gs))
   target         <- target[gs %in% common_gs,]
   train_table    <- train_table[gs %in% common_gs,]
