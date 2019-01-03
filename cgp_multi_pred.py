@@ -315,33 +315,49 @@ class Multiplicative_fusion(object):
     # different sources and output the Multiplicative_fusion layer along with
     # 4 parameters to be learned.
 
-    def __init__(self, drug_input, cell_input, drug_in, cell_in, neural_range,
+    def __init__(self, rng, drug_input, cell_input, drug_in, cell_in, neural_range,
                  cell_alpha=None, drug_alpha=None, cell_beta=None, drug_beta=None):
-
-        # neural_range is the neuron range from drug_out
-        # (ie. precalculated range of last drug hidden layer)
 
         self.drug_input = drug_input
         self.cell_input = cell_input
 
         if cell_alpha is None:
 
-            cell_alpha_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            cell_alpha_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(cell_in)),
+                                                high =  np.sqrt(6. /(cell_in)),
+                                                size = (cell_in)
+                                          ), dtype=theano.config.floatX)
             cell_alpha = theano.shared(value=cell_alpha_value, name='cell_alpha', borrow=True)
 
         if drug_alpha is None:
 
-            drug_alpha_value = np.full((drug_in), .1,  dtype=theano.config.floatX)
+            #drug_alpha_value = np.full((drug_in), .1,  dtype=theano.config.floatX)
+            drug_alpha_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(drug_in)),
+                                                high =  np.sqrt(6. /(drug_in)),
+                                                size = (drug_in)
+                                          ), dtype=theano.config.floatX)
             drug_alpha = theano.shared(value=drug_alpha_value, name='drug_alpha', borrow=True)
 
         if cell_beta is None:
 
-            cell_beta_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            #cell_beta_value = np.full((cell_in), .1,  dtype=theano.config.floatX)
+            cell_beta_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(cell_in)),
+                                                high =  np.sqrt(6. /(cell_in)),
+                                                size = (cell_in)
+                                          ), dtype=theano.config.floatX)
             cell_beta = theano.shared(value=cell_beta_value, name='cell_beta', borrow=True)
 
         if drug_beta is None:
 
-            drug_beta_value = np.full((drug_in), .1,  dtype=theano.config.floatX)
+            #drug_beta_value = np.full((drug_in), .1,  dtype=theano.config.floatX)
+            drug_beta_value = np.asarray(rng.uniform(
+                                                low  = -np.sqrt(6. /(drug_in)),
+                                                high =  np.sqrt(6. /(drug_in)),
+                                                size = (drug_in)
+                                          ), dtype=theano.config.floatX)
             drug_beta = theano.shared(value=drug_beta_value, name='drug_beta', borrow=True)
 
         self.cell_alpha = cell_alpha
@@ -353,12 +369,13 @@ class Multiplicative_fusion(object):
         drug_output = (drug_input * self.drug_alpha) + self.drug_beta
         cell_output = (cell_input * self.cell_alpha) + self.cell_beta
 
-        # Apply pairwise neuron multiplication
-        # output      = T.concatenate(
-        #                               [drug_output[:, [i]] * cell_output for i in neural_range],
-        #                                axis = 1
-        #                             )
-        output      = drug_output * cell_output # Keep in mind that both have to have the same number of neurons
+        # Apply pairwise neuron multiplication - NOTE: FULL INFLUENCE
+        output      = T.concatenate(
+                                      [drug_output[:, [i]] * cell_output for i in xrange(neural_range)],
+                                       axis = 1
+                                    )
+        # # output      = drug_output * cell_output # Keep in mind that both have to have the same number of neurons
+        # output       = T.concatenate([drug_output, cell_output], axis = 1) #NOTE: Modified to "true concatenation"
         # Output
         self.output = output
 
@@ -521,7 +538,7 @@ class Multi_MLP_Regression(object):
             cell_input = getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
             drug_in  = drug_n_hidden[drug_layer_number-1],
             cell_in  = cell_n_hidden[cell_layer_number-1],
-            neural_range = neural_range,
+            neural_range = neural_range, #NOTE: MODIFIED FOR FULL INFLUENCE (PAIRWISE MULTIPLICATION)
             rng =  rng
         )
         self.params = self.params + self.multiplicative_input.params
@@ -530,12 +547,12 @@ class Multi_MLP_Regression(object):
         self.fusion_layer_0 = HiddenLayer(
             rng=rng,
             input=self.multiplicative_input.output,
-            n_in=neural_range, #drug_n_hidden[drug_layer_number-1],
+            n_in=drug_n_hidden[drug_layer_number-1]*cell_n_hidden[cell_layer_number-1], #NOTE: MODIFIED FOR FULL INFLUENCE (PAIRWISE MULTIPLICATION)
             n_out=fusion_n_hidden[0],
             activation=relu,
             is_train=is_train,
-            p=cell_p, #MAY CHANGE TO OWN VARIABLE
-            dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
+            p=cell_p,
+            dropout=cell_dropout
         )
 
         self.params = self.params + self.fusion_layer_0.params # Plus previous separate layer params (drug + cell + mf)
@@ -584,6 +601,109 @@ class Multi_MLP_Regression(object):
         self.L2_sqr = (
             (self.drug_layer_0.W ** 2).sum() + (self.linearRegressionLayer.W ** 2).sum()
         )
+
+        self.errors = self.linearRegressionLayer.errors
+        self.pear_loss = self.linearRegressionLayer.pear_loss
+        self.pear_check = self.linearRegressionLayer.pear_check
+        self.NRMSE = self.linearRegressionLayer.NRMSE
+        self.pred = self.linearRegressionLayer.pred
+
+        self.param_to_scale = param_to_scale
+
+        self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
+
+class Direct_Multi_MLP_Regression(object):
+    def __init__(self, rng, cell_input, drug_input, is_train,
+                 cell_n_in, drug_n_in, fusion_n_hidden,
+                 n_out, cell_dropout=False,
+                 cell_p=0.5, cell_input_p=0.1,
+                 drug_p=0.5, drug_input_p=0.1):
+
+        #FUSION IS DONE DIRECTLY ON INPUT FEATURES (After dropout)
+        if cell_input_p!=None:
+            self.cell_input_layer = drop(cell_input, rng=rng, p=cell_input_p)
+            self.cell_input_layer = T.switch(T.neq(is_train, 0), self.cell_input_layer, cell_input)
+        else:
+            self.cell_input_layer = cell_input
+
+        if drug_input_p!=None:
+            self.drug_input_layer = drop(drug_input, rng=rng, p=drug_input_p)
+            self.drug_input_layer = T.switch(T.neq(is_train, 0), self.drug_input_layer, drug_input)
+        else:
+            self.drug_input_layer = drug_input
+
+        param_to_scale = [] #To scale weights to square length of 15
+
+        # APPLY FUSION
+        # Combine both outputs to obtain Multiplicative fusion layer
+        self.multiplicative_input = Multiplicative_fusion(
+            drug_input = self.drug_input_layer,
+            cell_input = self.cell_input_layer,
+            drug_in  = drug_n_in, #Unlike before, single number
+            cell_in  = cell_n_in, #Unlike before, single number
+            neural_range = drug_n_in, #Same as drug_n_in
+            rng =  rng
+        )
+        self.params = self.multiplicative_input.params
+
+        # PROCESS FUSION LAYERS
+        self.fusion_layer_0 = HiddenLayer(
+            rng=rng,
+            input=self.multiplicative_input.output,
+            n_in=drug_n_in*cell_n_in, #NOTE: MODIFIED FOR FULL INFLUENCE (PAIRWISE MULTIPLICATION)
+            n_out=fusion_n_hidden[0],
+            activation=relu,
+            is_train=is_train,
+            p=cell_p,
+            dropout=cell_dropout
+        )
+
+        self.params = self.params + self.fusion_layer_0.params # Plus previous separate layer params (drug + cell + mf)
+        param_to_scale = param_to_scale + [self.fusion_layer_0.params[0]]
+
+        fusion_layer_number = 1
+        if len(fusion_n_hidden)>1:
+
+            for layer in fusion_n_hidden[1:]:
+
+                current_hidden_layer = HiddenLayer(
+                                                    rng=rng,
+                                                    input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
+                                                    n_in=fusion_n_hidden[fusion_layer_number-1],
+                                                    n_out=fusion_n_hidden[fusion_layer_number],
+                                                    activation=relu,
+                                                    is_train=is_train,
+                                                    p=cell_p, #MAY CHANGE TO OWN VARIABLE
+                                                    dropout=cell_dropout #MAY CHANGE TO OWN VARIABLE
+                                                )
+
+                setattr(self, "fusion_layer_" + str(fusion_layer_number), current_hidden_layer)
+
+                self.params = self.params + getattr(self, "fusion_layer_" + str(fusion_layer_number)).params
+
+                param_to_scale = param_to_scale + [getattr(self, "fusion_layer_" + str(fusion_layer_number)).params[0]]
+
+                fusion_layer_number = fusion_layer_number + 1
+
+
+        # APPLY LINEAR REGRESSION
+        self.linearRegressionLayer = LinearRegression(
+            input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
+            n_in=fusion_n_hidden[fusion_layer_number-1],
+            n_out=n_out,
+            rng = rng
+        )
+
+        self.params = self.params + self.linearRegressionLayer.params
+
+        #L1 and L2 regularization
+        # self.L1 = (
+        #     abs(self.drug_layer_0.W).sum() + abs(self.linearRegressionLayer.W).sum()
+        # )
+        #
+        # self.L2_sqr = (
+        #     (self.drug_layer_0.W ** 2).sum() + (self.linearRegressionLayer.W ** 2).sum()
+        # )
 
         self.errors = self.linearRegressionLayer.errors
         self.pear_loss = self.linearRegressionLayer.pear_loss
@@ -710,7 +830,7 @@ class Multi_MLP_Class(object):
         self.fusion_layer_0 = HiddenLayer(
             rng=rng,
             input=self.multiplicative_input.output,
-            n_in=neural_range,#drug_n_hidden[drug_layer_number-1] * cell_n_hidden[cell_layer_number-1],
+            n_in=neural_range,
             n_out=fusion_n_hidden[0],
             activation=relu,
             is_train=is_train,
@@ -747,11 +867,11 @@ class Multi_MLP_Class(object):
 
 
         # APPLY LOGISTIC REGRESSION
-        # The logistic regression layer gets as input the fused multiplicate_input
         self.logRegressionLayer = LogisticRegression(
             input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
             n_in=fusion_n_hidden[fusion_layer_number-1],
-            n_out=n_out
+            n_out=n_out,
+            rng = rng
         )
 
         self.params = self.params + self.logRegressionLayer.params
@@ -763,6 +883,137 @@ class Multi_MLP_Class(object):
 
         self.L2_sqr = (
             (self.drug_layer_0.W ** 2).sum() + (self.logRegressionLayer.W ** 2).sum()
+        )
+
+        self.negative_log_likelihood = (
+            self.logRegressionLayer.negative_log_likelihood
+        )
+
+        self.errors = self.logRegressionLayer.errors
+        self.pred = self.logRegressionLayer.pred
+        self.param_to_scale = param_to_scale
+
+        self.input = input #KEEP IN MIND THIS IS DIFFERENT THAN self.input_layer!!!
+
+class Multi_MLP_Class_Zero_Drug(object):
+    def __init__(self, rng, cell_input, is_train,
+                 cell_n_in, cell_n_hidden, fusion_n_hidden,
+                 n_out, p=0.5, dropout=False, input_p=0.1):
+
+        # PROCESS CELL INPUT FIRST
+        if input_p!=None:
+            self.cell_input_layer = drop(cell_input, rng=rng, p=input_p)
+            self.cell_input_layer = T.switch(T.neq(is_train, 0), self.cell_input_layer, cell_input)
+        else:
+            self.cell_input_layer = cell_input
+
+        param_to_scale = [] #To scale weights to square length of 15
+
+        self.cell_layer_0 = HiddenLayer(
+            rng=rng,
+            input=self.cell_input_layer,
+            n_in=cell_n_in,
+            n_out=cell_n_hidden[0],
+            activation=prelu,
+            is_train=is_train,
+            p=p,
+            dropout=dropout
+        )
+
+        self.params = self.cell_layer_0.params
+        param_to_scale = param_to_scale + [self.cell_layer_0.params[0]]
+
+        cell_layer_number = 1
+        if len(cell_n_hidden)>1:
+
+            for layer in cell_n_hidden[1:]:
+
+                current_hidden_layer = HiddenLayer(
+                                                    rng=rng,
+                                                    input=getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
+                                                    n_in=cell_n_hidden[cell_layer_number-1],
+                                                    n_out=cell_n_hidden[cell_layer_number],
+                                                    activation=prelu,
+                                                    is_train=is_train,
+                                                    p=p,
+                                                    dropout=dropout
+                                                )
+
+                setattr(self, "cell_layer_" + str(cell_layer_number), current_hidden_layer)
+
+                self.params = self.params + getattr(self, "cell_layer_" + str(cell_layer_number)).params
+
+                param_to_scale = param_to_scale + [getattr(self, "cell_layer_" + str(cell_layer_number)).params[0]]
+
+                cell_layer_number = cell_layer_number + 1
+
+
+        # APPLY FUSION
+        # Combine single output to obtain Multiplicative fusion layer
+        self.multiplicative_input = Multiplicative_fusion_zero_drug(
+            cell_input = getattr(self, "cell_layer_" + str(cell_layer_number-1)).output,
+            cell_in  = cell_n_hidden[cell_layer_number-1],
+            rng = rng
+        )
+        self.params = self.params + self.multiplicative_input.params
+
+        # PROCESS FUSION LAYERS
+        self.fusion_layer_0 = HiddenLayer(
+            rng=rng,
+            input=self.multiplicative_input.output,
+            n_in=cell_n_hidden[cell_layer_number-1],
+            n_out=fusion_n_hidden[0],
+            activation=prelu,
+            is_train=is_train,
+            p=p,
+            dropout=dropout
+        )
+
+        self.params = self.params + self.fusion_layer_0.params # Plus previous separate layer params (drug + cell + mf)
+        param_to_scale = param_to_scale + [self.fusion_layer_0.params[0]]
+
+        fusion_layer_number = 1
+        if len(fusion_n_hidden)>1:
+
+            for layer in fusion_n_hidden[1:]:
+
+                current_hidden_layer = HiddenLayer(
+                                                    rng=rng,
+                                                    input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
+                                                    n_in=fusion_n_hidden[fusion_layer_number-1],
+                                                    n_out=fusion_n_hidden[fusion_layer_number],
+                                                    activation=prelu,
+                                                    is_train=is_train,
+                                                    p=p,
+                                                    dropout=dropout
+                                                )
+
+                setattr(self, "fusion_layer_" + str(fusion_layer_number), current_hidden_layer)
+
+                self.params = self.params + getattr(self, "fusion_layer_" + str(fusion_layer_number)).params
+
+                param_to_scale = param_to_scale + [getattr(self, "fusion_layer_" + str(fusion_layer_number)).params[0]]
+
+                fusion_layer_number = fusion_layer_number + 1
+
+
+        # APPLY LOGISTIC REGRESSION
+        # The logistic regression layer gets as input the fused multiplicate_input
+        self.logRegressionLayer = LogisticRegression(
+            input=getattr(self, "fusion_layer_" + str(fusion_layer_number-1)).output,
+            n_in=fusion_n_hidden[fusion_layer_number-1],
+            n_out=n_out,
+        )
+
+        self.params = self.params + self.logRegressionLayer.params
+
+        #L1 and L2 regularization
+        self.L1 = (
+            abs(self.cell_layer_0.W).sum() + abs(self.logRegressionLayer.W).sum()
+        )
+
+        self.L2_sqr = (
+            (self.cell_layer_0.W ** 2).sum() + (self.logRegressionLayer.W ** 2).sum()
         )
 
         self.negative_log_likelihood = (
@@ -806,49 +1057,45 @@ def shared_drug_dataset_IC50_mf(drug_data, cell_data, index_data, integers=True)
         else:
             return shared_cell_x, shared_cell_i, shared_y
 
+def model_prediction(model_dict, drug_data, cell_data, classification=True, mf=True):
 
-def model_prediction(model_dict, drug_data, cell_data, classification=True):
+    if mf == True:
 
-    # Apply drug model first
-    drug_model = model_dict["drug_n_hidden"]
-    drug_input = drug_data
-    for l in xrange(len(drug_model)):
+        # Apply drug model first
+        drug_model = model_dict["drug_n_hidden"]
+        drug_input = drug_data
+        for l in xrange(len(drug_model)):
 
-        # drug_input = prelu(
-        #                     T.dot(drug_input, drug_model[l].W) + drug_model[l].b,
-        #                     drug_model[l].alpha
-        #                    )
-        drug_input = relu(
-                            T.dot(drug_input, drug_model[l].W) + drug_model[l].b,
-                           drug_model[l].alpha)
+            drug_input = relu(
+                                T.dot(drug_input, drug_model[l].W) + drug_model[l].b,
+                               drug_model[l].alpha)
 
-    # Apply cell model next
-    cell_model = model_dict["cell_n_hidden"]
-    cell_input = cell_data
-    for l in xrange(len(cell_model)):
+        # Apply cell model next
+        cell_model = model_dict["cell_n_hidden"]
+        cell_input = cell_data
+        for l in xrange(len(cell_model)):
 
-        # cell_input = prelu(
-        #                     T.dot(cell_input, cell_model[l].W) + cell_model[l].b,
-        #                     cell_model[l].alpha
-        #                    )
-        cell_input = relu(
-                            T.dot(cell_input, cell_model[l].W) + cell_model[l].b,
-                           cell_model[l].alpha)
+            cell_input = relu(
+                                T.dot(cell_input, cell_model[l].W) + cell_model[l].b,
+                               cell_model[l].alpha)
+    else:
+       drug_input = drug_data
+       cell_input = cell_data
 
     # Combine to multiplicative fusion layer
     mf_fusion  = model_dict["multiplicative"]
     drug_input = (drug_input * mf_fusion.drug_alpha) + mf_fusion.drug_beta
     cell_input = (cell_input * mf_fusion.cell_alpha) + mf_fusion.cell_beta
-    input      = T.concatenate([drug_input, cell_input], axis=1) #NOTE: Modified to true concatenation
+    # input      = T.concatenate([drug_input, cell_input], axis=1) #NOTE: Modified to true concatenation
+    input      = T.concatenate(
+                                [drug_input[:, [i]] * cell_input for i in xrange(drug_input.shape.eval()[1])],
+                                   axis = 1
+                                )
 
     # Apply multiplicative fussion model layers
     mf_model  = model_dict["fusion_n_hidden"]
     for l in xrange(len(mf_model)):
 
-        # input = prelu(
-        #                 T.dot(input , mf_model[l].W) + mf_model[l].b,
-        #                 mf_model[l].alpha
-        #               )
         input = relu(
                         T.dot(input , mf_model[l].W) + mf_model[l].b,
                       mf_model[l].alpha)
@@ -862,6 +1109,13 @@ def model_prediction(model_dict, drug_data, cell_data, classification=True):
                                   )
         prediction = T.argmax(log_layer, axis=1)
         prediction = prediction.eval()
+
+        # Probabilities
+        prob   = log_layer.eval()
+        prob_0 = prob[:,0]
+        prob_1 = prob[:,1]
+
+        prediction = {"pred":prediction, "prob_0":prob_0, "prob_1":prob_1}
 
     else :
 
@@ -922,8 +1176,12 @@ if sys.argv[4] == "T":
     class_mlp = True
 else:
     class_mlp = False
-bn_external = sys.argv[5]
-drug_feat   = sys.argv[6]
+drug_feat   = sys.argv[5]
+
+if sys.argv[6] == "T":
+    mf = True
+else:
+    mf = False
 
 IN_FOLDER   = "PREDICTIONS/"
 OUT_FOLDER  = "PREDICTIONS/"
@@ -935,38 +1193,46 @@ out_file    = model_file.split("/")[-1]
 print(out_file)
 out_file    = out_file.replace(".pkl", "")
 print(out_file)
-# OUT_FILE    = OUT_FOLDER + out_file + "_bn_external_" + bn_external + "_" + target + "_PREDICTION"
+
 OUT_FILE    = OUT_FOLDER + out_file +"_"+ target + "_PREDICTION"
 
 # Load model and process input
 model_dict  = cPickle.load(open(model_file, "rb"))
 
-test_cell     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_tc", sep="\t")
-test_index    = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_ti", sep="\t")
-test_feat     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_ft", sep="\t", dtype={"Compound":str})
+test_cell     = pd.read_csv(IN_FOLDER + in_file + "_" + target + "_tc", sep="\t")
+test_index    = pd.read_csv(IN_FOLDER + in_file + "_" + target + "_ti", sep="\t")
+test_feat     = pd.read_csv(IN_FOLDER + in_file + "_" + target + "_ft", sep="\t", dtype={"Compound":str})
 
 if drug_feat!= "0":
 
-    test_drug     = pd.read_csv(IN_FOLDER + in_file + "_bn_external_" + bn_external + "_" + target + "_td", sep="\t")
+    test_drug     = pd.read_csv(IN_FOLDER + in_file + "_" + target + "_td", sep="\t")
 
-    test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf(test_drug,  test_cell,  test_index, integers=class_mlp)
-    prediction = model_prediction(model_dict, test_drug[test_drug_index,], test_cell[test_cell_index,], classification = class_mlp)
+    test_drug,  test_cell,  test_drug_index,  test_cell_index,  test_set_y  = shared_drug_dataset_IC50_mf(test_drug,  test_cell,  test_index, integers=False)
+    prediction = model_prediction(model_dict, test_drug[test_drug_index,], test_cell[test_cell_index,], classification = class_mlp, mf=mf)
 
 else:
     test_cell, test_cell_index, test_set_y = shared_drug_dataset_IC50_mf(None, test_cell, test_index, integers=class_mlp)
-    prediction = model_prediction_zero(model_dict, test_cell[test_cell_index,], classification = class_mlp)
+    prediction = model_prediction_zero(model_dict, test_cell[test_cell_index,], classification = class_mlp, mf=mf)
 
 # Obtain prediction
 if class_mlp == True:
-    actual = test_set_y.eval()
+    # actual = test_set_y.eval()
+    actual = test_set_y.get_value() #NOTE: Temporarily changed
 else:
     actual = test_set_y.get_value()
 
-# Write out predictions to table
+# Write out predictions to table. NOTE: Probabilities will be written as well if classification is modeled
 OUT_FILE = open(OUT_FILE, "w")
-OUT_FILE.write("Compound" + "\t" + "Sample" + "\t" +  "ACTUAL" + "\t" + "PREDICTED")
-for l in xrange(len(actual)):
-    OUT_FILE.write("\n" + test_feat.Compound[l] + "\t" + test_feat.cell_name[l] +"\t" + str(actual[l]) + "\t" + str(prediction[l]))
+
+if class_mlp == True:
+    OUT_FILE.write("Compound" + "\t" + "Sample" + "\t" +  "ACTUAL" + "\t" + "PREDICTED" + "\t" + "PROB_0" + "\t" + "PROB_1")
+    for l in xrange(len(actual)):
+        OUT_FILE.write("\n" + test_feat.Compound[l] + "\t" + test_feat.cell_name[l] +"\t" + str(actual[l]) + "\t" + str(prediction["pred"][l]) + "\t" + str(prediction["prob_0"][l]) + "\t" + str(prediction["prob_1"][l]) )
+
+else:
+    OUT_FILE.write("Compound" + "\t" + "Sample" + "\t" +  "ACTUAL" + "\t" + "PREDICTED")
+    for l in xrange(len(actual)):
+        OUT_FILE.write("\n" + test_feat.Compound[l] + "\t" + test_feat.cell_name[l] +"\t" + str(actual[l]) + "\t" + str(prediction[l]))
 
 OUT_FILE.close()
 print("Done predicting")

@@ -30,6 +30,7 @@ slr           = float(sys.argv[7]) #0.001 #0.0000001
 # epsilon       = float(sys.argv[8])
 target_features = bool(sys.argv[8]=="True")
 exp_target      = bool(sys.argv[9]=="True") #If target features true, then we will use regression features, otherwise binary features
+print(drug)
 
 # Prep features and target data
 exp_data      = exp_encode_parse("c2setcover", exp_gfilter, exp_arch, 0.5)
@@ -49,7 +50,7 @@ if target_features==True:
     
     if exp_target==True:
         print("Using target expression features")
-        drug_target         = string_target_binary_features(drug_target, pp_hugo, th=900, output="table")
+        drug_target         = string_target_binary_features(drug_target, pp_hugo, th=950, output="table")
         lobico, target_feat = string_target_expression_features(drug_target, "CGP_FILES/070818_cgp_exp.txt", lobico)
         
         data_feat      = pd.concat([exp_data.loc[lobico.cell_name,].reset_index(drop=True),
@@ -89,6 +90,7 @@ with open(pred_file, "w") as f:
 
 tf.reset_default_graph()
 
+drug         = Function_drug_name_zhang_to_gdsc(drug, replacement="ztg")
 target_index = list(lobico.loc[lobico.Compound==drug].index)
 cells        = list(lobico.loc[lobico.Compound==drug].cell_name)
 print(len(target_index))

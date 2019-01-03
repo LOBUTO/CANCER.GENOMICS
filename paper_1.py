@@ -162,9 +162,35 @@ def drug_exp_lobico_parse_v2(lobico, exp, mut, drug, replacement="ztg", binary_t
 
     return lobico, exp, mut, drug
 
+def cell_gdsc_zhang_rename_index(cell_data, replacement="ztg"):
+	# Renames index of matrix based on zhang or gdsc nomenclature
+
+	gdsc_to_zhang = {"G-292 Clone A141B1":"G-292-Clone-A141B1",
+					 "Hep 3B2_1-7":"Hep3B2-1-7","Hs633T":"Hs-633T",
+					 "Hs683":"Hs-683", "Hs766T":"Hs-766T","Hs940-T":"Hs-940-T",
+					 "HUTU-80":"HuTu-80", "NTERA-2 cl.D1":"NTERA-S-cl-D1",
+					 "PC-3 [JPC-3]":"PC-3_[JPC-3]", "PE/CA-PJ15":"PE-CA-PJ15",
+					 "NB-4":"NB4", "G-292 Clone A141B1":"G-292-Clone-A141B1",
+					 "Hep 3B2_1-7":"Hep3B2-1-7"}
+
+	zhang_to_gdsc = {y:x for x,y in gdsc_to_zhang.iteritems()}
+
+	if replacement=="gtz":
+		print("renaming GDSC compounds names to published Zhang 2018 names")
+		cell_data = cell_data.rename(index=gdsc_to_zhang)
+	elif replacement=="ztg":
+		print("renaming Zhang published names to original GDSC names")
+		cell_data = cell_data.rename(index=zhang_to_gdsc)
+
+	return cell_data
+
 def drug_gdsc_zhang_rename_index(drug_data, replacement="ztg"):
 	# Renames index of matrix based on zhang or gdsc nomenclature
 
+	# Clean up first
+	drug_data = drug_data.rename(index={"Zibotentan, ZD4054":"Zibotentan", "PXD101, Belinostat": "Belinostat"})
+
+	# Build renaming dict
 	gdsc_to_zhang    = {"AICA Ribonucleotide":"AICAR","BAY-61-3606":"BAY 61-3606", "BX795":"BX-795",
 						"CCT-018159":"CCT018159", "EHT-1864": "EHT 1864", "GSK1904529A": "GSK-1904529A",
 						"GW441756":"GW 441756", "HG6-64-1":"HG-6-64-1", "Nutlin-3a (-)":"Nutlin-3a",
@@ -254,17 +280,81 @@ def drug_exp_lobico_parse_v3(lobico, exp, drug, replacement="ztg", binary_target
 
     drug   = drug.loc[drugs]
     exp    = exp.loc[cells]
+    lobico = lobico.reset_index(drop=True)
 
     return lobico, exp, drug
 
-def cgp_act_post_process(cgp_act, zscoring=False):
+def cleans_ctrp_act(ctrp_act_file):
+	print("Cleaning up multiple entries in CTRP")
+	# Fix for compounds that have multiple measurements
+	# Cleans up ctrp
+
+	ctrp_act      = pd.read_csv(ctrp_act_file, sep="\t")
+	ctrp_act["mean_auc"] = ctrp_act.groupby(["Compound","cell_name"])["auc"].transform(np.mean)
+
+	ctrp_act["auc"] = ctrp_act["mean_auc"]
+	ctrp_act      = ctrp_act.drop("mean_auc", axis=1)
+	ctrp_act["neg_auc"] = -ctrp_act["auc"]
+	ctrp_act      = ctrp_act.drop_duplicates()
+
+	return(ctrp_act)
+
+def process_cgp_multiple_conc(cgp_act):
+	print("Cleaning up multiple entries in GDSC")
+	# Fix for compounds that have multiple measurements
+	x             = cgp_act.groupby(["DRUG_NAME", "DRUG_ID"])["DRUG_NAME"].count().reset_index(name="COUNT")
+	m_drugs       = list((x.DRUG_NAME.value_counts().reset_index(name="cell_count")
+						.query("cell_count>1"))["index"])
+
+	x_filter     = cgp_act.loc[~cgp_act.DRUG_NAME.isin(m_drugs)]
+
+	x_fix        = x.loc[x.DRUG_NAME.isin(m_drugs)]
+	x_fix["mak"] = x_fix.groupby("DRUG_NAME")["COUNT"].transform(max)
+	x_fix        = x_fix.query("COUNT==mak")
+
+	# Clean up
+	x_fix        = pd.merge(cgp_act[["CELL_LINE_NAME", "DRUG_NAME","LN_IC50", "AUC", "DRUG_ID"]],
+							x_fix[["DRUG_NAME", "DRUG_ID"]])
+
+	x            = pd.concat([x_filter[["DRUG_NAME", "CELL_LINE_NAME", "LN_IC50", "AUC"]],
+								x_fix[["DRUG_NAME", "CELL_LINE_NAME", "LN_IC50", "AUC"]]])
+	return(x)
+
+def cgp_act_post_process(cgp_act, zscoring=False, choice="pIC50", rebalance=False):
 	# Calculate the pIC50 value across all drugs
 	from scipy.stats import zscore
 
-	cgp_act["value"] = -np.log(np.exp(cgp_act.LN_IC50))
+	# Load file
+	cgp_act          = process_cgp_multiple_conc(cgp_act)
+
+	# Clean up
+	cgp_act["DRUG_NAME"] = [i.rstrip(" ") for i in list(cgp_act.DRUG_NAME)]
+
+	if choice=="pIC50":
+		cgp_act["value"] = -np.log(np.exp(cgp_act.LN_IC50))
+	elif choice=="AUC":
+		cgp_act["value"] = cgp_act.AUC
+
 	cgp_act          = cgp_act[["CELL_LINE_NAME", "DRUG_NAME", "value"]]
 	cgp_act.columns  = ["cell_name", "Compound", "value"]
 
+	# Do we need to rebalance?
+	if rebalance==True:
+		print("Rebalancing data set")
+		max_number_cells = float(list(cgp_act.Compound.value_counts().reset_index(name="n").sort_values("n", ascending=False)["n"])[0])
+
+		all_compounds    = list(set(cgp_act.Compound))
+		balanced_cgp     = []
+		for c in all_compounds:
+			
+			query_c = cgp_act.query("Compound==@c")
+			if query_c.shape[0] < max_number_cells:
+				
+				balanced_cgp.append(query_c.sample(frac=max_number_cells/query_c.shape[0], replace=True, random_state=1))
+
+		cgp_act = pd.concat(balanced_cgp).reset_index(drop=True)
+
+	# Do we need to z-scale the target variable?
 	if zscoring==True:
 		print("Z-scoring target value")
 		cgp_act_z = [pd.DataFrame({"cell_name":j.cell_name, "Compound":i, "value":zscore(j.value)}) for
@@ -449,11 +539,11 @@ def dense_batch_lrelu(x, phase, scope):
 	# x: matmul(a,b), no bias needed
 	with tf.variable_scope(scope):
 		h = tf.contrib.layers.batch_norm(x,
-										 center=True, scale=True, 
-                                         is_training=phase,
-                                         scope='bn')
+			center=True, scale=True,
+			is_training=phase,
+			scope='bn')
 
-        return lrelu(h, alpha=0.2)
+		return lrelu(h, alpha=0.2)
 
 def dense_lrelu_batch(x, phase, scope):
 	# x: matmul(a,b), no bias needed
@@ -461,10 +551,10 @@ def dense_lrelu_batch(x, phase, scope):
 		l = lrelu(x, alpha=0.2)
 
 		h = tf.contrib.layers.batch_norm(l,
-										 center=True, scale=True, 
-                                         is_training=phase,
-                                         scope='bn')
-        return h
+			center=True, scale=True,
+			is_training=phase,
+			scope='bn')
+		return h
 
 def binary_one_hot(bin_target):
     # print(bin_target)
@@ -507,7 +597,7 @@ def entrez_to_hugo(entrez_list, email):
 def process_drug_target(file_in):
 	# Process drug target file from GSDC (Screened_Compounds.csv) so that correct HUGO symbol targets are found for all compounds
 	drug_target = pd.read_csv(file_in, sep=",")
-	drug_target = {drug_target["DRUG_NAME"][i]:drug_target["TARGET"][i].split(",") for i in xrange(drug_target.shape[0])}
+	drug_target = {drug_target["DRUG_NAME"][i].rstrip(" "):drug_target["TARGET"][i].split(",") for i in xrange(drug_target.shape[0])}
 	drug_target = pd.DataFrame([[j,i] for j in drug_target.keys() for i in drug_target[j]], columns=["Compound", "target"])
 
 	drug_target["target"] = [i.lstrip().rstrip() for i in drug_target["target"]]
@@ -608,6 +698,22 @@ def process_drug_target(file_in):
 	drug_target = pd.concat([drug_target, new_set])
 
 	return(drug_target)
+
+def string_to_hugo(string_list, alias_file):
+	# alias_file like "STRING/9606.protein.aliases.v10.5.txt"
+
+	# Process hugo alias
+	alias = pd.read_csv(alias_file, sep="\t", skiprows=1)
+
+	alias.columns = ["ensembl", "alias", "source"]
+	alias = alias.loc[alias.source.apply(lambda x: (" Ensembl_HGNC " in x) | ("BioMart_HUGO" in x) )]
+	alias = alias[["ensembl", "alias"]]
+
+	# Find names
+	alias = alias.loc[alias.ensembl.isin(string_list)]
+
+	# Return
+	return alias
 
 def string_pp_to_hugo(pp_file, alias_file):
     # pp_file like "/home/ubuntu/STRING/9606.protein.links.v10.5.txt"
@@ -737,6 +843,12 @@ def string_target_expression_features_all(binary_target, exp_file, lobico_proc, 
 
 def Function_drug_name_zhang_to_gdsc(drug_name, replacement="gtz"):
 
+	# Clean up first
+	clean_up         = {"Zibotentan, ZD4054":"Zibotentan", "PXD101, Belinostat": "Belinostat"}
+	if drug_name in clean_up.keys():
+		return(clean_up[drug_name])
+
+	# Then build to rename
 	gdsc_to_zhang    = {"AICA Ribonucleotide":"AICAR","BAY-61-3606":"BAY 61-3606", "BX795":"BX-795",
 						"CCT-018159":"CCT018159", "EHT-1864": "EHT 1864", "GSK1904529A": "GSK-1904529A",
 						"GW441756":"GW 441756", "HG6-64-1":"HG-6-64-1", "Nutlin-3a (-)":"Nutlin-3a",
@@ -778,15 +890,43 @@ def Function_drug_name_zhang_to_gdsc(drug_name, replacement="gtz"):
 			# print("no proper name needed or found")
 			return(drug_name)
 
-def cgp_pubchem_to_smiles(file_in):
+def cgp_pubchem_to_smiles(file_in, file_in_updated):
 	# file_in as in "drug_ids.csv" or "pubchem_id.csv" (actually same file, obtained form gdsc) 
 	# NOTE: file_in can also be a cleaned version of pubchem csv table dowloaded straight from gdsc, we just need a pubchem ID
+	# UPDATE: Added table downloaded straight from gdsc compound search (empty search): x_update
+	# file_in_updated as in gdsc_drug_list.csv
     import pubchempy as pcp    
-    x         = pd.read_csv(file_in, header=None, names=["Compound", "count", "ID","N", "DROP"])
+    
+    # Load files
+    x         = pd.read_csv(file_in, header=None, names=["Compound", "count", "ID","N", "DROP"]).drop_duplicates() # SOURCE 1
+    x_update  = pd.read_csv(file_in_updated, usecols=[1,5], header=0, names=["Compound", "ID"]).drop_duplicates() # SOURCE 2
 
+    # Clean up
+    x["Compound"] = [i.rstrip("'") for i in list(x.Compound)]
+    x.ID          = x.ID.astype("str")
+    x_update      = x_update.query("ID!='none'").query("ID!='several'")
+    x_update      = x_update.dropna()
+    
+    # Combine with updated
+    x_update  = x_update.loc[~x_update.Compound.isin(list(x.Compound))]
+    x         = pd.concat([x[["Compound", "ID"]], x_update])
+
+    #NOTE: Manual clean up of IDs due to spotted technical duplicates#
+    remove_ids = ["681640", "53298813", "57370134", "16760671", "447912", "16683866", "6851740"]
+    x          = x.loc[~x.ID.isin(remove_ids)]
+    x          = pd.concat(x,
+    	pd.DataFrame([["T0901317", "447912"]], columns=x.columns)
+    	)
+    x          = x.drop_duplicates()
+	##################################################################
+    
+    print(x)
+    print(x.Compound.value_counts().reset_index())
     main_list = []
     for j in set(x.Compound):
-        c = pcp.Compound.from_cid(int(x.loc[x.Compound==j].ID.values[0]))
+        p_id = x.loc[x.Compound==j].ID.values[0]
+        print(j, p_id)
+        c = pcp.Compound.from_cid(p_id)
         main_list.append([ j.rstrip("'"),[int(i) for i in str(c.cactvs_fingerprint)]
                          ])
     
@@ -795,12 +935,14 @@ def cgp_pubchem_to_smiles(file_in):
                             columns = ["s_%s"%j for j in xrange(len(main_list[0][1]))] )
     
     # Save as main_list.to_csv("...", sep=",", header=True, index_label="Compound")
+    print("Done")
     return(main_list)
 
 def keras_fc_autoencoder(input_feat, input_noisy, encode, decode, keepprob, slr, batch_size):
 	# Fully connected autoencoder with early stopping (10%) and patience=10
 
 	from keras.layers import Input, Dense, Dropout, BatchNormalization
+	from keras.layers.advanced_activations import PReLU
 	from sklearn.metrics import mean_squared_log_error,mean_squared_error, r2_score,mean_absolute_error
 	from keras.optimizers import Nadam, Adam,SGD,Adagrad,Adadelta,RMSprop
 	from keras.callbacks import ReduceLROnPlateau, LearningRateScheduler, EarlyStopping
@@ -814,7 +956,7 @@ def keras_fc_autoencoder(input_feat, input_noisy, encode, decode, keepprob, slr,
 	input_shape = Input(shape=(input_feat.shape[1],))
 	print(encode)
 	e           = encode[0] # In case single layer
-	vars()["encoded_%s"%e] = Dense(encode[0], activation="relu")(input_shape)
+	vars()["encoded_%s"%e] = Dense(encode[0], activation=PReLU())(input_shape)
 	vars()["e_batch_%s"%e] = BatchNormalization()(vars()["encoded_%s"%e])
 	vars()["e_drop_%s"%e]  = Dropout(keepprob)(vars()["e_batch_%s"%e])
 
@@ -823,7 +965,7 @@ def keras_fc_autoencoder(input_feat, input_noisy, encode, decode, keepprob, slr,
 	print("prev_layer: ", prev_layer)
 	for e in encode[1:]:
 		print(e)
-		vars()["encoded_%s"%e] = Dense(e, activation="relu")(vars()["e_drop_%s"%prev_layer])
+		vars()["encoded_%s"%e] = Dense(e, activation=PReLU())(vars()["e_drop_%s"%prev_layer])
 		vars()["e_batch_%s"%e] = BatchNormalization()(vars()["encoded_%s"%e])
 		vars()["e_drop_%s"%e]  = Dropout(keepprob)(vars()["e_batch_%s"%e])
 		prev_layer = e
@@ -833,7 +975,7 @@ def keras_fc_autoencoder(input_feat, input_noisy, encode, decode, keepprob, slr,
 	d = prev_layer  # In case single layer
 	for d in decode[:-1]:
 		print(d, vars()["d_drop_%s"%prev_layer])
-		vars()["decoded_{}".format(d)]  = Dense(d, activation="relu")(vars()["d_drop_{}".format(prev_layer)])
+		vars()["decoded_{}".format(d)]  = Dense(d, activation=PReLU())(vars()["d_drop_{}".format(prev_layer)])
 		vars()["d_batch_%s"%d] = BatchNormalization()(vars()["decoded_%s"%d])
 		vars()["d_drop_%s"%d]  = Dropout(keepprob)(vars()["d_batch_%s"%d])
 		prev_layer = d
@@ -857,7 +999,7 @@ def keras_fc_autoencoder(input_feat, input_noisy, encode, decode, keepprob, slr,
 	early_stopping = EarlyStopping(monitor='val_loss', patience=30)
 
 	results        = autoencoder.fit(input_noisy, input_feat, 
-								batch_size=batch_size, epochs=1000, validation_split=0.1, verbose=2,
+								batch_size=batch_size, epochs=1000, validation_split=0.15, verbose=2,
 								callbacks=[early_stopping])
 
 	# Obtain prediction
@@ -959,7 +1101,7 @@ def load_data(exp_arch, exp_gfilter, drug_arch, problem="regression", in_folder=
 
     return lobico, exp_data, mut_data, drug_data, lobico_ori
 
-def load_data_v2(cell_sources, drug_sources, problem="regression", in_folder="/home/ubuntu"):
+def load_data_v2(cell_sources, drug_sources, problem="regression", in_folder="/home/ubuntu/"):
 	# problem: regression, classification
 	# Updated to load all data needed for problem
 
@@ -1017,10 +1159,16 @@ def load_data_v2(cell_sources, drug_sources, problem="regression", in_folder="/h
 				)
 
 		elif j=="pubchem_smiles":
-			print(j)
-			drug_features.append(
-				pd.read_csv("{}CGP_FILES/pubchem_smiles.txt".format(in_folder), index_col=0)
-				)
+			print(j, "update pubchem")
+			# pubchem_feat = pd.read_csv("{}CGP_FILES/pubchem_smiles.txt".format(in_folder), index_col=0)
+			# pubchem_feat = pd.read_csv("{}CGP_FILES/pubchem_smiles_updated.txt".format(in_folder), index_col=0)
+			# pubchem_feat.index = [Function_drug_name_zhang_to_gdsc(i, "gtz") for i in list(pubchem_feat.index)]
+			# pubchem_feat = pubchem_feat.rename_axis("Compound")
+			# drug_features.append(pubchem_feat)
+
+			train_smiles   = load_gdsc_smiles(in_folder)
+			train_fp       = construct_fingerprint_features(train_smiles)
+			drug_features.append(train_fp)
 
 		elif j=="target_string":
 			print("Using GDSC drug-target combined with STRING connectivity dataset as binary features")
@@ -1065,6 +1213,11 @@ def load_data_v2(cell_sources, drug_sources, problem="regression", in_folder="/h
 	# Obtain combined feature sources
 	cell_features = pd.concat(cell_features, axis=1)
 	cell_features = cell_features.dropna()
+
+	for i in drug_features:
+		print(i.shape)
+		print(i.drop_duplicates().shape)
+		print(len(set(i.index)))
 	drug_features = pd.concat(drug_features, axis=1)
 	drug_features = drug_features.dropna()
 
@@ -1086,12 +1239,17 @@ def load_data_v2(cell_sources, drug_sources, problem="regression", in_folder="/h
 
 	return lobico, cell_features, drug_features, lobico_ori
 
-def parse_features_v2(lobico, cell_feat, drug_feat):
+def parse_features_v2(lobico, cell_feat, drug_feat=None):
 	# Takes input from load_data_v2()
 
-	data_feat = pd.concat([cell_feat.loc[lobico.cell_name,].reset_index(drop=True),
-						   drug_feat.loc[lobico.Compound,].reset_index(drop=True)], 
-						   axis=1)
+	if drug_feat is not None:
+		data_feat = pd.concat([cell_feat.loc[lobico.cell_name,].reset_index(drop=True),
+							   drug_feat.loc[lobico.Compound,].reset_index(drop=True)], 
+							   axis=1)
+	else:
+		print("No drug features used!!!")
+		data_feat = cell_feat.loc[lobico.cell_name,].reset_index(drop=True)
+
 	lobico    = lobico.reset_index(drop=True)
 
 	# print(data_feat.head())
@@ -1287,7 +1445,8 @@ def giant_gene_features(giant, drug_target, th=0.9):
     # drug_target: [Compound, target]
     # giant: [gene_1, gene_2, prob]
     # Build feature matrix using giant gene-gene interaction network based on threshold th
-    
+    # NOTE: Updated to integrate separatedly as two sources of features "Target" and "Partner" genes
+
     # Apply threshold
     giant        = giant.loc[giant.prob>=th]
     
@@ -1321,7 +1480,8 @@ def giant_gene_features(giant, drug_target, th=0.9):
     main_table = pd.concat([target_table.loc[all_drugs],
                             partner_table.loc[all_drugs]], axis=1)
     
-    # Add zeroes where necessary
+    # Add zeroes where necessary (
+    # NOTE: Probably for compounds that have target information, but no GIANT target-partners
     main_table = main_table.fillna(0)
 
     print("Giant features: ", main_table.shape)
@@ -1384,6 +1544,181 @@ def cgc_gene_giant_features(genes, th=0.99, in_folder="/home/ubuntu/"):
     # Return
     return gene_exp
 
+def process_drugbank_xml(file_in):
+	# Function to process xml file from DrugBank and obtain the names of compounds (and their synonyms)
+	#  and their gene targets
+    #file_in such as "DRUGBANK_FILES/full_database.xml"
+    import xml.etree.ElementTree as et
+    import pandas as pd
+    
+    # Load files
+    db_xml = et.parse(file_in)
+    root   = db_xml.getroot()
+    
+    # Process
+    namespace = '{http://www.drugbank.ca}'
+    main_list = []
+    for i in root.getchildren():
+
+        # Get name
+        name   = [i.find("{}name".format(namespace)).text.rstrip(" ").lstrip(" ")]
+
+        # Add synonyms
+        syns   = i.find("{}synonyms".format(namespace))
+        for s in syns.getchildren():
+            name.append(s.text)
+
+        # Get targets
+        genes  = []
+        for j in i.find("{}targets".format(namespace)):
+            targets = j.findall(".//{}gene-name".format(namespace))
+            genes   = genes + targets
+
+        # Append if found
+        if len(genes)>0:
+            genes = [g.text for g in genes]
+
+            main_list.append(pd.DataFrame([[n,g] for n in name for g in genes], columns=["Compound", "target"]))
+
+    main_list = pd.concat(main_list)
+    
+    # Return
+    return main_list
+
+def process_stitch_target(drug_filter, stitch_target, stitch_alias, string_gene_alias):
+	# drug_filter: list of drugs to filter for
+	# stitch_aliases: aliases file from STITCH such as STITCH_FILES/chemical.aliases.v5.0.tsv (Takes long to load) 
+	# stitch_target: drug-arget file from STICH  such as STITCH_FILES/9606.protein_chemical.links.v5.0.tsv
+	# string_gene_alias: STRING alias file susch as STRING_FILES/9606.protein.aliases.v10.5.txt
+
+	print("Loading files...")
+	stitch_alias  = pd.read_csv(stitch_alias, sep="\t")
+	stitch_target = pd.read_csv(stitch_target, sep="\t")
+
+	print("Processing")
+	common        = set(drug_filter).intersection(stitch_alias.alias.str.upper())
+
+	# Filter stitch alias for drugs of interest
+	stitch_alias  = stitch_alias.loc[stitch_alias.alias.str.upper().isin(common)]
+
+	# Filter target for drugs of interest using alias names
+	stitch_target = stitch_target.loc[stitch_target.chemical.isin(set(stitch_alias.flat_chemical).union(stitch_alias.stereo_chemical))]  
+
+	# Get hugo identifiers for ensembl ids
+	stitch_hugo   = string_to_hugo(list(set(stitch_target.protein)), string_gene_alias)
+
+	# Apply hugo identifiers to stitch
+	stitch_target = pd.merge(stitch_target, stitch_hugo, left_on="protein", right_on="ensembl")
+
+	# Combine with drug alias names
+	stitch_target = pd.merge(stitch_target,
+							 pd.melt(stitch_alias, id_vars="alias", value_vars=["flat_chemical", "stereo_chemical"]),
+							 left_on="chemical", right_on="value")
+
+	# Clean up
+	stitch_target = stitch_target[["alias_y", "alias_x", "combined_score"]]
+	stitch_target = stitch_target.drop_duplicates()
+	stitch_target.columns = ["Compound", "target", "score"]
+
+	# Return
+	return stitch_target
+
+def load_gdsc_smiles(in_folder):
+	# Loads latest gdsc updated smiles data as two-column table
+	# Extracts canonical smiles from pubchem_ID - using PUG-REST API!!
+	#import pubchempy as pcp
+	import urllib2
+
+	# Load files
+	file_in    = "{}CGP_FILES/pubchem_id.csv".format(in_folder)
+	file_in_updated = "{}CGP_FILES/gdsc_drug_list.csv".format(in_folder)
+
+	x          = pd.read_csv(file_in, header=None, names=["Compound", "count", "ID","N", "DROP"]).drop_duplicates() # SOURCE 1
+	x_update   = pd.read_csv(file_in_updated, usecols=[1,5], header=0, names=["Compound", "ID"]).drop_duplicates() # SOURCE 2
+
+	# Clean up
+	x["Compound"] = [i.rstrip("'") for i in list(x.Compound)]
+	x.ID          = x.ID.astype("str")
+	x_update      = x_update.query("ID!='none'").query("ID!='several'")
+	x_update      = x_update.dropna()
+
+	# Combine with updated
+	x_update   = x_update.loc[~x_update.Compound.isin(list(x.Compound))]
+	x          = pd.concat([x[["Compound", "ID"]], x_update])
+
+	#NOTE: Manual clean up of IDs due to spotted technical duplicates#
+	remove_ids = ["681640", "53298813", "57370134", "16760671", "447912", "16683866", "6851740"]
+	x          = x.loc[~x.ID.isin(remove_ids)]
+	x          = pd.concat([x, pd.DataFrame([["T0901317", "447912"]], columns=x.columns)])
+	x          = x.drop_duplicates()
+	##################################################################
+
+	# Extract smiles using pubchem IDs
+	all_ids    = list(x.ID)
+	id_string  = ",".join(all_ids)
+
+	url="https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{}/property/CanonicalSMILES/CSV".format(id_string)
+	response   = urllib2.urlopen(url)
+	response   = pd.read_csv(response, names=["ID", "smiles"])
+
+	main_table = pd.merge(x, response, on="ID")[["Compound", "smiles"]].drop_duplicates()
+
+	# Clean up GDSC names
+	main_table["Compound"] = [Function_drug_name_zhang_to_gdsc(i, "gtz") for i in list(main_table.Compound)]
+	main_table = main_table.drop_duplicates()
+
+	# Return
+	return main_table
+
+def construct_fingerprint_features(test_drug):
+	# Constructs feature matrix out of 2-column pandas table of names and smiles
+
+	all_smiles = list(test_drug.smiles)
+	all_drugs  = list(test_drug.Compound)
+	features   = change_smiles_morgan_fingerprint(all_smiles)
+
+	feat_table = pd.DataFrame(features, index=all_drugs,
+							  columns = ["s_%s"%j for j in xrange(len(features[0]))] )
+
+	return feat_table
+
+def change_smiles_morgan_fingerprint(smiles_list):
+	# smiles_list: list of smiles strings
+	# Uses rdkit
+	from rdkit import Chem
+	from rdkit.Chem import AllChem
+
+	main_list = []
+	for i in smiles_list:
+		m1  = Chem.MolFromSmiles(i)
+		fp1 = AllChem.GetMorganFingerprintAsBitVect(m1, 2, nBits=1024)
+		fp1 = fp1.ToBitString()
+		main_list.append([int(i) for i in str(fp1)])
+
+	return main_list
+
+# CTRP-related Functions
+def process_ctrp_drug_smiles_target(file_in):
+    # file_in such as "v20.meta.per_compound.txt"
+    x = pd.read_csv(file_in, sep="\t")
+    x = x[["cpd_name", "gene_symbol_of_protein_target", "cpd_smiles"]]
+    
+    # Clean up
+    x.columns = ["Compound", "target", "smiles"]
+    x         = x.fillna("None")
+    
+    # Obtain targets
+    y = pd.concat([pd.DataFrame({"Compound":i,
+                                 "target":j.target.str.split(";").values[0]}) for i,j in x.groupby("Compound")])
+    
+    
+    return x[["Compound", "smiles"]], y[["Compound", "target"]]
+
+    # Written to:
+    # - .../CTRP_FILES/drug_smiles.txt
+    # - .../CTRP_FILES/drug_target.txt
+
 # Cheat-Sheet
 # df[df['model'].str.contains('ac')]
 # .query("index.str.contains('s_')") #'query' in this case being a column name, and this step being in the process of a pipe
+#  - NOTE, you might need .query("index.str.contains('s_')", engine="python") in some instances

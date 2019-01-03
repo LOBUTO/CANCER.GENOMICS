@@ -9,27 +9,31 @@ import sys
 
 from sklearn.metrics import mean_squared_log_error,mean_squared_error, r2_score,mean_absolute_error
 from imblearn.over_sampling import SMOTE, ADASYN
+import tensorflow as tf
 
 # Deep Learning Libraries
 from keras.models import Sequential, load_model
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D, BatchNormalization
-from keras.optimizers import Adam,SGD,Adagrad,Adadelta,RMSprop
+from keras.optimizers import Adam,Nadam,SGD,Adagrad,Adadelta,RMSprop
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import ReduceLROnPlateau, LearningRateScheduler, EarlyStopping
 from keras.utils import to_categorical
 from keras import backend as K
-
-# Establish home folder
-folder = "/tigress/zamalloa/"
+from keras import metrics
 
 # Import functions
-sys.path.insert(0, '{}GIT'.format(folder))
+sys.path.insert(0, '/home/ubuntu/GIT')
 
 from paper_1 import *
 
-def exp_encode_parse(gsea, g_filter, arch, dropkeep, in_folder=folder):
-    in_folder = "{}GSEA_FILES/RESULTS/".format(in_folder)
+def keras_auc(y_true, y_pred):
+    auc = tf.metrics.auc(y_true, y_pred)[1]
+    K.get_session().run(tf.local_variables_initializer())
+    return auc
+
+def exp_encode_parse(gsea, g_filter, arch, dropkeep):
+    in_folder = "/home/ubuntu/GSEA_FILES/RESULTS/"
     
     main_list = []
     for i in ["train", "valid", "test"]:
@@ -39,8 +43,8 @@ def exp_encode_parse(gsea, g_filter, arch, dropkeep, in_folder=folder):
     
     return pd.concat(main_list)
 
-def drug_encode_parse(arch, dropkeep, in_folder=folder):
-    in_folder = "{}CGP_FILES/RESULTS/".format(in_folder)
+def drug_encode_parse(arch, dropkeep):
+    in_folder = "/home/ubuntu/CGP_FILES/RESULTS/"
     
     main_list = []
     for i in ["train", "valid", "test"]:
@@ -78,8 +82,9 @@ def keras_mlp(train_feat , valid_feat , train_target , valid_target,
         y_valid = to_categorical(valid_target, num_classes=2)
 
     elif problem=="regression":
-        y_train = train_target
-        y_valid = valid_target
+        y_train      = train_target
+        y_valid      = valid_target
+        class_weight = None
 
     # Architecture
     init_features = train_feat.shape[1]
@@ -104,16 +109,17 @@ def keras_mlp(train_feat , valid_feat , train_target , valid_target,
         model.add(Dense(2, activation='softmax'))
         
         # Optimizer
-        optimizer = Adam(lr=slr, beta_1=0.9, beta_2=0.999)
+        optimizer = Nadam(lr=slr, beta_1=0.9, beta_2=0.999)
 
         # Compile
-        model.compile(optimizer=optimizer, loss="binary_crossentropy", metrics=["accuracy"])
+        model.compile(optimizer=optimizer, loss="binary_crossentropy", 
+                      metrics=[metrics.binary_crossentropy])
 
     elif problem=="regression":
         model.add(Dense(1))
 
         # Optimizer
-        optimizer = Adam(lr=slr, beta_1=0.9, beta_2=0.999)
+        optimizer = Nadam(lr=slr, beta_1=0.9, beta_2=0.999)
 
         # Compile
         model.compile(optimizer=optimizer, loss="mse", metrics=["mse"])
@@ -121,8 +127,8 @@ def keras_mlp(train_feat , valid_feat , train_target , valid_target,
     print(model.summary())
 
     # Run model
-    reduce_lr      = LearningRateScheduler(lambda x: 1e-3 * 0.9 ** x)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=10)
+#     reduce_lr      = LearningRateScheduler(lambda x: 1e-3 * 0.9 ** x)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=20)
 #     results   = model.fit(train_feat, y_train, batch_size=batch_size, epochs=epochs,
 #                           validation_data=(valid_feat, y_valid), verbose=2,
 #                           callbacks=[reduce_lr], class_weight=class_weight)
@@ -134,7 +140,7 @@ def keras_mlp(train_feat , valid_feat , train_target , valid_target,
     results   = model.fit(x=train_feat, 
                           y=y_train, 
                           batch_size=batch_size, epochs=200, validation_split=0.1, verbose=2,
-                          callbacks=[reduce_lr, early_stopping], class_weight=class_weight)
+                          callbacks=[early_stopping], class_weight=class_weight)
     
     # Clean up
 #     K.clear_session()
@@ -156,19 +162,22 @@ def drug_feat_target_cv_split(target_table, feat_table, drug, cells):
     valid_target = np.asarray(target_table.loc[valid_index].value)
 
     # Return true_values
-    true_values  = target_table.loc[(target_table.Compound==drug) & (target_table.cell_name.isin(cells))]["value"].values
+    true_values  = target_table.loc[valid_index]["value"].values
 
     return train_feat, valid_feat, train_target, valid_target, true_values
 
 def prep_output_files_keras_cv(out_folder, exp_arch, exp_gfilter, drug_arch, keepprob, arch, slr, 
-                                 target_features, exp_target, encoded_target, encoded_target_arch, string_th, problem, drug):
+                                 target_features, exp_target, encoded_target, encoded_target_arch, string_th, gdsc_variants, problem, drug):
     # Prep output files
-    pred_file     = "{}cgpmlp_exp_drug_reg_cv_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_txt".format(out_folder, "drugscv", exp_arch, exp_gfilter, 
+    pred_file     = "{}cgpmlp_exp_drug_reg_cv_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_txt".format(out_folder, "drugscv", exp_arch, exp_gfilter, 
                                                drug_arch, keepprob, arch, slr, target_features, exp_target, 
-                                               encoded_target, encoded_target_arch, string_th, problem, drug)
-
-    with open(pred_file, "w") as f:
-        f.write("Compound\tcell_name\ttrue_value\tprob_0\tprob_1")
+                                               encoded_target, encoded_target_arch, string_th,gdsc_variants, problem, drug)
+    if problem=="classification":
+        with open(pred_file, "w") as f:
+            f.write("Compound\tcell_name\ttrue_value\tprob_0\tprob_1\tbest_metric")
+    elif problem=="regression":
+        with open(pred_file, "w") as f:
+            f.write("Compound\tcell_name\ttrue_value\tprediction\tbest_metric")
 
     return pred_file
 
@@ -184,21 +193,32 @@ def fix_cell_drug_feat_indices(feat_main, exp_feat, drug_feat, target_feat):
                               target_feat.loc[feat_main.Compound,].reset_index(drop=True)], axis=1)
     return feat_main, data_feat
 
-def parse_features(lobico, exp_data, drug_data, target_features, exp_target, encoded_target, encoded_target_arch, string_th, in_folder=folder):
+def parse_features(lobico, exp_data, mut_data, drug_data, target_features, exp_target, encoded_target, encoded_target_arch, string_th, gdsc_variants):
     # Build feature space
+    
+    # Build cell line feature space first
+    if gdsc_variants==True:
+        print("Using gdsc variant features")
+        cell_data = pd.concat([exp_data, mut_data.loc[exp_data.index,]], 
+                              axis=1)
+    else:
+        print("Not using gdsc variant features")
+        cell_data = exp_data
+    print("cell features: ", cell_data.shape[1])
+        
     # Do we need to add target features??
     if target_features==True:
         print("Using drug target features")
-        pp_hugo             = string_pp_to_hugo("{}STRING/9606.protein.links.v10.5.txt".format(in_folder),
-                                                "{}STRING/9606.protein.aliases.v10.5.txt".format(in_folder))
-        drug_target         = process_drug_target("{}CGP_FILES/Screened_Compounds.csv".format(in_folder))
+        pp_hugo             = string_pp_to_hugo("/home/ubuntu/STRING/9606.protein.links.v10.5.txt",
+                                                "STRING/9606.protein.aliases.v10.5.txt")
+        drug_target         = process_drug_target("/home/ubuntu/CGP_FILES/Screened_Compounds.csv")
 
         if exp_target==True:
             print("Using target expression features")
             drug_target         = string_target_binary_features(drug_target, pp_hugo, th=string_th, output="table")
-            lobico, target_feat = string_target_expression_features(drug_target, "{}CGP_FILES/070818_cgp_exp.txt".format(in_folder), lobico)
+            lobico, target_feat = string_target_expression_features(drug_target, "CGP_FILES/070818_cgp_exp.txt", lobico)
 
-            data_feat      = pd.concat([exp_data.loc[lobico.cell_name,].reset_index(drop=True),
+            data_feat      = pd.concat([cell_data.loc[lobico.cell_name,].reset_index(drop=True),
                                         drug_data.loc[lobico.Compound,].reset_index(drop=True),
                                         target_feat.reset_index(drop=True)], axis=1)
         else:
@@ -206,22 +226,22 @@ def parse_features(lobico, exp_data, drug_data, target_features, exp_target, enc
             
             if encoded_target==True:
                 print("Using encoded features")
-                target_feat       = pd.read_csv("{}CGP_FILES/drug_target_encoded_binary_{}_{}.txt".format(in_folder, string_th, encoded_target_arch), 
+                target_feat       = pd.read_csv("/home/ubuntu/CGP_FILES/drug_target_encoded_binary_{}_{}.txt".format(string_th, encoded_target_arch), 
                                                 sep="\t", index_col=0)
-                lobico, data_feat = fix_cell_drug_feat_indices(lobico, exp_data, drug_data, target_feat)
+                lobico, data_feat = fix_cell_drug_feat_indices(lobico, cell_data, drug_data, target_feat)
 
             else:
                 print("Using non-encoded features")
                 drug_target         = string_target_binary_features(drug_target, pp_hugo, th=string_th, output="pivot")
                 lobico, target_feat = target_lobico_parse(lobico, drug_target)
 
-                data_feat      = pd.concat([exp_data.loc[lobico.cell_name,].reset_index(drop=True),
+                data_feat      = pd.concat([cell_data.loc[lobico.cell_name,].reset_index(drop=True),
                                             drug_data.loc[lobico.Compound,].reset_index(drop=True),
                                             target_feat.loc[lobico.Compound].reset_index(drop=True)], axis=1)
         
     else:
         print("No target features used")
-        data_feat      = pd.concat([exp_data.loc[lobico.cell_name,].reset_index(drop=True),
+        data_feat      = pd.concat([cell_data.loc[lobico.cell_name,].reset_index(drop=True),
                                     drug_data.loc[lobico.Compound,].reset_index(drop=True)], axis=1)
     
     lobico        = lobico.reset_index(drop=True)
@@ -230,50 +250,70 @@ def parse_features(lobico, exp_data, drug_data, target_features, exp_target, enc
 
     return lobico, data_feat
 
-def load_data(exp_arch, exp_gfilter, drug_arch, problem="regression", in_folder=folder):
+def load_data(exp_arch, exp_gfilter, drug_arch, problem="regression"):
     # problem: regression, classification
     # Data for ROC
-    lobico_ori = process_paper_lobico("{}PAPERS/LORIO/lobico.csv".format(in_folder))
+    lobico_ori = process_paper_lobico("/home/ubuntu/PAPERS/LORIO/lobico.csv")
     lobico_ori["Compound"] = [Function_drug_name_zhang_to_gdsc(i, "ztg") for i in lobico_ori["Compound"]]
 
-    # Prep data
+    ####### Prep data #####
+    # Expression features
     exp_data      = exp_encode_parse("c2setcover", exp_gfilter, exp_arch, 0.5)
+    
+    # Mutation features
+    mut_data      = process_gdsc_variant("/home/ubuntu/CGP_FILES/gdsc_WES_variants.csv", output="matrix", th=5)
+    
+    # Drug features
     if drug_arch=="original":
-        drug_data     = pd.read_csv("{}PAPERS/ZHANG_2018/drug_feats_proc.txt".format(in_folder), sep="\t", index_col=0)
+        drug_data     = pd.read_csv("/home/ubuntu/PAPERS/ZHANG_2018/drug_feats_proc.txt", sep="\t", index_col=0)
+        
     elif drug_arch=="pubchem_smiles":
-        drug_data     = pd.read_csv("{}CGP_FILES/pubchem_smiles.txt".format(in_folder), index_col=0)
+        drug_data     = pd.read_csv("/home/ubuntu/CGP_FILES/pubchem_smiles.txt", index_col=0)
+        
+    elif drug_arch=="original_pubchem_smiles":
+        print("using original and pubchem smiles")
+        original  = pd.read_csv("/home/ubuntu/PAPERS/ZHANG_2018/drug_feats_proc.txt", sep="\t", index_col=0)
+        pubchem   = pd.read_csv("/home/ubuntu/CGP_FILES/pubchem_smiles.txt", index_col=0)
+        drug_data = pd.merge(original, pubchem, left_index=True, right_index=True)
+        
+    elif "_arch_" in drug_arch:
+        print("using combined datasets")
+        c_list    = [i for i in drug_arch.split("_arch_")]
+        pubchem   = pd.read_csv("/home/ubuntu/CGP_FILES/pubchem_smiles.txt", index_col=0)
+        encoded   = drug_encode_parse(c_list[1], 0.5)
+        drug_data = pd.merge(pubchem, encoded, left_index=True, right_index=True)
     else:
         drug_data     = drug_encode_parse(drug_arch, 0.5)
 
     # Is this for classification or regression? 
     if problem=="regression":
-        lobico = cgp_act_post_process(pd.read_csv("{}CGP_FILES/v17.3_fitted_dose_response.csv".format(in_folder)),
+        lobico = cgp_act_post_process(pd.read_csv("/home/ubuntu/CGP_FILES/v17.3_fitted_dose_response.csv"),
                                         zscoring=False)
     elif problem=="classification":
         lobico = lobico_ori
 
-    lobico, exp_data, drug_data = drug_exp_lobico_parse_v2(lobico, exp_data, drug_data, "ztg")
+    lobico, exp_data, mut_data, drug_data = drug_exp_lobico_parse_v2(lobico, exp_data, mut_data, drug_data, "ztg")
 
-    return lobico, exp_data, drug_data, lobico_ori
+    return lobico, exp_data, mut_data, drug_data, lobico_ori
 
 def run(exp_arch, exp_gfilter, drug_arch, keepprob, arch, slr, target_features, exp_target,
         encoded_target, encoded_target_arch,
-        string_th, problem, batch_size, epochs, drug, folder=folder):
+        string_th, gdsc_variants, problem, batch_size, epochs, drug):
     
-    out_folder          = "{}CGP_FILES/RESULTS/".format(folder)
+    out_folder          = "/home/ubuntu/CGP_FILES/RESULTS/"
      
     # Load data
-    lobico, exp_data, drug_data, lobico_ori = load_data(exp_arch, exp_gfilter, drug_arch, problem)
+    lobico, exp_data, mut_data, drug_data, lobico_ori = load_data(exp_arch, exp_gfilter, drug_arch, problem)
 
     # Build feature space
-    lobico, data_feat   = parse_features(lobico, exp_data, drug_data, target_features, exp_target, 
-                                        encoded_target, encoded_target_arch, string_th)
+    lobico, data_feat   = parse_features(lobico, exp_data, mut_data, drug_data, target_features, exp_target, 
+                                        encoded_target, encoded_target_arch, string_th, gdsc_variants)
 
     # Prep output files (for all folds)
     pred_file             = prep_output_files_keras_cv(out_folder, exp_arch, exp_gfilter, drug_arch, 
                                             keepprob, arch, slr, 
                                             target_features, exp_target, encoded_target, encoded_target_arch, string_th, 
-                                            problem, drug)
+                                            gdsc_variants, problem, drug)
 
     all_cells           = list(set(lobico.loc[lobico.Compound==drug].cell_name))
     cell_chunks         = [list(i) for i in np.array_split(all_cells, 10)]
@@ -289,35 +329,49 @@ def run(exp_arch, exp_gfilter, drug_arch, keepprob, arch, slr, target_features, 
         results, model, early_stopping = keras_mlp(x_train , x_valid , y_train , y_valid,
                                                    arch, slr, keepprob, problem,
                                                    pred_file, batch_size, epochs)
+        best_metric = np.min(results.history["val_loss"]) #Given that accuracy is the early stopping metric
+
         # Predict
         print("Predicting...")
         probabilities   = model.predict(x_valid)
-        with open(pred_file, "a") as f:
-            for i in xrange(len(true_values)):
-                f.write("\n%s\t%s\t%s\t%s\t%s"%(drug, cells[i], true_values[i], probabilities[i,0], probabilities[i,1]))
 
+        if problem=="classification":
+            with open(pred_file, "a") as f:
+                for i in xrange(len(true_values)):
+                    f.write("\n%s\t%s\t%s\t%s\t%s\t%s"%(drug, cells[i], true_values[i], probabilities[i,0], probabilities[i,1], best_metric))
+
+        elif problem=="regression":
+            with open(pred_file, "a") as f:
+                for i in xrange(len(true_values)):
+                    f.write("\n%s\t%s\t%s\t%s\t%s"%(drug, cells[i], true_values[i], probabilities[i][0], best_metric))
+        
+        # Clean up
+        del model
+        del results
+        gc.collect()
 
 def run_wrapper():
     # Arguments
-    drug                = "Erlotinib"
+    drug                = "Sunitinib"
     exp_arch            = "2" # The expression features dae (cgp_encode.py) results
     exp_gfilter         = int(10) # The expression g_filter used (cgp_encode.py)
-    drug_arch           = "8_16" # "8_16" # The drug features dae (drug_dae.py) results
-    arch                = "1_2"
+    drug_arch           = "8_16" # "pubchem_arch_8_16" #"8_16" 
+    arch                = "1_4_4"
     keepprob            = float(0.5)
-    slr                 = 0.001 #0.0000001
-    target_features     = True
+    slr                 = 0.0001 #0.0000001
+    target_features     = False
     exp_target          = False #If target features true, then we will use regression features, otherwise binary features
-    encoded_target      = True
+    encoded_target      = False
     encoded_target_arch = "2_16" #Only used if encoded_target==True
-    string_th           = 650 #Irrelevant if both target_features==False & exp_target==False
-    problem             = "classification"
+    string_th           = 550 #Irrelevant if both target_features==False & exp_target==False
+    gdsc_variants       = False
+    problem             = "classification" #regression
     batch_size          = 200
     epochs              = 20
-
+    
     run(exp_arch, exp_gfilter, drug_arch, keepprob,
         arch, slr, target_features, exp_target, encoded_target, encoded_target_arch,
-        string_th, problem, batch_size, epochs,
+        string_th, gdsc_variants, problem, batch_size, epochs,
         drug)
     print("DONE")
 

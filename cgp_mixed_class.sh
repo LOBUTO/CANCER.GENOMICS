@@ -103,7 +103,7 @@ do
               do
                 echo "$split_fold"
 
-                script_name="GIT/cgp_multi_mlp.py"
+                script_name="GIT/cgp_multi_mlp_2.py"
                 echo "$cell_n"
 
                 file_name="${samples}_scaled_C_${c}_${mm}_${d}_mf_${multiplicative_fusion}_dn_${drug_n}_cn_${cell_n}_fn_${fusion_n}_mf_manual_${mf_manual}_genes_${genes}_bn_${batch_norm}_pca_${pca}_rebalance_${rebalance}_gene_target_${gene_target}_fold_${split_fold}_radii_${r}_bit_${b}"

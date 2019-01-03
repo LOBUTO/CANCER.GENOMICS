@@ -1,3 +1,6 @@
+# R-adapted sva function
+# Adaptation obtained @https://github.com/brentp/combat.py
+
 import pandas as pd
 import patsy
 import sys
